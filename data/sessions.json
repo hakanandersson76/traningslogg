@@ -1,0 +1,2915 @@
+{
+ "exported": "2026-11-22",
+ "source": "Träningslogg artifact (claude.ai)",
+ "sessions": [
+  {
+   "id": "2026-01-02-00",
+   "date": "2026-01-02",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bröstpress (maskin)",
+     "sets": "8@27,5kg, 3@52,5kg, 9@65kg, 8@65kg"
+    },
+    {
+     "name": "Axelpress",
+     "sets": "6@15kg, 4@30kg"
+    },
+    {
+     "name": "Incline bröst (smith rak)",
+     "sets": "2@20kg, 5@22,5kg"
+    },
+    {
+     "name": "Preacher curl",
+     "sets": "4@10kg, 8@13,5kg, 6@13,5kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "6@16,5kg, 6@43,5kg"
+    },
+    {
+     "name": "Tricepspress (kabelmaskin)",
+     "sets": "8@16,25kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-01-05-01",
+   "date": "2026-01-05",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Incline bänk (smith rak)",
+     "sets": "6@15kg, 2@20kg, 5@23,5kg, 3@23,5kg"
+    },
+    {
+     "name": "Bröstpress (maskin)",
+     "sets": "6@35kg, 8@65kg, 8@65kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "6@28,5kg, 10@43,5kg, 8@43,5kg"
+    },
+    {
+     "name": "Triceps extension (kabelmaskin)",
+     "sets": "8@11,25kg, 12@16,25kg"
+    },
+    {
+     "name": "Bicepscurl (hantel sittande)",
+     "sets": "6@10kg, 8@15kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-01-07-02",
+   "date": "2026-01-07",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "RDLs (fri stång)",
+     "sets": "6@0kg, 6@20kg, 2@30kg, 8@35kg, 7@35kg"
+    },
+    {
+     "name": "Mage (maskin)",
+     "sets": "10@42,5kg, 10@65kg, 10@75kg"
+    },
+    {
+     "name": "Mage vrid (maskin)",
+     "sets": "8@50kg (trött och bytte maskin, 72,5kg max)"
+    },
+    {
+     "name": "Leg extensions",
+     "sets": "8@72,5kg, 2@95kg, 10@110kg"
+    },
+    {
+     "name": "Hamstring curl",
+     "sets": "8@42,5kg, 10@62,5kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-01-08-03",
+   "date": "2026-01-08",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänk",
+     "sets": "6@40kg, 2@60kg, 1@70kg, 1@80kg"
+    },
+    {
+     "name": "Incline bänk (smith rak)",
+     "sets": "2@20kg, 6@23,5kg, 6@23,5kg"
+    },
+    {
+     "name": "Bröstpress (maskin)",
+     "sets": "6@35kg, 6@67,5kg, 5@67,5kg"
+    },
+    {
+     "name": "Pulldown (bred stång)",
+     "sets": "6@23,5kg, 8@28,5kg, 7@33,5kg (dålig teknik)"
+    },
+    {
+     "name": "Bicepscurl (kabelmaskin kort stång)",
+     "sets": "6@16,25kg, 8@23,75kg, 8@28,75kg, 5@31,25"
+    },
+    {
+     "name": "Bicepscurl (kabelmaskin rep)",
+     "sets": "10@21,25kg, 6@28,75kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "6@28,5kg, 10@43,5kg, 8@43,5kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-01-11-04",
+   "date": "2026-01-11",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Face pulls",
+     "sets": "10@11,25kg, 8@16,25kg, 12@21,25kg"
+    },
+    {
+     "name": "Shrugs (maskin)",
+     "sets": "8@55kg, 12@95kg, 8@100kg"
+    },
+    {
+     "name": "Rear deltoid",
+     "sets": "6@27,5kg, 8@50kg, 6@62,5kg, 5@62,5kg"
+    },
+    {
+     "name": "Scapular depression",
+     "sets": "8@35kg, 10@65kg (dålig teknik)"
+    }
+   ]
+  },
+  {
+   "id": "2026-01-12-05",
+   "date": "2026-01-12",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress",
+     "sets": "8@0kg, 8@10kg, 6@20kg, 6@25kg, 3@27,5kg (75), 10@20kg"
+    },
+    {
+     "name": "Assist chin",
+     "sets": "8@-20kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "6@65kg, 2@80kg, 8@87,5kg, 7@87,5kg"
+    },
+    {
+     "name": "Preacher curl",
+     "sets": "6@5kg, 4@10kg, 4@15kg, 4@15kg"
+    },
+    {
+     "name": "Tricepspress hantel (bänk liggande)",
+     "sets": "8@22,5kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-01-13-06",
+   "date": "2026-01-13",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "RDLs (fri stång)",
+     "sets": "8@0kg, 6@20kg, 2@30kg, 8@35kg, 7@35kg"
+    },
+    {
+     "name": "Leg extensions",
+     "sets": "6@72,5kg, 2@95kg, 8@112,5kg, 6@112,5kg"
+    },
+    {
+     "name": "Vadpress",
+     "sets": "6@102,5kg, 2@140, 7@165kg, 7@165kg"
+    },
+    {
+     "name": "Hamstring curl",
+     "sets": "8@42,5kg, 6@65kg, 6@65kg"
+    },
+    {
+     "name": "Mage (maskin)",
+     "sets": "10@65kg, 10@75kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-01-15-07",
+   "date": "2026-01-15",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Incline bänk (smith rak)",
+     "sets": "2@20kg, 6@23,75kg, 5@23,75kg"
+    },
+    {
+     "name": "Pulldown (bred stång)",
+     "sets": "6@23,5kg, 8@28,5kg, 8@33,5kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "8@28,5kg, 8@43,5kg, 6@48,5kg"
+    },
+    {
+     "name": "Tricepspress liggande (smith rak)",
+     "sets": "8@0kg, 2@20kg, 6@25kg, 6@25kg"
+    },
+    {
+     "name": "Preacher curl",
+     "sets": "8@0kg, 4@15kg, 4@15kg"
+    },
+    {
+     "name": "Face pulls",
+     "sets": "12@21,25kg, 12@21,25kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-01-17-08",
+   "date": "2026-01-17",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Axelpress",
+     "sets": "4@20kg, 4@25kg, 8@30kg, 6@30kg"
+    },
+    {
+     "name": "Scapular depression",
+     "sets": "8@42,5kg, 10@65kg"
+    },
+    {
+     "name": "Rear deltoid",
+     "sets": "6@27,5kg, 8@50kg, 6@62,5kg"
+    },
+    {
+     "name": "Shrugs (maskin)",
+     "sets": "6@55kg, 8@100kg"
+    },
+    {
+     "name": "Underarmar rullande (fast stång)",
+     "sets": "15@20kg, 12@20kg"
+    },
+    {
+     "name": "Underarmar lyft (fast stång)",
+     "sets": "6@20kg, 8@20kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-01-20-09",
+   "date": "2026-01-20",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänk",
+     "sets": "6@40kg, 2@60kg, 1@70kg, 1@85kg, 0@90kg (fail), 4@70kg"
+    },
+    {
+     "name": "Incline bänk (smith rak)",
+     "sets": "8@20kg, 6@22,5kg"
+    },
+    {
+     "name": "Tricepspress liggande (smith rak)",
+     "sets": "2@20kg, 8@25kg, 7@25kg"
+    },
+    {
+     "name": "Pulldown (bred stång)",
+     "sets": "6@20kg, 1@28,5kg, 8@33,5kg"
+    },
+    {
+     "name": "Pulldown (handtag)",
+     "sets": "6@33,5kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "6@48,5kg (halvreps)"
+    },
+    {
+     "name": "Bicepscurl (smal stång kabel)",
+     "sets": "2@28,25kg, 6@31,25kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-01-21-10",
+   "date": "2026-01-21",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Leg extensions",
+     "sets": "6@65kg, 2@95kg, 7@112,5kg, 7@112,5kg"
+    },
+    {
+     "name": "Hamstring curl",
+     "sets": "8@42,5kg, 7@65kg, 7@65kg"
+    },
+    {
+     "name": "Vadpress",
+     "sets": "6@102,5kg, 2@140, 7@165kg, 7@165kg"
+    },
+    {
+     "name": "Axelpress",
+     "sets": "4@20kg, 2@25kg, 8@30kg, 6@30kg"
+    },
+    {
+     "name": "Mage (maskin)",
+     "sets": "10@65kg, 10@75kg"
+    },
+    {
+     "name": "Mage vrid (maskin)",
+     "sets": "8@50kg, x@72,5kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-01-22-11",
+   "date": "2026-01-22",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress",
+     "sets": "8@0kg, 4@15kg, 5@25kg, 3@27,5kg (75), 10@20kg"
+    },
+    {
+     "name": "Pulldown (handtag)",
+     "sets": "8@20kg, 8@28,5kg, 6@33,5kg"
+    },
+    {
+     "name": "Tricepspress (rep över huvud)",
+     "sets": "10@18,75kg, 8@23,75kg, 8@26,25kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-01-27-12",
+   "date": "2026-01-27",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Squats",
+     "sets": "8@80kg, 3@102,5kg, 8@117,5kg, 8@122,5kg"
+    },
+    {
+     "name": "Leg extensions",
+     "sets": "6@65kg, 2@95kg, 3@112,5kg, 8@102,5kg"
+    },
+    {
+     "name": "Hamstring curl",
+     "sets": "8@42,5kg, 8@62,5kg, 8@62,5kg"
+    },
+    {
+     "name": "Mage (maskin)",
+     "sets": "10@65kg, 8@77,5kg (dålig teknik)"
+    }
+   ]
+  },
+  {
+   "id": "2026-01-29-13",
+   "date": "2026-01-29",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bröstpress (maskin)",
+     "sets": "6@35kg, 2@57,5kg, 8@67,5kg, 7@67,5kg"
+    },
+    {
+     "name": "Pulldown (handtag)",
+     "sets": "6@20kg, 8@28,5kg, 8@28,5kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "6@65kg, 2@80kg, 8@87,5kg"
+    },
+    {
+     "name": "Bicepscurl (hantel)",
+     "sets": "8@15kg, 7@15kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "6@38,5kg, 6@38,5kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-02-02-14",
+   "date": "2026-02-02",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "4@15kg, 5@25kg, 10@20kg"
+    },
+    {
+     "name": "Preacher curl (hantel)",
+     "sets": "4@10kg, 8@15kg, 7@15kg"
+    },
+    {
+     "name": "Pulldown (rak stång)",
+     "sets": "6@20kg, 2@28,5kg, 8@33,5kg, 7@33,5kg"
+    },
+    {
+     "name": "Axelpress (maskin)",
+     "sets": "4@15kg, 2@25kg, 4@30kg, 8@25kg"
+    },
+    {
+     "name": "Tricepspress enhands (kabel)",
+     "sets": "4@13,25kg, 10@16,25kg"
+    },
+    {
+     "name": "Shrugs",
+     "sets": "7@102,5kg, 6@102,5kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-02-03-15",
+   "date": "2026-02-03",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "RDLs (fri stång)",
+     "sets": "8@0kg, 4@20kg, 2@30kg, 6@35kg (strul med straps), 8@30kg"
+    },
+    {
+     "name": "Leg extensions",
+     "sets": "6@65kg, 2@95kg, 7@112,5kg, 7@112,5kg"
+    },
+    {
+     "name": "Hamstring curl",
+     "sets": "8@42,5kg, 6@65kg"
+    },
+    {
+     "name": "Calf raises (smith)",
+     "sets": "2@20kg, 8@35kg, 8@35kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-02-05-16",
+   "date": "2026-02-05",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress",
+     "sets": "8@0kg, 6@10kg, 6@20kg, 2@25kg, 2@27,5kg 4@25kg, 8@20kg"
+    },
+    {
+     "name": "Bänkpress (incline hantel)",
+     "sets": "6@22,5kg, 6@22,5kg"
+    },
+    {
+     "name": "Pulldown (rak stång)",
+     "sets": "6@20kg, 2@28,5kg, 8@33,5kg, 8@33,5kg"
+    },
+    {
+     "name": "Face pulls",
+     "sets": "10@21,25kg, 12@23,75"
+    },
+    {
+     "name": "Tricepspress (rep över huvud)",
+     "sets": "8@23,75kg, 10@26,25kg"
+    },
+    {
+     "name": "Preacher curl (hantel)",
+     "sets": "7@15kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-02-10-17",
+   "date": "2026-02-10",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "4@15kg, 5@25kg, 10@20kg"
+    },
+    {
+     "name": "Tricepspress liggande (smith rak)",
+     "sets": "2@20kg, 7@25kg, 5@25kg"
+    },
+    {
+     "name": "Preacher curl (hantel)",
+     "sets": "4@10kg, 8@15kg, 8@15kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "8@20kg, 2@28,5kg, 8@33,5kg, 6@33,5kg (bättre teknik)"
+    }
+   ]
+  },
+  {
+   "id": "2026-02-12-18",
+   "date": "2026-02-12",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "RDLs (fri stång)",
+     "sets": "8@0kg, 4@20kg, 2@30kg, 8@35kg, 6@35kg"
+    },
+    {
+     "name": "Hamstring curl",
+     "sets": "8@42,5kg, 6@65kg, 7@65kg"
+    },
+    {
+     "name": "Vadpress",
+     "sets": "6@102,5kg, 2@140, 8@165kg"
+    },
+    {
+     "name": "Leg extensions",
+     "sets": "6@65kg, 2@95kg, 8@112,5kg, 7@112,5kg"
+    },
+    {
+     "name": "Mage (rep)",
+     "sets": "12@26,25kg, 12@38,75kg, 10@38,75kg"
+    },
+    {
+     "name": "Axelpress (maskin)",
+     "sets": "6@15kg, 8@25kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-02-15-19",
+   "date": "2026-02-15",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "4@15kg, 5@25kg, 8@20kg, 8@20kg"
+    },
+    {
+     "name": "Tricepspress liggande (smith rak)",
+     "sets": "2@20kg, 8@25kg, 8@25k"
+    },
+    {
+     "name": "Pulldown (rak stång)",
+     "sets": "6@20kg, 2@28,5kg, 9@33,5kg, 8@33,5kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "8@33,5kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "6@65kg, 2@80kg, 8@87,5kg"
+    },
+    {
+     "name": "Face pulls",
+     "sets": "12@23,75, 12@23,75kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-03-01-20",
+   "date": "2026-03-01",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "4@15kg, 2@20kg, 3@25kg, 8@20kg"
+    },
+    {
+     "name": "Tricepspress liggande (smith rak)",
+     "sets": "8@20kg, 6@25kg"
+    },
+    {
+     "name": "Preacher curl (hantel)",
+     "sets": "6@10kg, 10@12,5kg"
+    },
+    {
+     "name": "Pulldown (rak stång)",
+     "sets": "6@20kg, 2@28,5kg, 8@33,5kg, 8@33,5kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "6@33,5kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "6@65kg, 2@80kg, 8@87,5kg"
+    },
+    {
+     "name": "Mage (maskin)",
+     "sets": "8@65kg, 8@75kg (dålig kontakt)"
+    }
+   ]
+  },
+  {
+   "id": "2026-03-03-21",
+   "date": "2026-03-03",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Leg extensions",
+     "sets": "6@65kg, 2@95kg, 5@112,5kg, 8@102,5kg"
+    },
+    {
+     "name": "Hamstring curl",
+     "sets": "8@42,5kg, 8@65kg, 7@65kg"
+    },
+    {
+     "name": "Calf raises (smith)",
+     "sets": "6@20kg, 10@35kg, 10@35kg"
+    },
+    {
+     "name": "Squats",
+     "sets": "8@80kg, 3@102,5kg, 10@122,5kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-03-05-22",
+   "date": "2026-03-05",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Pulldown (rak stång)",
+     "sets": "8@20kg, 2@28,5kg, 8@33,5kg, 8@33,5kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "8@33,5kg"
+    },
+    {
+     "name": "Bänkpress",
+     "sets": "8@0kg, 6@10kg, 6@20kg, 2@25kg, 3@27,5kg 4@25kg, 10@20kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "6@65kg, 2@82,5kg, 5@90kg"
+    },
+    {
+     "name": "Preacher curl (hantel)",
+     "sets": "6@10kg, 6@15kg, 6@15kg"
+    },
+    {
+     "name": "Tricepspress (rep över huvud)",
+     "sets": "10@28,25kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-03-08-23",
+   "date": "2026-03-08",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Pulldown (rak stång)",
+     "sets": "8@20kg, 2@28,5kg, 9@33,5kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "8@33,5kg, 8@33,5+2kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "6@65kg, 2@82,5kg, 8@90kg, 6@90kg"
+    },
+    {
+     "name": "Bröstpress (maskin)",
+     "sets": "8@67,5kg, 3@67,5kg"
+    },
+    {
+     "name": "Tricepspress (rep över huvud)",
+     "sets": "10@28,25kg, 4@31,25kg (tung)"
+    },
+    {
+     "name": "Preacher curl (hantel)",
+     "sets": "6@10kg, 6@15kg, 6@15kg"
+    },
+    {
+     "name": "Mage (blå boll)",
+     "sets": "10, 10"
+    }
+   ]
+  },
+  {
+   "id": "2026-03-10-24",
+   "date": "2026-03-10",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Squats",
+     "sets": "8@80kg, 6@102,5kg, 10@122,5kg"
+    },
+    {
+     "name": "Leg extensions",
+     "sets": "6@65kg, 3@95kg, 8@107,5kg, 6@107,5kg"
+    },
+    {
+     "name": "Vadpress",
+     "sets": "6@102,5kg, 2@140, 8@165kg, 7@167,5kg"
+    },
+    {
+     "name": "Mage vrid (maskin)",
+     "sets": "8@50kg, 12@72,5kg, 10@80"
+    },
+    {
+     "name": "Hamstring curl",
+     "sets": "6@65kg, 9@65kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-03-12-25",
+   "date": "2026-03-12",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress",
+     "sets": "8@0kg, 6@10kg, 6@20kg, 2@25kg, 3@27,5kg 5@25kg, 10@20kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "10@20kg, 2@28,5kg, 8@33,5+2kg, 7@33,5+2kg"
+    },
+    {
+     "name": "Preacher curl (hantel)",
+     "sets": "6@10kg, 7@15kg"
+    },
+    {
+     "name": "Tricepspress stång (kabelmaskin)",
+     "sets": "8@23,75kg, 8@28,75kg, 7@33,75kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-03-15-26",
+   "date": "2026-03-15",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "8@15kg, 2@20kg, 5@25kg, 8@20kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "10@20kg, 2@28,5kg, 8@33,5+2kg, 8@33,5+2kg"
+    },
+    {
+     "name": "Rear deltoid",
+     "sets": "8@27,5kg, 8@50kg, 6@62,5kg (dålig teknik)"
+    },
+    {
+     "name": "Shrugs (maskin)",
+     "sets": "6@65kg, 8@100kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-03-16-27",
+   "date": "2026-03-16",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Preacher curl (hantel)",
+     "sets": "6@10kg, 9@15kg, 9@15kg"
+    },
+    {
+     "name": "Tricepspress enhands (kabel)",
+     "sets": "4@13,25kg, 8@16,25kg, 10/8@16,25kg"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "6@8kg, 8@8kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-03-17-28",
+   "date": "2026-03-17",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Hamstring curl",
+     "sets": "8@50kg, 8@65kg, 8@65kg"
+    },
+    {
+     "name": "Leg extensions",
+     "sets": "6@65kg, 3@95kg, 8@107,5kg, 6@107,5kg"
+    },
+    {
+     "name": "Squats",
+     "sets": "8@80kg, 6@102,5kg, 10@122,5kg"
+    },
+    {
+     "name": "Calf raises (smith)",
+     "sets": "6@20kg, 10@35kg, 10@35kg"
+    },
+    {
+     "name": "Mage (maskin)",
+     "sets": "10@65kg, 10@72,5kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-03-19-29",
+   "date": "2026-03-19",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "8@15kg, 4@20kg, 5@25kg, 6@22,5kg, 9@20k"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "8@20kg, 2@28,5kg, 8@33,5+2kg"
+    },
+    {
+     "name": "Pulldown (v-shape)",
+     "sets": "8@28,5kg"
+    },
+    {
+     "name": "Tricepspress (rep över huvud)",
+     "sets": "8@28,75kg, 7@28,75kg"
+    },
+    {
+     "name": "Preacher curl (hantel)",
+     "sets": "6@10kg, 9@15kg, 9@15kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-03-22-30",
+   "date": "2026-03-22",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "RDLs (fri stång)",
+     "sets": "8@0kg, 4@20kg, 2@30kg, 7@35kg"
+    },
+    {
+     "name": "Bänkpress",
+     "sets": "8@10kg, 6@20kg, 2@25kg, 3@27,5kg 3@25kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "8@20kg, 2@28,5kg, 8@33,5+2kg"
+    },
+    {
+     "name": "Pulldown (v-shape)",
+     "sets": "8@28,5kg"
+    },
+    {
+     "name": "Bicepscurl (hantel sittande)",
+     "sets": "8@15kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-03-26-31",
+   "date": "2026-03-26",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress",
+     "sets": "8@10kg, 6@20kg, 2@25kg, 2@27,5kg 4@25kg, 10@60kg"
+    },
+    {
+     "name": "Pulldown (v-shape)",
+     "sets": "8@20kg, 8@28,5kg, 6@33,5kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "6@65kg, 2@82,5kg, 8@90kg"
+    },
+    {
+     "name": "Preacher curl (hantel)",
+     "sets": "6@10kg, 5@17,5kg, 5@17,5kg (tungt)"
+    },
+    {
+     "name": "Tricepspress (rep över huvud)",
+     "sets": "9@28,75kg, 7@28,75kg"
+    },
+    {
+     "name": "Face pulls",
+     "sets": "15@23,75kg"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "6@8kg, 8@8kg"
+    },
+    {
+     "name": "Mage (maskin)",
+     "sets": "8@72,5kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-03-30-32",
+   "date": "2026-03-30",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "8@15kg, 8@20kg, 3@25kg, 3@25kg"
+    },
+    {
+     "name": "Tricepspress liggande (smith rak)",
+     "sets": "8@20kg, 7@25kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "8@20kg, 2@28,5kg, 6@33,5+2kg, x@33,5+2kg (långsamma)"
+    },
+    {
+     "name": "Pulldown (maskin)",
+     "sets": "10@65kg"
+    },
+    {
+     "name": "Mage (blå ställning)",
+     "sets": "15"
+    },
+    {
+     "name": "Hip abductor x2",
+     "sets": "10@30kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-03-31-33",
+   "date": "2026-03-31",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "RDLs (fri stång)",
+     "sets": "8@0kg, 4@20kg, 2@30kg, 8@35kg, 2@37,5kg"
+    },
+    {
+     "name": "Leg curl",
+     "sets": "8@22,5kg"
+    },
+    {
+     "name": "Squats (liggande)",
+     "sets": "8@0kg, 8@25kg, 8@40kg, 12@50kg, 12@60kg"
+    },
+    {
+     "name": "Glute drive",
+     "sets": "8@10kg, 10@20kg"
+    },
+    {
+     "name": "Hip abductor (ut)",
+     "sets": "15@37,5kg"
+    },
+    {
+     "name": "Hip abductor (in)",
+     "sets": "8@37,5kg"
+    },
+    {
+     "name": "Mage (maskin)",
+     "sets": "10@72,5kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-04-02-34",
+   "date": "2026-04-02",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "8@15kg, 8@20kg, 3,5@25kg"
+    },
+    {
+     "name": "Pulldown (v-shape)",
+     "sets": "8@20kg, 8@28,5kg, 7@33,5kg, 6@33,5kg"
+    },
+    {
+     "name": "Axelpress (maskin)",
+     "sets": "6@15kg, 10@25kg, 8@25kg"
+    },
+    {
+     "name": "Bicepscurl (hantel)",
+     "sets": "8@15kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-04-06-35",
+   "date": "2026-04-06",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress",
+     "sets": "8@10kg, 6@20kg, 5@25kg, 2@27,5kg 4@25kg, 10@60kg"
+    },
+    {
+     "name": "Pulldown (v-shape)",
+     "sets": "8@20kg, 2@28,5kg, 8@33,5kg, 6@33,5kg"
+    },
+    {
+     "name": "Tricepspress liggande (smith rak)",
+     "sets": "8@25kg, 7@25kg"
+    },
+    {
+     "name": "Preachercurl (stång)",
+     "sets": "6@10kg, 4@15kg, 4@15kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-04-07-36",
+   "date": "2026-04-07",
+   "tag": "NK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "RDLs (fri stång)",
+     "sets": "8@0kg, 4@20kg, 2@30kg, 8@35kg, 5@35kg"
+    },
+    {
+     "name": "Leg curl",
+     "sets": "8@22,5kg"
+    },
+    {
+     "name": "Squats (liggande)",
+     "sets": "8@25kg, 4@50kg, 8@60kg, 12@70kg, 10@75kg"
+    },
+    {
+     "name": "Hip abductor (ut)",
+     "sets": "20@37,5kg"
+    },
+    {
+     "name": "Hip abductor (in)",
+     "sets": "10@37,5kg"
+    },
+    {
+     "name": "Glute drive",
+     "sets": "8@15kg, 10@30kg"
+    },
+    {
+     "name": "Vadpress",
+     "sets": "10@165kg, 6@167,5kg"
+    },
+    {
+     "name": "Maghjul",
+     "sets": "25"
+    }
+   ]
+  },
+  {
+   "id": "2026-04-09-37",
+   "date": "2026-04-09",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bröstpress",
+     "sets": "6@65kg, 2@82,5kg, 8@90kg, 7@90kg"
+    },
+    {
+     "name": "Pulldown (handtag)",
+     "sets": "8@20kg, 2@28,5kg, 5@33,5kg, 5@33,5kg"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "8@8kg, 8@8kg"
+    },
+    {
+     "name": "Axelpress (maskin)",
+     "sets": "8@15kg, 8@25kg, 8@25kg"
+    },
+    {
+     "name": "Tricepspress (rep över huvud)",
+     "sets": "7@28,75kg (slut i core)"
+    },
+    {
+     "name": "Shrugs",
+     "sets": "10@75kg, 9@100kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-04-12-38",
+   "date": "2026-04-12",
+   "tag": "NK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "RDLs (fri stång)",
+     "sets": "8@0kg, 4@20kg, 2@30kg, 8@35kg"
+    },
+    {
+     "name": "Leg curl",
+     "sets": "8@22,5kg, 8@22,5+3,75kg (öka inte)"
+    },
+    {
+     "name": "Glute drive",
+     "sets": "10@30kg, 10@30kg"
+    },
+    {
+     "name": "Leg extensions",
+     "sets": "6@65kg, 3@95kg, 8@107,5kg"
+    },
+    {
+     "name": "Hip abductor (in)",
+     "sets": "6@37,5+3,75kg, 10@37,5kg"
+    },
+    {
+     "name": "Hip abductor (ut)",
+     "sets": "16@45kg"
+    },
+    {
+     "name": "Vadpress",
+     "sets": "6@167,5kg"
+    },
+    {
+     "name": "Mage",
+     "sets": "15"
+    }
+   ]
+  },
+  {
+   "id": "2026-04-13-39",
+   "date": "2026-04-13",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "8@15kg, 8@20kg, 3,5@25kg"
+    },
+    {
+     "name": "Pulldown (v-shape)",
+     "sets": "8@28,5kg, 8@33,5kg, 7@33,5kg"
+    },
+    {
+     "name": "Preacher curl",
+     "sets": "6@10kg, 8@15kg"
+    },
+    {
+     "name": "Tricepspress stång (kabelmaskin)",
+     "sets": "10@28,75kg, 9@31,25kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-04-16-40",
+   "date": "2026-04-16",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress",
+     "sets": "8@10kg, 6@20kg, 4@25kg, 2@27,5kg 4@25kg, 8@60kg"
+    },
+    {
+     "name": "Pulldown (v-shape)",
+     "sets": "8@28,5kg, 8@33,5kg, 8@33,5kg"
+    },
+    {
+     "name": "Tricepspress stång (kabelmaskin)",
+     "sets": "6@28,75kg, 9@31,25kg, 7@31,25kg"
+    },
+    {
+     "name": "Bicepscurl (över bänk)",
+     "sets": "6@10kg, 8@15kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "6@65kg, 2@82,5kg, 7@90kg"
+    },
+    {
+     "name": "Rear deltoid",
+     "sets": "10@27,5kg, 8@55kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-04-18-41",
+   "date": "2026-04-18",
+   "tag": "NK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Squats (liggande)",
+     "sets": "8@25kg, 8@50kg, 10@75kg, 10@80kg (öka)"
+    },
+    {
+     "name": "Leg curl",
+     "sets": "8@22,5kg, 8@22,5+3,75kg"
+    },
+    {
+     "name": "Glute drive",
+     "sets": "10@30kg, 8@40kg"
+    },
+    {
+     "name": "Vadpress",
+     "sets": "7@167,5kg"
+    },
+    {
+     "name": "Hip abductor (in)",
+     "sets": "8@37,5kg"
+    },
+    {
+     "name": "Hip abductor (ut)",
+     "sets": "16@45kg"
+    },
+    {
+     "name": "Leg extensions",
+     "sets": "3@95kg, 8@107,5kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-04-25-42",
+   "date": "2026-04-25",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "8@15kg, 8@15kg, 8@20kg, 5@22,5kg"
+    },
+    {
+     "name": "Tricepspress liggande (smith rak)",
+     "sets": "6@20kg, 5@25kg"
+    },
+    {
+     "name": "Pulldown (handtag)",
+     "sets": "8@23,5kg, 8@28,5kg, 7@33,5kg"
+    },
+    {
+     "name": "Bicepscurl (hantel)",
+     "sets": "6@10kg, 8@15kg, 5@17,5kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-04-28-43",
+   "date": "2026-04-28",
+   "tag": "HK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Kabelrodd",
+     "sets": "8@20kg, 2@28,5kg, 8@33,5+2kg, 6@33,5+2kg"
+    },
+    {
+     "name": "Pulldown (handtag)",
+     "sets": "8@28,5kg, 7@33,5kg"
+    },
+    {
+     "name": "Chest press (maskin)",
+     "sets": "8@50kg, 8@60kg, 8@65kg"
+    },
+    {
+     "name": "Tricepspress (rep över huvud)",
+     "sets": "8@28,75kg, 8@28,75kg"
+    },
+    {
+     "name": "Squats (liggande)",
+     "sets": "8@50kg, 10@75kg, 8@75kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-05-04-44",
+   "date": "2026-05-04",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Kabelrodd",
+     "sets": "8@20kg, 2@28,5kg, 8@33,5+2kg, 8@33,5+2kg"
+    },
+    {
+     "name": "Pulldown (handtag)",
+     "sets": "7@33,5kg (dålig teknik)"
+    },
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "8@15kg, 8@20kg, 6@22,5kg"
+    },
+    {
+     "name": "Tricepspress liggande (smith rak)",
+     "sets": "8@22,5kg"
+    },
+    {
+     "name": "Maghjul",
+     "sets": "15"
+    }
+   ]
+  },
+  {
+   "id": "2026-05-05-45",
+   "date": "2026-05-05",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "RDLs (fri stång)",
+     "sets": "8@0kg, 4@20kg, 2@30kg, 4@37,5kg, 7@35kg"
+    },
+    {
+     "name": "Glute drive",
+     "sets": "10@30kg, 10@40kg"
+    },
+    {
+     "name": "Leg curl",
+     "sets": "6@22,5kg, 8@22,5+3,75kg"
+    },
+    {
+     "name": "Leg extensions",
+     "sets": "3@95kg, 8@107,5kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-05-06-46",
+   "date": "2026-05-06",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Chest press (maskin)",
+     "sets": "8@50kg, 8@60kg, 8@65kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "8@20kg, 2@28,5kg, 6@33,5+2kg (bra teknik)"
+    },
+    {
+     "name": "Pulldown (v-shape)",
+     "sets": "8@33,5kg"
+    },
+    {
+     "name": "Preacher curl (hantel)",
+     "sets": "6@10kg, 8@15kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-05-11-47",
+   "date": "2026-05-11",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "8@15kg, 6@20kg, 6@22,5kg"
+    },
+    {
+     "name": "Dips",
+     "sets": "15"
+    },
+    {
+     "name": "Pulldown (v-shape)",
+     "sets": "8@28,5kg, 9@33,5kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "6@33,5+2kg"
+    },
+    {
+     "name": "Axelpress (maskin)",
+     "sets": "8@15kg, 9@25kg"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "9@8kg"
+    },
+    {
+     "name": "Shrugs",
+     "sets": "10@75kg, 9@100kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-05-15-48",
+   "date": "2026-05-15",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bröstpress",
+     "sets": "6@65kg, 2@82,5kg, 8@90kg, 7@90kg"
+    },
+    {
+     "name": "Bicepscurl (hantel)",
+     "sets": "6@10kg, 2@15kg,  2@17,5kg, x@15kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "6@23,5kg, 2@28,5kg, 6@33,5+2kg"
+    },
+    {
+     "name": "Axelpress (maskin)",
+     "sets": "8@15kg, 9@25kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-05-18-49",
+   "date": "2026-05-18",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "8@15kg, 6@20kg, 7@22,5kg"
+    },
+    {
+     "name": "Tricepspress liggande (smith rak)",
+     "sets": "4@20kg, 7@25kg"
+    },
+    {
+     "name": "Pulldown (v-shape)",
+     "sets": "8@28,5kg, 9@33,5kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "2@28,5kg, 6@33,5+2kg"
+    },
+    {
+     "name": "Rear deltoid",
+     "sets": "10@35kg, 10@50kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-05-24-50",
+   "date": "2026-05-24",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "6@15kg, 6@20kg, 6@22,5kg, 5@22,5kg"
+    },
+    {
+     "name": "Tricepspress liggande (smith rak)",
+     "sets": "4@20kg, 7@25kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "2@28,5kg, 6@33,5kg"
+    },
+    {
+     "name": "Rear deltoid",
+     "sets": "8@35kg, 9@52,5kg"
+    },
+    {
+     "name": "Shrugs",
+     "sets": "10@75kg, 9@100kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-05-26-51",
+   "date": "2026-05-26",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress",
+     "sets": "4@0kg, 1@20kg, 6@25kg"
+    },
+    {
+     "name": "Bicepscurl (kabelmaskin)",
+     "sets": "7@33,75kg"
+    },
+    {
+     "name": "Tricepspress (kabelmaskin)",
+     "sets": "9@36,25kg"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "10@8kg"
+    },
+    {
+     "name": "Mage (maskin)",
+     "sets": "1@57,5, 15@70kg"
+    },
+    {
+     "name": "Pulldown (maskin)",
+     "sets": "10x65kg"
+    },
+    {
+     "name": "Shrugs",
+     "sets": "8@102,5kg"
+    },
+    {
+     "name": "Squats (liggande)",
+     "sets": "2@50kg"
+    },
+    {
+     "name": "Hip extensions",
+     "sets": "8@50kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-06-04-52",
+   "date": "2026-06-04",
+   "tag": "",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress",
+     "sets": "4@0kg, 1@20kg, 5@25kg"
+    },
+    {
+     "name": "Bicepscurl (kabelmaskin)",
+     "sets": "6@33,75kg"
+    },
+    {
+     "name": "Tricepspress (kabelmaskin)",
+     "sets": "9@36,25kg"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "8@9kg"
+    },
+    {
+     "name": "Shrugs",
+     "sets": "8@102,5kg"
+    },
+    {
+     "name": "Pulldown (maskin)",
+     "sets": "10x67,5kg"
+    },
+    {
+     "name": "Mage (maskin)",
+     "sets": "1@57,5, 10@72,5kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-06-16-53",
+   "date": "2026-06-16",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "6@15kg, 6@22,5kg"
+    },
+    {
+     "name": "Bicepscurl (hantel sittande)",
+     "sets": "8@15kg"
+    },
+    {
+     "name": "Tricepspress (kabelmaskin)",
+     "sets": "10@36,25kg"
+    },
+    {
+     "name": "Pulldown (maskin)",
+     "sets": "8x70kg"
+    },
+    {
+     "name": "Shrugs",
+     "sets": "9@102,5kg"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "9@9kg"
+    },
+    {
+     "name": "Maghjul",
+     "sets": "15"
+    }
+   ]
+  },
+  {
+   "id": "2026-06-17-54",
+   "date": "2026-06-17",
+   "tag": "NK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Squats (liggande)",
+     "sets": "8@25kg, 2@50kg, 8@75kg"
+    },
+    {
+     "name": "Glute drive",
+     "sets": "10@40kg"
+    },
+    {
+     "name": "Hip abductor (in)",
+     "sets": "12@37,5kg"
+    },
+    {
+     "name": "Hip abductor (ut)",
+     "sets": "12@45kg"
+    },
+    {
+     "name": "Vadpress (smith)",
+     "sets": "10@35kg, 10@35kg"
+    },
+    {
+     "name": "Hip extensions",
+     "sets": "8@50kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-06-22-55",
+   "date": "2026-06-22",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Pulldown (maskin)",
+     "sets": "9x72,5kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "2@28,5kg, 7@33,5+2kg"
+    },
+    {
+     "name": "Bänkpress",
+     "sets": "4@0kg, 1@20kg, 5@25kg"
+    },
+    {
+     "name": "Shrugs",
+     "sets": "10@102,5kg"
+    },
+    {
+     "name": "Bicepscurl (hantel sittande)",
+     "sets": "10@15kg"
+    },
+    {
+     "name": "Tricepspress (kabelmaskin)",
+     "sets": "10@36,25kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "4@60kg, 8@90kg"
+    },
+    {
+     "name": "Maghjul",
+     "sets": "20"
+    }
+   ]
+  },
+  {
+   "id": "2026-07-01-56",
+   "date": "2026-07-01",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress",
+     "sets": "4@0kg, 1@20kg, 1@25kg (ont)"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "2@28,5kg, 8@33,5+2kg"
+    },
+    {
+     "name": "Pulldown (maskin)",
+     "sets": "7x75kg"
+    },
+    {
+     "name": "Shrugs",
+     "sets": "8@102,5kg"
+    },
+    {
+     "name": "Bicepscurl (kabelmaskin)",
+     "sets": "4@33,75kg"
+    },
+    {
+     "name": "Tricepspress (kabelmaskin)",
+     "sets": "10@36,25kg"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "9@9kg"
+    },
+    {
+     "name": "Rotatorcuff",
+     "sets": "10@5kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "4@60kg, 8@90kg"
+    },
+    {
+     "name": "Hip abductor (in)",
+     "sets": "8@37,5kg"
+    },
+    {
+     "name": "Hip abductor (ut)",
+     "sets": "20@45kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-07-16-57",
+   "date": "2026-07-16",
+   "tag": "HK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress",
+     "sets": "4@0kg, 1@20kg, 2@25kg, 6@20kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "6@28,5kg, 8@33,5+2kg"
+    },
+    {
+     "name": "Pulldown (maskin)",
+     "sets": "6x75kg"
+    },
+    {
+     "name": "Tricepspress (kabelmaskin)",
+     "sets": "6@36,25kg"
+    },
+    {
+     "name": "Bicepscurl (kabelmaskin)",
+     "sets": "7@31,25kg"
+    },
+    {
+     "name": "Hip abductor (in)",
+     "sets": "14@37,5kg"
+    },
+    {
+     "name": "Hip abductor (ut)",
+     "sets": "20@45kg"
+    },
+    {
+     "name": "Hamstring curl",
+     "sets": "10@22,5kg, 7@22,5+3,75kg"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "8@9kg"
+    },
+    {
+     "name": "Rotatorcuff",
+     "sets": "10@5kg"
+    },
+    {
+     "name": "Maghjul",
+     "sets": "17"
+    }
+   ]
+  },
+  {
+   "id": "2026-07-26-58",
+   "date": "2026-07-26",
+   "tag": "NK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Hamstring (45)",
+     "sets": "6@20kg, 8@40kg, x@50kg"
+    },
+    {
+     "name": "Hamstring curl",
+     "sets": "6@22,5kg, 10@22,5+3,75kg"
+    },
+    {
+     "name": "Leg extensions",
+     "sets": "3@95kg, 5@107,5kg (löpning…)"
+    },
+    {
+     "name": "Hip abductor (in)",
+     "sets": "8@37,5+3,75kg"
+    },
+    {
+     "name": "Hip abductor (ut)",
+     "sets": "20@45kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "6@28,5kg, 6@33,5kg"
+    },
+    {
+     "name": "Assist chin",
+     "sets": "6@20kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-07-28-59",
+   "date": "2026-07-28",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Rear deltoid (med stopp)",
+     "sets": "10@27,5kg, 10@32,5kg"
+    },
+    {
+     "name": "Axelpress",
+     "sets": "10@15kg, 8@25kg"
+    },
+    {
+     "name": "Lateral raises (kabelmaskin)",
+     "sets": "10@6,25kg, 8@6,25kg"
+    },
+    {
+     "name": "Axellyft (viktskiva)",
+     "sets": "4@15kg, 6@10kg"
+    },
+    {
+     "name": "Jefferson curls (skivstång)",
+     "sets": "7@0kg, 7@0kg"
+    },
+    {
+     "name": "Rotatorcuff",
+     "sets": "12@6kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-08-11-60",
+   "date": "2026-08-11",
+   "tag": "HK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Hamstring curl",
+     "sets": "6@22,5kg, 10@22,5+3,75kg"
+    },
+    {
+     "name": "Jefferson curls (skivstång)",
+     "sets": "10@0kg, 6@5kg"
+    },
+    {
+     "name": "Pulldown (handtag)",
+     "sets": "8@28,5kg, 6@28,5kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "6@28,5kg, 4@33,5kg (trött…)"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "9@7kg"
+    },
+    {
+     "name": "Shrugs",
+     "sets": "6@87,5kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-08-16-61",
+   "date": "2026-08-16",
+   "tag": "HK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Hamstring curl",
+     "sets": "6@22,5kg, 8@30kg"
+    },
+    {
+     "name": "Jefferson curls (skivstång)",
+     "sets": "6@0kg, 7@20kg, 8@20kg"
+    },
+    {
+     "name": "Bänkpress",
+     "sets": "4@0kg, 1@20kg, 1@25kg, 5@20kg (tappat rejält)"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "4@33,5kg"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "8@8kg"
+    },
+    {
+     "name": "Axelrotation",
+     "sets": "12@5kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-08-18-62",
+   "date": "2026-08-18",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "8@15kg, 10@17,5kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "1@75kg, 5@90kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "8@33,5kg"
+    },
+    {
+     "name": "Pulldown (handtag)",
+     "sets": "9@28,5kg"
+    },
+    {
+     "name": "Preacher curl",
+     "sets": "6@10kg, 4@12,5kg"
+    },
+    {
+     "name": "Vadpress (maskin)",
+     "sets": "9@155kg"
+    },
+    {
+     "name": "Maghjul",
+     "sets": "20"
+    },
+    {
+     "name": "Tricepspress (kabelmaskin)",
+     "sets": "7@33,75kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-08-24-63",
+   "date": "2026-08-24",
+   "tag": "HK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Hamstring curl",
+     "sets": "6@22,5kg, 8@30kg"
+    },
+    {
+     "name": "Jefferson curls (skivstång)",
+     "sets": "2@0kg, 8@20kg"
+    },
+    {
+     "name": "Bänkpress",
+     "sets": "4@0kg, 6@20kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "8@33,5kg"
+    },
+    {
+     "name": "Pulldown (handtag)",
+     "sets": "6@28,5kg"
+    },
+    {
+     "name": "Vadpress (maskin)",
+     "sets": "9@155kg"
+    },
+    {
+     "name": "Leg extensions",
+     "sets": "3@95kg, 5@107,5kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-08-29-64",
+   "date": "2026-08-29",
+   "tag": "HK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Jefferson curls (skivstång)",
+     "sets": "2@0kg, 8@20kg, 6@25kg"
+    },
+    {
+     "name": "Bänkpress",
+     "sets": "4@0kg, 6@20kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "4@60kg, 6@75kg (satt djupare)"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "8@33,5kg"
+    },
+    {
+     "name": "Pulldown (handtag)",
+     "sets": "8@28,5kg"
+    },
+    {
+     "name": "Maghjul",
+     "sets": "15"
+    }
+   ]
+  },
+  {
+   "id": "2026-08-31-65",
+   "date": "2026-08-31",
+   "tag": "HK",
+   "note": "Kyrkbyn…",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "6@0kg, 6@15kg, 6@15kg"
+    },
+    {
+     "name": "Tricepspress (kabelmaskin)",
+     "sets": "6@36,25kg x2"
+    },
+    {
+     "name": "Bicepscurl (kabelmaskin)",
+     "sets": "7@31,25kg x2"
+    },
+    {
+     "name": "Face pulls",
+     "sets": "10@25kg, 15@40kg"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "8@8kg"
+    },
+    {
+     "name": "Axelrotation",
+     "sets": "8@6kg"
+    },
+    {
+     "name": "Bicepscurl (hantel sittande)",
+     "sets": "5@16kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-09-04-66",
+   "date": "2026-09-04",
+   "tag": "HK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Jefferson curls (skivstång)",
+     "sets": "2@0kg, 6@25kg"
+    },
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "10@15kg, 8@17,5kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "8@75kg (satt djupare)"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "8@33,5kg"
+    },
+    {
+     "name": "Pulldown (handtag)",
+     "sets": "6@28,5kg (dåligt fokus)"
+    },
+    {
+     "name": "Vadpress (maskin)",
+     "sets": "9@155kg"
+    },
+    {
+     "name": "Leg extensions",
+     "sets": "3@95kg, 8@107,5kg"
+    },
+    {
+     "name": "Bicepscurl (stående)",
+     "sets": "10@15kg"
+    },
+    {
+     "name": "Tricepspress (kabelmaskin)",
+     "sets": "6@36,25kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-09-07-67",
+   "date": "2026-09-07",
+   "tag": "HK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Jefferson curls (skivstång)",
+     "sets": "2@0kg, 10@20kg"
+    },
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "10@15kg, 9@17,5kg"
+    },
+    {
+     "name": "Hip abductor (ut)",
+     "sets": "10@52,5kg"
+    },
+    {
+     "name": "Hip abductor (in)",
+     "sets": "10@37,5+3,75kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "9@75kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "8@33,5kg"
+    },
+    {
+     "name": "Bicepscurl (stående)",
+     "sets": "8@15kg"
+    },
+    {
+     "name": "Tricepspress (kabelmaskin över huvud)",
+     "sets": "10@26,25kg"
+    },
+    {
+     "name": "Axellyft (viktskiva över huvudet)",
+     "sets": "5@15kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-09-14-68",
+   "date": "2026-09-14",
+   "tag": "HK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Jefferson curls (skivstång)",
+     "sets": "2@0kg, 10@20kg"
+    },
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "6@15kg, 6@20kg"
+    },
+    {
+     "name": "Hip abductor (ut)",
+     "sets": "10@52,5kg"
+    },
+    {
+     "name": "Hip abductor (in)",
+     "sets": "10@37,5+3,75kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "9@75kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "8@33,5kg"
+    },
+    {
+     "name": "Hamstring curl",
+     "sets": "6@22,5kg, 5@30kg"
+    },
+    {
+     "name": "Bicepscurl (stående)",
+     "sets": "10@15kg"
+    },
+    {
+     "name": "Tricepspress (kabelmaskin över huvud)",
+     "sets": "11@26,25kg, 9@26,25kg"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "8@8kg"
+    },
+    {
+     "name": "Axelrotation",
+     "sets": "12@6kg"
+    },
+    {
+     "name": "Maghjul",
+     "sets": "15"
+    }
+   ]
+  },
+  {
+   "id": "2026-09-16-69",
+   "date": "2026-09-16",
+   "tag": "HK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "6@15kg, 8@20kg"
+    },
+    {
+     "name": "Dips",
+     "sets": "10"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "8@8kg"
+    },
+    {
+     "name": "Axelrotation",
+     "sets": "10@7kg"
+    },
+    {
+     "name": "Rear deltoid",
+     "sets": "6@35kg, 10@42,5kg"
+    },
+    {
+     "name": "Squats (maskin)",
+     "sets": "8@95kg"
+    },
+    {
+     "name": "Vadpress (maskin)",
+     "sets": "11@155kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-09-20-70",
+   "date": "2026-09-20",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "6@15kg, 5@20kg (trött)"
+    },
+    {
+     "name": "Dips",
+     "sets": "5"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "8@8kg"
+    },
+    {
+     "name": "Axelrotation",
+     "sets": "12@7kg"
+    },
+    {
+     "name": "Rear deltoid",
+     "sets": "6@42,5kg, 7@50kg"
+    },
+    {
+     "name": "Bicepscurl (hantel sittande)",
+     "sets": "6@15kg"
+    },
+    {
+     "name": "Axelpress",
+     "sets": "10@20kg"
+    },
+    {
+     "name": "Maghjul",
+     "sets": "15"
+    },
+    {
+     "name": "Pulldown (maskin)",
+     "sets": "8x75kg"
+    },
+    {
+     "name": "Shrugs",
+     "sets": "10@95kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-09-23-71",
+   "date": "2026-09-23",
+   "tag": "HK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "6@15kg, 8@20kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "7@28,5kg, 6@33,5kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "9@77,5kg"
+    },
+    {
+     "name": "Hip abductor (ut)",
+     "sets": "15@45kg, 10@52,5kg"
+    },
+    {
+     "name": "Hip abductor (in)",
+     "sets": "10@37,5+3,75kg"
+    },
+    {
+     "name": "Glute drive",
+     "sets": "10@40kg, 8@40kg"
+    },
+    {
+     "name": "Jefferson curls (skivstång)",
+     "sets": "2@0kg, 10@20kg"
+    },
+    {
+     "name": "Tricepspress (kabelmaskin över huvud)",
+     "sets": "10@26,25kg"
+    },
+    {
+     "name": "Bicepscurl (hantel)",
+     "sets": "8@15kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-09-28-72",
+   "date": "2026-09-28",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress",
+     "sets": "4@0kg, 7@20kg, 3@22,5kg"
+    },
+    {
+     "name": "Jefferson curls (skivstång)",
+     "sets": "2@0kg, 10@22,5kg"
+    },
+    {
+     "name": "Pulldown (maskin)",
+     "sets": "6x75kg"
+    },
+    {
+     "name": "Axelpress",
+     "sets": "8@25kg, 7@25kg"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "8@8kg"
+    },
+    {
+     "name": "Axelrotation",
+     "sets": "8@8kg"
+    },
+    {
+     "name": "Bicepscurl (hantel stående)",
+     "sets": "8@15kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-10-02-73",
+   "date": "2026-10-02",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "6@15kg, 8@20kg"
+    },
+    {
+     "name": "Tricepspress (smith)",
+     "sets": "6@20kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "4@28,5kg, 8@33,5kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "9@80kg"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "9@8kg"
+    },
+    {
+     "name": "Axelrotation",
+     "sets": "10@8kg"
+    },
+    {
+     "name": "Vadpress (maskin)",
+     "sets": "8@160kg, 8@160kg"
+    },
+    {
+     "name": "Maghjul",
+     "sets": "15"
+    }
+   ]
+  },
+  {
+   "id": "2026-10-07-74",
+   "date": "2026-10-07",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "4@15kg, 5@22,5kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "10@80kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "6@28,5kg, 7@33,5kg"
+    },
+    {
+     "name": "Bicepscurl (över bänk)",
+     "sets": "6@15kg"
+    },
+    {
+     "name": "Hip abductor (ut)",
+     "sets": "15@45kg, 11@52,5kg"
+    },
+    {
+     "name": "Hip abductor (in)",
+     "sets": "11@37,5+3,75kg"
+    },
+    {
+     "name": "Tricepspress (kabelmaskin över huvud)",
+     "sets": "10@26,25kg"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "9@8kg"
+    },
+    {
+     "name": "Axelrotation",
+     "sets": "10@8kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-10-09-75",
+   "date": "2026-10-09",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "4@15kg, 5@22,5kg, 4@22,5kg"
+    },
+    {
+     "name": "Tricepspress (smith)",
+     "sets": "6@20kg, 6@20kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "5@28,5kg, 7@33,5kg"
+    },
+    {
+     "name": "Bicepscurl (hantel sittande)",
+     "sets": "7@15kg"
+    },
+    {
+     "name": "Axelpress (hantel sittande)",
+     "sets": "8@12,5kg, 6@15kg"
+    },
+    {
+     "name": "Axelrotation",
+     "sets": "8@8kg"
+    },
+    {
+     "name": "Maghjul",
+     "sets": "15, 15"
+    }
+   ]
+  },
+  {
+   "id": "2026-10-12-76",
+   "date": "2026-10-12",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "4@15kg, 5@22,5kg, 4@22,5kg"
+    },
+    {
+     "name": "Tricepspress (smith)",
+     "sets": "6@22,5kg, 6@22,5kg"
+    },
+    {
+     "name": "Preacher curl (hantel)",
+     "sets": "5@15kg, 6@15kg"
+    },
+    {
+     "name": "Axelpress",
+     "sets": "7@25kg, 5@25kg"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "10@8kg"
+    },
+    {
+     "name": "Axelrotation",
+     "sets": "10@8kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "10@80kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-10-14-77",
+   "date": "2026-10-14",
+   "tag": "NK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Jefferson curls (skivstång)",
+     "sets": "4@0kg, 10@20kg, x@20kg"
+    },
+    {
+     "name": "Hip abductor (ut)",
+     "sets": "10@45kg, 12@52,5kg"
+    },
+    {
+     "name": "Hip abductor (in)",
+     "sets": "8@45kg"
+    },
+    {
+     "name": "Glute drive",
+     "sets": "8@40kg, 6@40kg"
+    },
+    {
+     "name": "Vadpress (maskin)",
+     "sets": "11@155kg, 8@155kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-10-16-78",
+   "date": "2026-10-16",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "4@15kg, 5@22,5kg, 4@22,5kg"
+    },
+    {
+     "name": "Tricepspress (smith)",
+     "sets": "7@22,5kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "4@28,5kg, 8@33,5kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "8@82,5kg"
+    },
+    {
+     "name": "Axelpress",
+     "sets": "7@25kg, 5@25kg"
+    },
+    {
+     "name": "Bicepscurl (hantel stående)",
+     "sets": "10@15kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-10-21-79",
+   "date": "2026-10-21",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "4@15kg, 5@22,5kg, 8@20kg, 10@15kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "4@28,5kg, 8@33,5kg"
+    },
+    {
+     "name": "Bicepscurl (hantel stående)",
+     "sets": "8@15kg"
+    },
+    {
+     "name": "Axelpress",
+     "sets": "7@25kg"
+    },
+    {
+     "name": "Bröstpress",
+     "sets": "6@85kg"
+    },
+    {
+     "name": "Tricepspress (kabelmaskin över huvud)",
+     "sets": "5@28,75kg"
+    },
+    {
+     "name": "Axelrotation",
+     "sets": "9@9kg"
+    },
+    {
+     "name": "Maghjul",
+     "sets": "17"
+    }
+   ]
+  },
+  {
+   "id": "2026-10-23-80",
+   "date": "2026-10-23",
+   "tag": "HK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Jefferson curls (skivstång)",
+     "sets": "4@0kg, 4@20kg, 8@25kg"
+    },
+    {
+     "name": "Leg extensions",
+     "sets": "3@95kg, 8@107,5kg"
+    },
+    {
+     "name": "Hip abductor (ut)",
+     "sets": "10@45kg, 12@30kg (djupare)"
+    },
+    {
+     "name": "Hip abductor (in)",
+     "sets": "8@45kg"
+    },
+    {
+     "name": "Vadpress (maskin)",
+     "sets": "10@155kg"
+    },
+    {
+     "name": "Mage (maskin)",
+     "sets": "11@65kg"
+    },
+    {
+     "name": "Plankan",
+     "sets": "3:05"
+    },
+    {
+     "name": "Chins",
+     "sets": "5"
+    },
+    {
+     "name": "Pull-ups",
+     "sets": "6"
+    }
+   ]
+  },
+  {
+   "id": "2026-10-26-81",
+   "date": "2026-10-26",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline ej smith)",
+     "sets": "4@0kg, 4@15kg, 7@15kg, 6@15kg"
+    },
+    {
+     "name": "Chins",
+     "sets": "7, 5"
+    },
+    {
+     "name": "Pull-ups",
+     "sets": "6"
+    },
+    {
+     "name": "Tricepspress (kabelmaskin över huvud)",
+     "sets": "5@22,5kg"
+    },
+    {
+     "name": "Plankan",
+     "sets": "2:00"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "8@9kg"
+    },
+    {
+     "name": "Axelrotation",
+     "sets": "9@9kg"
+    },
+    {
+     "name": "Maghjul",
+     "sets": "15"
+    }
+   ]
+  },
+  {
+   "id": "2026-10-30-82",
+   "date": "2026-10-30",
+   "tag": "NK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Jefferson curls (skivstång)",
+     "sets": "4@0kg, 10@20kg, 8@25kg"
+    },
+    {
+     "name": "Hamstring curl",
+     "sets": "8@22,5kg, 3@30kg"
+    },
+    {
+     "name": "Squats (liggande)",
+     "sets": "8@25kg, 8@50kg, 8@75kg"
+    },
+    {
+     "name": "Hip abductor (ut)",
+     "sets": "20@30kg (öka)"
+    },
+    {
+     "name": "Hip abductor (in)",
+     "sets": "14@37,5kg"
+    },
+    {
+     "name": "Vadpress (maskin)",
+     "sets": "10@155kg"
+    },
+    {
+     "name": "Plankan",
+     "sets": "3:40"
+    }
+   ]
+  },
+  {
+   "id": "2026-11-01-83",
+   "date": "2026-11-01",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "4@15kg, 6@22,5kg, 9@20kg, 10@15kg"
+    },
+    {
+     "name": "Pulldown (brett casall-grepp)",
+     "sets": "8x28,5kg, 8@28,5kg"
+    },
+    {
+     "name": "Bicepscurl (hantel sittande)",
+     "sets": "6@15kg, 6@15kg"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "9@9kg"
+    },
+    {
+     "name": "Axelrotation",
+     "sets": "6@9kg (kort vila)"
+    },
+    {
+     "name": "Plankan",
+     "sets": "1:34 (trött…)"
+    }
+   ]
+  },
+  {
+   "id": "2026-11-04-84",
+   "date": "2026-11-04",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Chest press (maskin)",
+     "sets": "4@50kg, 10@67,5kg, 5@67,5kg (sista djupare…)"
+    },
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "4@15kg, 8@20kg"
+    },
+    {
+     "name": "Pulldown (v-shape)",
+     "sets": "4@23,5kg, 8@33,5kg"
+    },
+    {
+     "name": "Tricepspress (kabelmaskin över huvud)",
+     "sets": "4@23,75kg, 8@26,25kg, 7@26,25kg"
+    },
+    {
+     "name": "Pull-ups",
+     "sets": "6, 6"
+    },
+    {
+     "name": "Lateral raises (hantel)",
+     "sets": "9@9kg"
+    },
+    {
+     "name": "Axelrotation",
+     "sets": "9@9kg"
+    },
+    {
+     "name": "Plankan",
+     "sets": "1:34, 1:00 (trött…)"
+    }
+   ]
+  },
+  {
+   "id": "2026-11-05-85",
+   "date": "2026-11-05",
+   "tag": "NK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Jefferson curls (skivstång)",
+     "sets": "4@0kg, 8@25kg, 8@25kg"
+    },
+    {
+     "name": "Hamstring curl",
+     "sets": "8@22,5kg, 6@22,5+3,75kg"
+    },
+    {
+     "name": "Leg extensions",
+     "sets": "3@95kg, 8@102,5kg"
+    },
+    {
+     "name": "Hip abductor (ut)",
+     "sets": "20@30kg, 12@37,5kg"
+    },
+    {
+     "name": "Hip abductor (in)",
+     "sets": "6@37,5+3,75kg"
+    },
+    {
+     "name": "Vadpress (maskin)",
+     "sets": "10@155kg"
+    },
+    {
+     "name": "Plankan",
+     "sets": "3:21"
+    }
+   ]
+  },
+  {
+   "id": "2026-11-06-86",
+   "date": "2026-11-06",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "4@15kg, 8@22,5kg"
+    },
+    {
+     "name": "Chest press (maskin)",
+     "sets": "4@50kg, 5@65kg, 8@60kg"
+    },
+    {
+     "name": "Pulldown (brett casall-grepp)",
+     "sets": "10x28,5kg, 8@28,5kg"
+    }
+   ]
+  },
+  {
+   "id": "2026-11-20-87",
+   "date": "2026-11-20",
+   "tag": "ÖK",
+   "note": "",
+   "exercises": [
+    {
+     "name": "Bänkpress (incline)",
+     "sets": "4@15kg, 6@22,5kg, 6@20kg"
+    },
+    {
+     "name": "Kabelrodd",
+     "sets": "4@28,5kg, 6@33,5kg, 6@33,5kg"
+    },
+    {
+     "name": "Axelpress",
+     "sets": "8@20kg, 8@25kg"
+    },
+    {
+     "name": "Tricepspress nedåt (kabel stång)",
+     "sets": "8@28,75kg"
+    },
+    {
+     "name": "Bicepscurl (hantel sittande)",
+     "sets": "6@15kg"
+    },
+    {
+     "name": "Plankan",
+     "sets": "2:30"
+    }
+   ]
+  }
+ ],
+ "plans": []
+}
