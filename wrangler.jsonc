@@ -11,7 +11,6 @@
     {
       "binding": "DB",
       "database_name": "traningslogg",
-      // Paste the Database ID from Cloudflare dashboard → Storage & Databases → D1 → traningslogg
       "database_id": "02ff598c-d975-4db1-9f7e-d0514f92191c"
     }
   ],
