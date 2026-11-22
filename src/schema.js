@@ -35,7 +35,18 @@ const V2 = [
   `INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '2')`,
 ];
 
-export const SCHEMA_VERSION = 2;
+// Version 3: no email. Accounts have a status set by admins:
+// pending (waiting for approval) → active; active ⇄ frozen; any → banned (and back).
+const V3 = [
+  `ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT 'pending'`,
+  `UPDATE users SET status = CASE WHEN disabled = 1 THEN 'frozen' WHEN verified_at IS NOT NULL OR role = 'admin' THEN 'active' ELSE 'pending' END`,
+  `ALTER TABLE users ADD COLUMN status_changed_at TEXT`,
+  `ALTER TABLE users ADD COLUMN reset_requested_at TEXT`,
+  `DELETE FROM tokens WHERE kind IN ('verify', 'pwchange')`,
+  `INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '3')`,
+];
+
+export const SCHEMA_VERSION = 3;
 
 let ready = null;
 export function ensureSchema(db) {
@@ -52,6 +63,7 @@ async function migrate(db) {
   const v = row ? +row.value : 1;
   // One batch = one transaction in D1, so v2 is applied all or nothing.
   if (v < 2) await db.batch(V2.map((s) => db.prepare(s)));
+  if (v < 3) await db.batch(V3.map((s) => db.prepare(s)));
 }
 
 // Create the admin account on first start (from the ADMIN_EMAIL and
@@ -64,8 +76,8 @@ export function ensureAdmin(db, env) {
     const id = crypto.randomUUID();
     await db.batch([
       db.prepare(
-        `INSERT INTO users (id, email, first_name, last_name, pw_hash, role, verified_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, 'admin', datetime('now'))`,
+        `INSERT INTO users (id, email, first_name, last_name, pw_hash, role, verified_at, status)
+         VALUES (?1, ?2, ?3, ?4, ?5, 'admin', datetime('now'), 'active')`,
       ).bind(id, String(env.ADMIN_EMAIL).trim().toLowerCase(), env.ADMIN_FIRST_NAME || "Admin", env.ADMIN_LAST_NAME || "", env.ADMIN_PASSWORD_HASH),
       db.prepare("UPDATE sessions SET user_id = ?1 WHERE user_id IS NULL").bind(id),
       db.prepare("UPDATE plans SET user_id = ?1 WHERE user_id IS NULL").bind(id),

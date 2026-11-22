@@ -37,9 +37,8 @@ public/            static app (served by Workers Assets)
   parse.js         set-notation parser, shared with the Worker
   manifest.webmanifest, icon-*.png   home-screen app on iPad
 src/worker.js      API: /api/auth/*, /api/account/*, /api/admin/*, /api/data, /api/sessions/:id, /api/plans/:date, /api/import
-src/auth.js        password hashing, login sessions, tokens, password rules
-src/mail.js        outbox + optional Brevo sending, email texts
-src/schema.js      D1 schema + migrations (v2 = accounts), run automatically on first request
+src/auth.js        password hashing, login sessions, reset tokens, password rules
+src/schema.js      D1 schema + migrations (v2 = accounts, v3 = approval/status, no email), run automatically on first request
 data/sessions.json export from v1 (seed for /api/import)
 test/run.mjs       local tests with a fake D1 (npm test)
 wrangler.jsonc     Worker + Assets + D1 binding
@@ -56,14 +55,19 @@ wrangler.jsonc     Worker + Assets + D1 binding
 4. Every push to `main` deploys automatically.
 
 ## Accounts and security
-- Anyone can register with first name, last name, email and a strong password (≥12 characters, ≥3 of lower/upper/digit/symbol, not containing their name/email or common words). The account can't log in until the email address is verified (link valid 48 h).
-- Passwords are stored only as PBKDF2-SHA256 hashes (100 000 iterations, random salt). Login gives a random 256-bit token in an `HttpOnly; Secure; SameSite=Lax` cookie (30 days); only its SHA-256 is stored. 5 wrong passwords lock the account for 15 minutes. Writes from other origins are refused.
-- **Settings:** change name; change password (needs the current password, and the new one only takes effect after clicking a link emailed to the account, after which all devices are logged out and a "password changed" notice is sent); log out / log out everywhere. **Forgot password:** emailed reset link valid 1 h.
+- **No email.** Anyone can register with first name, last name, email and a strong password (≥12 characters, ≥3 of lower/upper/digit/symbol, not containing their name/email or common words). New accounts are **pending** until an admin approves them.
+- **Account status:** `pending` → `active` (approve) or deleted (reject); `active` ⇄ `frozen` (temporary, data kept); any → `banned` (cannot log in, the email cannot register again; can be lifted).
+- **Security:**
+  - Passwords are stored only as PBKDF2-SHA256 hashes (100 000 iterations, random salt).
+  - Login gives a random 256-bit token in an `HttpOnly; Secure; SameSite=Lax` cookie (30 days); only its SHA-256 is stored.
+  - 5 wrong passwords lock the account for 15 minutes. Account status is only revealed after a correct password. Writes from other origins are refused.
+- **Settings:** change name; change password (needs the current password; all other devices are logged out); log out / log out everywhere.
+- **Forgot password:** the user asks from the login screen, which becomes an admin task. The admin creates a one-time link (valid 24 h) and passes it on, e.g. by text message.
+- **Admin** (role `admin`): user list (pending and reset requests first, highlighted) with approve / reject / freeze / activate / ban / lift ban / password link / make or remove admin. Admins never act on their own account.
+  - Open tasks show as a red badge on the Admin tab and a banner on the Plan page (`GET /api/admin/tasks`, also in `/api/me`).
 - Every user only sees and changes their own sessions and plans.
-- **Admin** (role `admin`): user list with status, session counts and last activity; verify, disable/enable and make/remove admin; email outbox with copyable links.
 - **First admin:** created on first start from `ADMIN_EMAIL` / `ADMIN_PASSWORD_HASH` in `wrangler.jsonc` when there are no users. Existing data without an owner is assigned to it.
-- **Email:** every message goes to the `outbox` table. To actually send, create a free Brevo account, verify the sender address, set `MAIL_FROM` in `wrangler.jsonc` and add the secret `BREVO_API_KEY` (Workers & Pages → traningslogg → Settings → Variables and secrets). Until then, admins pass on links from the outbox or verify users manually.
-- With accounts in place, Cloudflare Access should be turned off so others can reach the sign-up page.
+- Schema v3 migrates v2 accounts: verified → active, unverified → pending, disabled → frozen.
 
 ## Data
 `data/sessions.json` holds 88 sessions (2026-01-02 → 2026-11-20) exported from v1. Import it once with a seed script. 42 sessions are untyped.
@@ -74,5 +78,5 @@ wrangler.jsonc     Worker + Assets + D1 binding
 - Show runs in the year grid and week view, plus a running progress view (distance and pace).
 
 ## Security
-- Put Cloudflare Access (one-time PIN to Håkan's email) in front of both the Pages site and the API.
+- The app has its own login, so Cloudflare Access is turned off for the app.
 - No secrets in the repo. Add `.dev.vars` to `.gitignore`.

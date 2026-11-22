@@ -131,6 +131,13 @@ textarea{min-height:160px;font-size:14px}
 .tl em{font-style:normal;color:var(--soft);white-space:nowrap;font-variant-numeric:tabular-nums}
 body.out nav,body.out #gw,body.out #legend,body.out #stats{display:none}
 .usertab{flex:none}
+.badge[hidden]{display:none}
+.badge{display:inline-block;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--red);color:#fff;font:700 12px/20px Barlow,sans-serif;text-align:center;vertical-align:2px}
+.taskbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;border:2px solid var(--red);border-radius:10px;padding:10px 14px;margin-bottom:14px}
+.taskbar b{color:var(--red)}
+.linkbox{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--panel);border-radius:10px;padding:12px 14px;margin:0 0 14px}
+.linkbox code{flex:1 1 260px;font-size:14px;overflow-wrap:anywhere}
+tr.hl td{background:color-mix(in srgb,var(--yellow) 12%,transparent)}
 #sync{margin-left:auto}
 .authwrap{max-width:440px;margin:10px auto 40px}
 .authwrap h2{font-size:34px;margin-bottom:6px}
@@ -172,7 +179,7 @@ td .row{gap:6px}
   <a href="#log" data-v="log">Logga pass</a>
   <a href="#history" data-v="history">Historik</a>
   <a href="#progress" data-v="progress">Utveckling</a>
-  <a href="#admin" data-v="admin" id="admintab" hidden>Admin</a>
+  <a href="#admin" data-v="admin" id="admintab" hidden>Admin <span class="badge" id="adminbadge" hidden></span></a>
   <span id="sync">Laddar…</span>
   <a href="#settings" data-v="settings" id="usertab" class="usertab">Inställningar</a>
 </div></nav>
@@ -305,6 +312,7 @@ function rowHTML(e,i,isPlan){
 function renderPlan(){
   const ws=addD(monday(TODAY),weekOff*7);
   let h=`<div class="row week" style="margin-bottom:8px"><button data-act="wk" data-d="-1" aria-label="Förra veckan">‹</button><h2>Vecka ${isoWeek(ws)}</h2><button data-act="wk" data-d="1" aria-label="Nästa vecka">›</button>${weekOff?`<button class="sm" data-act="wk" data-d="0">Denna vecka</button>`:""}<span class="sp"></span><span class="muted">${nice(ws)} – ${nice(addD(ws,6))}</span></div>`;
+  h+=taskBar();
   if(!weekOff&&sessions.length&&!plans.some(p=>p.date===TODAY)&&!sessions.some(s=>s.date===TODAY)){const n=coachReport(sessions,TODAY).next;
     h+=`<div class="coachbar"><span>Coachen föreslår <b>${n.date===TODAY?"idag":"i morgon"}</b>:</span>${chip(n.tag)}<span>${TAGS[n.tag]?.[0]||""}</span><span class="sp"></span><a class="btn sm" href="#coach" style="display:inline-flex;align-items:center;text-decoration:none">Visa förslag</a></div>`}
   if(loaded&&!sessions.length&&me.role!=="admin")h+=`<div class="ed"><h2>Välkommen${me.firstName?", "+esc(me.firstName):""}!</h2><p>Logga ditt första pass under <b>Logga pass</b>, eller klistra in pass du skrivit i Anteckningar. Coachen börjar ge förslag när du har några pass.</p></div>`;
@@ -351,7 +359,7 @@ function renderCoach(){
 const PW_CLASSES=p=>[/[a-zåäö]/,/[A-ZÅÄÖ]/,/\d/,/[^A-Za-zÅÄÖåäö\d]/].filter(r=>r.test(p)).length;
 const PW_RULES=[["Minst 12 tecken",p=>p.length>=12],["Minst tre av: små bokstäver, stora bokstäver, siffror, specialtecken",p=>PW_CLASSES(p)>=3]];
 const rulesHTML=(p="")=>`<ul class="rules" id="pwrules">${PW_RULES.map(([t,f])=>`<li class="${f(p)?"ok":""}">${t}</li>`).join("")}</ul><p class="muted" style="margin:2px 0 0;font-size:13px">Inte ditt namn, din e-post eller vanliga ord. Tips: tre–fyra ord med bindestreck och en siffra, t.ex. <i>Sten-Bro-Båt-42</i>.</p>`;
-const msgBox=m=>m?`<div class="flash ${m.k}">${esc(m.t)}${m.resend?` <button type="button" class="linkbtn" data-act="resend">Skicka nytt mejl</button>`:""}</div>`:"";
+const msgBox=m=>m?`<div class="flash ${m.k}">${esc(m.t)}</div>`:"";
 function renderAuth(){
   const m=msgBox(authMsg);
   if(authMode==="register")return `<div class="authwrap"><h2>Skapa konto</h2>${m}<form data-form="register">
@@ -361,8 +369,8 @@ function renderAuth(){
     <div><label for="a-pw2">Upprepa lösenordet</label><input id="a-pw2" name="password2" type="password" autocomplete="new-password" required></div>
     <button class="pri">Skapa konto</button></form>
     <div class="links"><a href="#" data-auth="login">Har du redan ett konto? Logga in</a></div></div>`;
-  if(authMode==="forgot")return `<div class="authwrap"><h2>Glömt lösenord</h2>${m}<p class="muted">Ange din e-post så skickar vi en länk för att välja ett nytt lösenord.</p><form data-form="forgot">
-    <div><label for="a-email">E-post</label><input id="a-email" name="email" type="email" autocomplete="email" required></div><button class="pri">Skicka länk</button></form>
+  if(authMode==="forgot")return `<div class="authwrap"><h2>Glömt lösenord</h2>${m}<p class="muted">Ange din e-post så meddelas administratören. Du får sedan en personlig länk av hen för att välja ett nytt lösenord.</p><form data-form="forgot">
+    <div><label for="a-email">E-post</label><input id="a-email" name="email" type="email" autocomplete="email" required></div><button class="pri">Be om nytt lösenord</button></form>
     <div class="links"><a href="#" data-auth="login">Tillbaka till inloggning</a></div></div>`;
   if(authMode==="reset")return `<div class="authwrap"><h2>Välj nytt lösenord</h2>${m}<form data-form="reset">
     <div><label for="a-pw">Nytt lösenord</label><input id="a-pw" name="password" type="password" autocomplete="new-password" data-rules required>${rulesHTML()}</div>
@@ -380,36 +388,44 @@ function renderSettings(){
     <div><label for="s-last">Efternamn</label><input id="s-last" name="lastName" value="${esc(me.lastName)}" autocomplete="family-name" required></div></div>
     <div><label>E-post</label><div>${esc(me.email)}</div></div>
     <div><button class="pri">Spara namn</button></div></form></section>
-  <section class="panel"><h2>Byt lösenord</h2><p class="muted" style="margin-top:0">Av säkerhetsskäl börjar det nya lösenordet gälla först när du klickat på länken vi mejlar till ${esc(me.email)}. Då loggas alla enheter ut.</p>
+  <section class="panel"><h2>Byt lösenord</h2><p class="muted" style="margin-top:0">Du behöver ditt nuvarande lösenord. När lösenordet är bytt loggas alla andra enheter ut, så en inloggning någon annan kommit åt slutar fungera.</p>
     <form data-form="password"><div><label for="s-cur">Nuvarande lösenord</label><input id="s-cur" name="current" type="password" autocomplete="current-password" required></div>
     <div><label for="s-new">Nytt lösenord</label><input id="s-new" name="password" type="password" autocomplete="new-password" data-rules required>${rulesHTML()}</div>
     <div><label for="s-new2">Upprepa nytt lösenord</label><input id="s-new2" name="password2" type="password" autocomplete="new-password" required></div>
     <div><button class="pri">Byt lösenord</button></div></form></section>
   <section class="panel"><h2>Inloggning</h2><div class="row"><button data-act="logout">Logga ut</button><button data-act="logoutall">Logga ut på alla enheter</button></div></section>`;
 }
-async function loadAdmin(){try{const [u,o]=await Promise.all([api("admin/users"),api("admin/outbox")]);adminData={...u,...o};if(view==="admin")render()}catch(e){adminData={error:e.message||"Kunde inte hämta"};if(view==="admin")render()}}
+let resetLink=null;
+const plural=(n,a,b)=>`${n} ${n===1?a:b}`;
+function taskText(t){const p=[];if(t.pending)p.push(plural(t.pending,"konto som väntar på godkännande","konton som väntar på godkännande"));if(t.resets)p.push(plural(t.resets,"begäran om nytt lösenord","begäranden om nytt lösenord"));return p.join(" och ")}
+function taskBar(){const t=me?.tasks;if(me?.role!=="admin"||!t?.total)return "";return `<div class="taskbar"><span><b>Att göra som admin:</b> ${esc(taskText(t))}.</span><span class="sp"></span><a class="btn sm" href="#admin" style="display:inline-flex;align-items:center;text-decoration:none">Öppna admin</a></div>`}
+async function loadAdmin(){try{const u=await api("admin/users");adminData=u;if(me)me.tasks=u.tasks;if(view==="admin")render()}catch(e){adminData={error:e.message||"Kunde inte hämta"};if(view==="admin")render()}}
+const STATUS={pending:["Väntar","y"],active:["Aktiv","g"],frozen:["Fryst",""],banned:["Spärrad","r"]};
 function renderAdmin(){
   if(!adminData)return `<p class="muted">Hämtar…</p>`;if(adminData.error)return `<p class="flash err">${esc(adminData.error)}</p>`;
   const dt=s=>s?s.slice(0,16).replace("T"," "):"–";
-  const u=adminData.users;
-  let h=`<section class="panel"><h2>Användare (${u.length})</h2><div class="scroll"><table class="stack"><thead><tr><th>Namn</th><th>E-post</th><th>Status</th><th style="text-align:right">Pass</th><th>Senaste pass</th><th>Senast inloggad</th><th>Skapad</th><th></th></tr></thead><tbody>
-  ${u.map(x=>`<tr><td>${esc(x.first_name+" "+x.last_name)}</td><td>${esc(x.email)}</td>
-    <td>${x.role==="admin"?`<span class="tag2 y">Admin</span> `:""}${x.disabled?`<span class="tag2 r">Avstängd</span>`:x.verified_at?`<span class="tag2 g">Bekräftad</span>`:`<span class="tag2">Ej bekräftad</span>`}</td>
+  const u=adminData.users,t=adminData.tasks||{};
+  const btn=(act,x,label,cls="")=>{const key=act+":"+x.id;const danger=act==="ban"||act==="reject";return `<button class="sm ${cls}" data-act="admin" data-a="${act}" data-id="${x.id}"${act==="role"?` data-role="${x.role==="admin"?"user":"admin"}"`:""}>${danger&&armed===key?"Tryck igen":label}</button>`};
+  let h=resetLink?`<div class="linkbox"><span>Länk för nytt lösenord till <b>${esc(resetLink.name)}</b> (gäller ${resetLink.hours} timmar, kan användas en gång):</span><code>${esc(resetLink.link)}</code><button class="sm pri" data-act="copylink" data-link="${esc(resetLink.link)}">Kopiera</button></div><p class="muted" style="margin-top:-6px">Skicka länken direkt till personen, t.ex. via sms. Den ger tillgång till kontot.</p>`:"";
+  h+=`<section class="panel"><h2>Att göra</h2>${t.total?`<p style="margin:0">${esc(taskText(t))}. Markerade rader nedan.</p>`:`<p class="muted" style="margin:0">Inget att göra just nu.</p>`}</section>`;
+  h+=`<section class="panel"><h2>Användare (${u.length})</h2><div class="scroll"><table class="stack"><thead><tr><th>Namn</th><th>E-post</th><th>Status</th><th style="text-align:right">Pass</th><th>Senaste pass</th><th>Senast inloggad</th><th>Registrerad</th><th>Åtgärder</th></tr></thead><tbody>
+  ${u.map(x=>{const s=STATUS[x.status]||[x.status,""];const task=x.status==="pending"||x.reset_requested_at;
+    let acts="";
+    if(x.id===adminData.me)acts=`<span class="muted">Du</span>`;
+    else if(x.status==="pending")acts=btn("approve",x,"Godkänn","pri")+btn("reject",x,"Avslå")+btn("ban",x,"Spärra","dan");
+    else if(x.status==="active")acts=btn("reset-link",x,x.reset_requested_at?"Skapa lösenordslänk":"Lösenordslänk",x.reset_requested_at?"pri":"")+btn("freeze",x,"Frys")+btn("ban",x,"Spärra","dan")+btn("role",x,x.role==="admin"?"Ta bort admin":"Gör till admin");
+    else if(x.status==="frozen")acts=btn("unfreeze",x,"Aktivera","pri")+btn("ban",x,"Spärra","dan");
+    else if(x.status==="banned")acts=btn("unban",x,"Häv spärr");
+    return `<tr class="${task?"hl":""}"><td>${esc(x.first_name+" "+x.last_name)}</td><td>${esc(x.email)}</td>
+    <td>${x.role==="admin"?`<span class="tag2 y">Admin</span> `:""}<span class="tag2 ${s[1]}">${s[0]}</span>${x.reset_requested_at?` <span class="tag2 r">Vill ha nytt lösenord</span>`:""}</td>
     <td class="n">${x.sessions}</td><td>${x.last_session?nice(x.last_session):"–"}</td><td>${dt(x.last_login_at)}</td><td>${dt(x.created_at)}</td>
-    <td>${x.id===adminData.me?`<span class="muted">Du</span>`:`<div class="row">${!x.verified_at?`<button class="sm" data-act="averify" data-id="${x.id}">Bekräfta</button>`:""}<button class="sm" data-act="adisable" data-id="${x.id}" data-on="${x.disabled?0:1}">${x.disabled?"Aktivera":"Stäng av"}</button><button class="sm" data-act="arole" data-id="${x.id}" data-role="${x.role==="admin"?"user":"admin"}">${x.role==="admin"?"Ta bort admin":"Gör till admin"}</button></div>`}</td></tr>`).join("")}
-  </tbody></table></div></section>`;
-  const mails=adminData.mails||[];
-  h+=`<section class="panel"><h2>Utkorg för e-post</h2>${adminData.mailConfigured?`<p class="muted" style="margin-top:0">E-post skickas via Brevo.</p>`:`<p class="flash err" style="margin-top:0">Ingen e-posttjänst är kopplad än, så mejlen skickas inte. Skicka länken vidare själv, eller bekräfta användaren manuellt ovan.</p>`}
-  <div class="scroll"><table class="stack"><thead><tr><th>Tid</th><th>Till</th><th>Ämne</th><th>Status</th><th>Länk</th></tr></thead><tbody>
-  ${mails.map(m=>`<tr><td style="white-space:nowrap">${dt(m.created_at)}</td><td>${esc(m.to_email)}</td><td>${esc(m.subject)}</td><td>${m.sent_at?`<span class="tag2 g">Skickat</span>`:m.error?`<span class="tag2 r" title="${esc(m.error)}">Fel</span>`:`<span class="tag2">Ej skickat</span>`}</td>
-    <td>${m.link?`<button class="sm" data-act="copylink" data-link="${esc(m.link)}">Kopiera länk</button>`:"–"}</td></tr>`).join("")||`<tr><td colspan="5" class="muted">Inga mejl än.</td></tr>`}</tbody></table></div>
-  <p class="muted">Länkar för lösenord är personliga och gäller en timme. Skicka dem bara till rätt person.</p></section>`;
+    <td><div class="row">${acts}</div></td></tr>`}).join("")}
+  </tbody></table></div>
+  <p class="muted"><b>Godkänn</b> ger kontot tillgång. <b>Avslå</b> tar bort en registrering som väntar. <b>Frys</b> stänger av inloggning tillfälligt; data sparas och kontot kan aktiveras igen. <b>Spärra</b> stänger av kontot och adressen kan inte registreras på nytt; spärren kan hävas.</p></section>`;
   return h;
 }
 async function boot(){
   const q=new URLSearchParams(location.search);
-  const msgs={"verified":["ok","E-postadressen är bekräftad. Logga in."],"verify-failed":["err","Länken är ogiltig eller har redan använts. Logga in, eller be om ett nytt mejl."],"pw-changed":["ok","Lösenordet är bytt och alla enheter har loggats ut. Logga in med det nya lösenordet."],"pw-failed":["err","Länken för lösenordsbyte är ogiltig eller har gått ut. Försök igen från Inställningar."]};
-  if(msgs[q.get("msg")])authMsg={k:msgs[q.get("msg")][0],t:msgs[q.get("msg")][1]};
   if(q.get("reset")){resetToken=q.get("reset");authMode="reset"}
   if(q.toString())history.replaceState(null,"",location.pathname+location.hash);
   try{const r=await fetch("/api/me",{credentials:"same-origin"});
@@ -436,20 +452,21 @@ document.addEventListener("submit",async ev=>{
       const r=await api("account/password",{method:"POST",body:JSON.stringify({current:v.current,password:v.password})});flash={k:"ok",t:r.message};render();return}
   }catch(e){
     if(me){flash={k:"err",t:e.message||"Något gick fel."};render()}
-    else{lastEmail=v.email||lastEmail;setA("err",e.message||"Något gick fel. Försök igen.",{resend:!!e.body?.unverified})}
+    else setA(e.body?.status==="pending"?"ok":"err",e.message||"Något gick fel. Försök igen.");
   }finally{done()}
 });
-let lastEmail="";
 document.addEventListener("input",ev=>{if(ev.target.matches("input[data-rules]")){const p=ev.target.value;const ul=ev.target.parentElement.querySelector("#pwrules");if(ul)ul.outerHTML=rulesHTML(p).split("</ul>")[0]+"</ul>"}},true);
 document.addEventListener("click",async ev=>{
   const a=ev.target.closest("[data-auth]");if(a){ev.preventDefault();authMode=a.dataset.auth;authMsg=null;render();setTimeout(()=>$("a-email")?.focus(),0);return}
   const b=ev.target.closest("[data-act]");if(!b)return;const act=b.dataset.act;
-  if(act==="resend"){try{const r=await api("auth/resend",{method:"POST",body:JSON.stringify({email:lastEmail})});authMsg={k:"ok",t:r.message};render()}catch(e){}return}
   if(act==="logout"||act==="logoutall"){try{await api(act==="logout"?"auth/logout":"account/logout-all",{method:"POST",body:"{}"})}catch(e){}
     try{localStorage.removeItem(cacheKey())}catch(e){}me=null;sessions=[];plans=[];loaded=false;authMode="login";authMsg={k:"ok",t:act==="logout"?"Du är utloggad.":"Du är utloggad på alla enheter."};history.replaceState(null,"",location.pathname);render();return}
-  if(act==="averify"||act==="adisable"||act==="arole"){const id=b.dataset.id;const path=`admin/users/${id}/${act==="averify"?"verify":act==="adisable"?"disable":"role"}`;
-    const body=act==="adisable"?{disabled:b.dataset.on==="1"}:act==="arole"?{role:b.dataset.role}:{};
-    try{await api(path,{method:"POST",body:JSON.stringify(body)});await loadAdmin()}catch(e){flash={k:"err",t:e.message};render()}return}
+  if(act==="admin"){const id=b.dataset.id,a=b.dataset.a,key=a+":"+id;
+    if((a==="ban"||a==="reject")&&armed!==key){armed=key;render();return}armed=null;
+    const x=adminData?.users?.find(u=>u.id===id);
+    try{const r=await api(`admin/users/${id}/${a}`,{method:"POST",body:JSON.stringify(a==="role"?{role:b.dataset.role}:{})});
+      if(a==="reset-link")resetLink={link:r.link,hours:r.hours,name:x?`${x.first_name} ${x.last_name}`:""};
+      flash=null;await loadAdmin()}catch(e){flash={k:"err",t:e.message};render()}return}
   if(act==="copylink"){try{await navigator.clipboard.writeText(b.dataset.link);b.textContent="Kopierad"}catch(e){prompt?.("Kopiera länken:",b.dataset.link)}return}
 });
 function renderLog(){
@@ -505,13 +522,14 @@ function render(){
   document.body.classList.toggle("out",!me);
   if(!me){$("main").innerHTML=renderAuth();return}
   $("admintab").hidden=me.role!=="admin";
+  const tn=me.tasks?.total||0;$("adminbadge").hidden=!tn;$("adminbadge").textContent=tn;
   $("usertab").textContent=me.firstName||"Inställningar";
   renderTop();
   for(const a of document.querySelectorAll("#tabs a"))a.classList.toggle("on",a.dataset.v===view);
   const f={plan:renderPlan,coach:renderCoach,log:renderLog,history:renderHistory,progress:renderProgress,settings:renderSettings,admin:renderAdmin}[view]||renderPlan;
   $("main").innerHTML=(flash?`<div class="flash ${flash.k}">${esc(flash.t)}</div>`:"")+f();
 }
-function route(){const h=location.hash.slice(1);view=["plan","coach","log","history","progress","settings","admin"].includes(h)?h:"plan";if(view==="admin"&&me?.role!=="admin")view="plan";if(view!=="log")ed=null;armed=null;flash=null;if(view==="admin")loadAdmin();render();window.scrollTo(0,0)}
+function route(){const h=location.hash.slice(1);view=["plan","coach","log","history","progress","settings","admin"].includes(h)?h:"plan";if(view!=="admin")resetLink=null;if(view==="admin"&&me?.role!=="admin")view="plan";if(view!=="log")ed=null;armed=null;flash=null;if(view==="admin")loadAdmin();render();window.scrollTo(0,0)}
 
 function syncEd(){if(!ed)return;const g=id=>$(id);if(g("e-date"))ed.date=g("e-date").value||ed.date;if(g("e-tag"))ed.tag=g("e-tag").value;if(g("e-note"))ed.note=g("e-note").value;
   document.querySelectorAll(".er").forEach(r=>{const i=+r.dataset.i;if(!ed.ex[i])return;ed.ex[i].n=r.querySelector('[data-f="n"]').value.trim();ed.ex[i].s=r.querySelector('[data-f="s"]').value.trim()})}
@@ -526,6 +544,7 @@ async function api(path,opt={}){
   if(!r.ok)throw{code:r.status,message:j.error,body:j};return j;
 }
 async function load(){
+  if(me?.role==="admin")api("admin/tasks").then(t=>{if(me){me.tasks=t;render()}}).catch(()=>{});
   try{const d=await api("data");sessions=d.sessions.map(x=>({...x,tag:normTag(x.tag)}));plans=d.plans.map(x=>({...x,tag:normTag(x.tag)}));loaded=true;save();setSync("Synkat");if(ed)syncEd();render();return true}
   catch(e){setSync(e.code==="auth"?"":sessions.length?"Offline: visar sparad kopia":"Når inte servern");return false}
 }
@@ -543,7 +562,7 @@ document.addEventListener("click",async ev=>{
   const exa=ev.target.closest("a[data-ex]");if(exa){progEx=exa.dataset.ex;return}
   const go=ev.target.closest("[data-go]");if(go){weekOff=Math.round((pd(monday(go.dataset.go))-pd(monday(TODAY)))/864e5/7);ed=null;if(location.hash!=="#plan")location.hash="plan";else render();return}
   const b=ev.target.closest("[data-act]");if(!b)return;const a=b.dataset.act;syncEd();
-  if(a!=="del")armed=null;
+  if(a!=="del"&&a!=="admin")armed=null;
   if(a==="import"){runImport(b);return}
   if(a==="cstart"||a==="cplan"){const r=coachReport(sessions,TODAY);const n=r.next;const ex=r.plan.map(p=>({n:p.n,s:p.target}));
     if(a==="cstart"){ed={kind:"log",date:n.date,tag:n.tag,note:"",ex:ex.map(e=>({n:e.n,s:"",goal:e.s}))};location.hash="log";return}

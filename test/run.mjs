@@ -86,32 +86,43 @@ assert((await admin("/api/data")).status === 401, "data requires login");
 let r = await post(admin, "/api/auth/login", { email: "admin@example.com", password: "wrong-password-123" });
 assert(r.status === 401 && !r.body.user, "wrong password refused");
 r = await post(admin, "/api/auth/login", { email: " ADMIN@example.com ", password: ADMIN_PW });
-assert(r.status === 200 && r.body.user.role === "admin" && r.body.user.firstName === "Håkan", "admin bootstrapped from settings and can log in");
+assert(r.status === 200 && r.body.user.role === "admin" && r.body.user.firstName === "Håkan" && r.body.user.tasks.total === 0, "admin bootstrapped from settings and can log in");
 let d = (await admin("/api/data")).body;
 assert(d.sessions.length === 88 && d.plans.length === 1 && d.plans[0].ex[0].n === "Kabelrodd", "migration: existing 88 sessions and plan now belong to admin");
 const stored = env.DB.db.prepare("SELECT pw_hash FROM users").get().pw_hash;
 assert(stored.startsWith("pbkdf2$100000$") && !stored.includes(ADMIN_PW), "password stored only as PBKDF2 hash");
 
-// ---- 2. Registration and email verification ----
+// ---- 2. Registration and approval by admin ----
 const anna = client();
 r = await post(anna, "/api/auth/register", { email: "anna@example.com", password: "kort", firstName: "Anna", lastName: "Berg" });
 assert(r.status === 400 && /12 tecken/.test(r.body.error), "weak password refused (length)");
 r = await post(anna, "/api/auth/register", { email: "anna@example.com", password: "annaberg-Hej123!", firstName: "Anna", lastName: "Berg" });
 assert(r.status === 400 && /namn/.test(r.body.error), "password containing the name refused");
 r = await post(anna, "/api/auth/register", { email: "anna@example.com", password: "Gröna-Hästar-91", firstName: "Anna", lastName: "Berg" });
-assert(r.status === 200, "registration accepted");
+assert(r.status === 200 && /godkänner/.test(r.body.message), "registration accepted, waiting for approval");
 r = await post(anna, "/api/auth/login", { email: "anna@example.com", password: "Gröna-Hästar-91" });
-assert(r.status === 401 && r.body.unverified, "cannot log in before verifying email");
-const vlink = lastLink("verify");
-assert(vlink && vlink.includes("/api/auth/verify?token="), "verification email queued in outbox with link");
-r = await anna(pathOf(vlink));
-assert(r.status === 302 && r.location === "/?msg=verified", "verification link works");
-assert((await anna(pathOf(vlink))).location === "/?msg=verify-failed", "verification link is single-use");
-r = await post(anna, "/api/auth/login", { email: "anna@example.com", password: "Gröna-Hästar-91" });
-assert(r.status === 200 && r.body.user.role === "user", "verified user logs in");
-assert((await anna("/api/data")).body.sessions.length === 0, "new user sees no one else's data");
+assert(r.status === 401 && r.body.status === "pending", "cannot log in before approval");
+r = await post(anna, "/api/auth/login", { email: "anna@example.com", password: "wrong-Pass-1234" });
+assert(r.status === 401 && !r.body.status, "status not revealed with a wrong password");
+r = await admin("/api/me");
+assert(r.body.user.tasks.pending === 1 && r.body.user.tasks.total === 1, "admin sees 1 task: account to approve");
 r = await post(client(), "/api/auth/register", { email: "anna@example.com", password: "Andra-Lösen-77x", firstName: "X", lastName: "Y" });
-assert(r.status === 200 && env.DB.db.prepare("SELECT COUNT(*) n FROM users").get().n === 2 && lastLink("already"), "duplicate email: same answer, no new account, warning mail");
+assert(r.status === 200 && env.DB.db.prepare("SELECT COUNT(*) n FROM users").get().n === 2, "duplicate email: same answer, no new account");
+let users = (await admin("/api/admin/users")).body.users;
+const annaId = users.find((u) => u.email === "anna@example.com").id;
+assert(users[0].id === annaId, "pending accounts listed first");
+r = await post(admin, `/api/admin/users/${annaId}/approve`, {});
+assert(r.status === 200, "admin approves");
+r = await post(anna, "/api/auth/login", { email: "anna@example.com", password: "Gröna-Hästar-91" });
+assert(r.status === 200 && r.body.user.role === "user" && !r.body.user.tasks, "approved user logs in (no admin tasks)");
+assert((await anna("/api/data")).body.sessions.length === 0, "new user sees no one else's data");
+assert((await admin("/api/me")).body.user.tasks.total === 0, "no admin tasks left");
+// reject a pending registration
+await post(client(), "/api/auth/register", { email: "spam@example.com", password: "Gul-Ko-Hoppar-9", firstName: "S", lastName: "P" });
+const spamId = (await admin("/api/admin/users")).body.users.find((u) => u.email === "spam@example.com").id;
+r = await post(admin, `/api/admin/users/${spamId}/reject`, {});
+assert(r.status === 200 && !env.DB.db.prepare("SELECT 1 FROM users WHERE id = ?").get(spamId), "admin rejects (deletes) a pending registration");
+assert((await post(admin, `/api/admin/users/${annaId}/reject`, {})).status === 400, "cannot reject an active account");
 
 // ---- 3. Data is private per user ----
 r = await put(anna, "/api/sessions/2026-11-23-a", { date: "2026-11-23", tag: "NK", note: "", ex: [{ n: "Squats", s: "8@60" }] });
@@ -126,33 +137,34 @@ d = (await admin("/api/data")).body;
 assert(d.plans[0].tag === "ÖK" && (await anna("/api/data")).body.plans[0].tag === "HK", "plans on the same date are separate per user");
 assert((await post(anna, "/api/import", {})).status === 403, "only admin may import");
 
-// ---- 4. Settings: name and password change with email confirmation ----
+// ---- 4. Settings: name and password ----
 r = await put(anna, "/api/account/name", { firstName: "Annie", lastName: "Berg-Lind" });
 assert(r.status === 200 && (await anna("/api/me")).body.user.firstName === "Annie", "change name");
+const annaPhone = client(); await post(annaPhone, "/api/auth/login", { email: "anna@example.com", password: "Gröna-Hästar-91" });
 r = await post(anna, "/api/account/password", { current: "fel-lösen-123A", password: "Blå-Kaffe-Kopp-8" });
 assert(r.status === 400, "password change needs the current password");
+r = await post(anna, "/api/account/password", { current: "Gröna-Hästar-91", password: "svagt" });
+assert(r.status === 400, "new password must be strong");
 r = await post(anna, "/api/account/password", { current: "Gröna-Hästar-91", password: "Blå-Kaffe-Kopp-8" });
-assert(r.status === 200, "password change requested");
-r = await post(client(), "/api/auth/login", { email: "anna@example.com", password: "Blå-Kaffe-Kopp-8" });
-assert(r.status === 401, "new password not active before email confirmation");
-const other = client(); await post(other, "/api/auth/login", { email: "anna@example.com", password: "Gröna-Hästar-91" });
-r = await anna(pathOf(lastLink("pwchange")));
-assert(r.location === "/?msg=pw-changed", "confirmation link applies the new password");
-assert((await other("/api/data")).status === 401, "all other logins are signed out after the change");
-assert(env.DB.db.prepare("SELECT COUNT(*) n FROM outbox WHERE kind='changed'").get().n > 0, "'password changed' notice sent");
-r = await post(anna, "/api/auth/login", { email: "anna@example.com", password: "Blå-Kaffe-Kopp-8" });
-assert(r.status === 200, "log in with the new password");
+assert(r.status === 200, "password changed");
+assert((await anna("/api/data")).status === 200, "this device stays logged in");
+assert((await annaPhone("/api/data")).status === 401, "all other devices are logged out");
+assert((await post(client(), "/api/auth/login", { email: "anna@example.com", password: "Gröna-Hästar-91" })).status === 401, "old password no longer works");
+assert((await post(client(), "/api/auth/login", { email: "anna@example.com", password: "Blå-Kaffe-Kopp-8" })).status === 200, "new password works");
 
-// ---- 5. Forgot password ----
-await post(client(), "/api/auth/forgot", { email: "anna@example.com" });
-const tok = new URL(lastLink("reset")).searchParams.get("reset");
+// ---- 5. Forgot password → admin creates a one-time link ----
+r = await post(client(), "/api/auth/forgot", { email: "anna@example.com" });
+assert(r.status === 200 && (await admin("/api/me")).body.user.tasks.resets === 1, "forgot password becomes an admin task");
+assert((await post(client(), "/api/auth/forgot", { email: "nobody@example.com" })).status === 200, "forgot password does not reveal unknown emails");
+r = await post(admin, `/api/admin/users/${annaId}/reset-link`, {});
+assert(r.status === 200 && r.body.link.includes("/?reset=") && (await admin("/api/me")).body.user.tasks.resets === 0, "admin creates reset link; task cleared");
+const tok = new URL(r.body.link).searchParams.get("reset");
 r = await post(client(), "/api/auth/reset", { token: tok, password: "svag" });
-assert(r.status === 400, "reset with weak password refused (token not used up)");
+assert(r.status === 400, "reset with weak password refused (link not used up)");
 r = await post(client(), "/api/auth/reset", { token: tok, password: "Röda-Äpplen-2026" });
-assert(r.status === 200, "reset password with emailed link");
+assert(r.status === 200 && (await anna("/api/data")).status === 401, "reset works and logs out all devices");
 assert((await post(client(), "/api/auth/reset", { token: tok, password: "Röda-Äpplen-2027" })).status === 400, "reset link is single-use");
-r = await post(client(), "/api/auth/forgot", { email: "nobody@example.com" });
-assert(r.status === 200, "forgot password does not reveal unknown emails");
+await post(anna, "/api/auth/login", { email: "anna@example.com", password: "Röda-Äpplen-2026" });
 
 // ---- 6. Lockout ----
 const mallory = client();
@@ -162,24 +174,55 @@ assert(r.status === 401 && /För många/.test(r.body.error), "account locked aft
 env.DB.db.prepare("UPDATE users SET locked_until = NULL WHERE email = 'anna@example.com'").run();
 assert((await post(anna, "/api/auth/login", { email: "anna@example.com", password: "Röda-Äpplen-2026" })).status === 200, "login works again after the lock expires");
 
-// ---- 7. Admin ----
-r = await anna("/api/admin/users");
-assert(r.status === 403, "non-admin cannot open admin");
-r = await admin("/api/admin/users");
-assert(r.status === 200 && r.body.users.length === 2 && r.body.users.some((u) => u.email === "anna@example.com" && u.sessions === 1), "admin lists users with session counts");
-const annaId = r.body.users.find((u) => u.email === "anna@example.com").id;
-r = await admin("/api/admin/outbox");
-assert(r.body.mails.length >= 5 && r.body.mailConfigured === false, "admin sees the email outbox");
-await post(admin, `/api/admin/users/${annaId}/disable`, { disabled: true });
-assert((await anna("/api/data")).status === 401, "disabled user is signed out");
-await post(admin, `/api/admin/users/${annaId}/disable`, { disabled: false });
+// ---- 7. Admin: freeze, ban, roles ----
+assert((await anna("/api/admin/users")).status === 403, "non-admin cannot open admin");
+users = (await admin("/api/admin/users")).body.users;
+assert(users.some((u) => u.email === "anna@example.com" && u.sessions === 1 && u.status === "active"), "admin lists users with status and session counts");
+await post(admin, `/api/admin/users/${annaId}/freeze`, {});
+assert((await anna("/api/data")).status === 401, "frozen user is logged out");
+r = await post(anna, "/api/auth/login", { email: "anna@example.com", password: "Röda-Äpplen-2026" });
+assert(r.status === 401 && r.body.status === "frozen", "frozen user cannot log in");
+await post(admin, `/api/admin/users/${annaId}/unfreeze`, {});
+assert((await post(anna, "/api/auth/login", { email: "anna@example.com", password: "Röda-Äpplen-2026" })).status === 200, "unfrozen user can log in again, data kept");
+assert((await anna("/api/data")).body.sessions.length === 1, "data kept after freeze");
+await post(admin, `/api/admin/users/${annaId}/ban`, {});
+r = await post(anna, "/api/auth/login", { email: "anna@example.com", password: "Röda-Äpplen-2026" });
+assert(r.status === 401 && r.body.status === "banned", "banned user cannot log in");
+r = await post(client(), "/api/auth/register", { email: "anna@example.com", password: "Ny-Start-Igen-55", firstName: "A", lastName: "B" });
+assert(env.DB.db.prepare("SELECT status FROM users WHERE email='anna@example.com'").get().status === "banned", "banned email cannot register again");
+assert((await post(admin, `/api/admin/users/${annaId}/freeze`, {})).status === 400, "cannot freeze a banned account");
+await post(admin, `/api/admin/users/${annaId}/unban`, {});
+await post(admin, `/api/admin/users/${annaId}/role`, { role: "admin" });
+await post(anna, "/api/auth/login", { email: "anna@example.com", password: "Röda-Äpplen-2026" });
+assert((await anna("/api/admin/users")).status === 200, "unbanned user made admin can open admin");
 const meId = (await admin("/api/admin/users")).body.me;
-assert((await post(admin, `/api/admin/users/${meId}/disable`, { disabled: true })).status === 400, "admin cannot disable self");
+assert((await post(admin, `/api/admin/users/${meId}/ban`, {})).status === 400, "admin cannot change own account");
 assert((await admin("/api/data", { method: "PUT", headers: { origin: "https://evil.test" } })).status === 403, "cross-site write refused");
 
 // ---- 8. Logout ----
 await post(admin, "/api/auth/logout", {});
 assert((await admin("/api/data")).status === 401, "logout ends the session");
+
+// ---- 8b. Migration from the live v2 database (accounts with email verification) ----
+{
+  const { ensureSchema: oldSchema } = await import("/tmp/oldv2/schema.js");
+  const db2 = new FakeD1();
+  await oldSchema(db2);
+  const h = await hashPassword("Gammal-Admin-Kod-1");
+  db2.db.exec(`INSERT INTO users (id,email,first_name,last_name,pw_hash,role,verified_at) VALUES ('a','boss@example.com','B','C','${h}','admin',datetime('now'));
+    INSERT INTO users (id,email,first_name,last_name,pw_hash,verified_at) VALUES ('v','ok@example.com','O','K','${h}',datetime('now'));
+    INSERT INTO users (id,email,first_name,last_name,pw_hash) VALUES ('u','new@example.com','N','W','${h}');
+    INSERT INTO users (id,email,first_name,last_name,pw_hash,verified_at,disabled) VALUES ('d','off@example.com','O','F','${h}',datetime('now'),1);
+    INSERT INTO sessions (id,user_id,date,tag,note) VALUES ('s1','a','2026-11-20','ÖK','');`);
+  _resetForTests();
+  const saved = env.DB; env.DB = db2;
+  const boss = client();
+  r = await post(boss, "/api/auth/login", { email: "boss@example.com", password: "Gammal-Admin-Kod-1" });
+  const st = Object.fromEntries(db2.db.prepare("SELECT id, status FROM users").all().map((x) => [x.id, x.status]));
+  assert(r.status === 200 && st.a === "active" && st.v === "active" && st.u === "pending" && st.d === "frozen", "v2→v3: verified→active, unverified→pending, disabled→frozen");
+  assert(r.body.user.tasks.pending === 1 && (await boss("/api/data")).body.sessions.length === 1, "v2→v3: admin keeps data and sees the pending account as a task");
+  env.DB = saved; _resetForTests();
+}
 
 // ---- 9. Parser and coach ----
 const ps = parseSessionText("22/11 ök (Kyrkbyn)\n- Bänkpress (incline) 4@15, 6@22,5 kg, 7@20KG\n• Preachercurl (hantel) 8@15\nPull-ups 6, 6\nPlankan 2:30\n\n261123 UK\nHip abductor x2 10@30kg", "2026-11-22");
