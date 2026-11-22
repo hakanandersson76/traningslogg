@@ -210,7 +210,21 @@ function pasteHTML(){
   <textarea id="pastetxt" placeholder="261122 ÖK\nBänkpress (incline) 4@15, 6@22,5kg\nKabelrodd 6@33,5, 6@33,5\nPlankan 2:30">${esc(ed.pasteText||"")}</textarea>
   <div class="row" style="margin-top:8px"><button class="sm" data-act="clip">Hämta från urklipp</button><span class="sp"></span><button class="sm pri" data-act="pastefill">Fyll i</button></div>
   ${ed.pasteMsg?`<p class="muted" style="margin:8px 0 0">${ed.pasteMsg}</p>`:""}
+  ${many?pasteSummary(found):""}
   ${many&&ed.kind==="log"?`<div class="row" style="margin-top:8px"><button class="sm pri" data-act="pastesaveall">Spara alla ${found.filter(x=>x.date&&!x.dup).length} nya pass direkt</button></div>`:""}</div>`;
+}
+function pasteSummary(found){
+  const dated=found.filter(x=>x.date),dates=dated.map(x=>x.date).sort();
+  const yc={};for(const d of dates)yc[d.slice(0,4)]=(yc[d.slice(0,4)]||0)+1;
+  const main=Object.entries(yc).sort((a,b)=>b[1]-a[1])[0]?.[0];
+  const odd=dated.filter(x=>x.date.slice(0,4)!==main||x.date>TODAY);
+  const tags=dated.reduce((a,x)=>(a[x.tag||"utan typ"]=(a[x.tag||"utan typ"]||0)+1,a),{});
+  const seen=new Set(),dupDates=dates.filter(d=>seen.has(d)||!seen.add(d));
+  return `<div class="note" style="margin-top:10px"><b>${dated.length} pass</b> ${dates.length?`från ${nice(dates[0])} ${dates[0].slice(0,4)} till ${nice(dates.at(-1))} ${dates.at(-1).slice(0,4)}`:""} · ${Object.entries(tags).map(([t,n])=>`${t} ${n}`).join(" · ")}
+  ${found.length>dated.length?`<br>${found.length-dated.length} pass utan datum hoppas över.`:""}
+  ${found.some(x=>x.dup)?`<br>${found.filter(x=>x.dup).length} finns redan och hoppas över.`:""}
+  ${dupDates.length?`<br>Flera pass samma dag: ${[...new Set(dupDates)].map(d=>d).join(", ")}.`:""}
+  ${odd.length?`<br><b>Kontrollera datum</b> (annat år än ${main} eller i framtiden): ${odd.map(x=>x.date).join(", ")}. Rätta i texten och tryck Fyll i igen.`:""}</div>`;
 }
 const canon=n=>{const k=n.toLowerCase();for(const x of exIndex().keys())if(x.toLowerCase()===k)return x;return n};
 const sameSession=(p)=>sessions.some(s=>s.date===p.date&&(s.ex||[]).map(e=>e.n+"|"+e.s).join("~")===p.ex.map(e=>e.n+"|"+e.s).join("~"));
@@ -312,8 +326,8 @@ async function load(){
   try{const d=await api("data");sessions=d.sessions.map(x=>({...x,tag:normTag(x.tag)}));plans=d.plans.map(x=>({...x,tag:normTag(x.tag)}));loaded=true;save();setSync("Synkat");if(ed)syncEd();render();return true}
   catch(e){setSync(e.code==="auth"?"Inte inloggad: ladda om sidan":sessions.length?"Offline: visar sparad kopia":"Når inte servern");return false}
 }
-async function write(path,data){
-  try{setSync("Sparar…");await api(path,data===null?{method:"DELETE"}:{method:"PUT",body:JSON.stringify(data)});await load();setSync("Sparat");return true}
+async function write(path,data,reload=true){
+  try{setSync("Sparar…");await api(path,data===null?{method:"DELETE"}:{method:"PUT",body:JSON.stringify(data)});if(reload)await load();setSync("Sparat");return true}
   catch(e){setSync(e.code==="auth"?"Inte inloggad: ladda om sidan":e.message||"Kunde inte spara, försök igen");return false}
 }
 async function runImport(btn){
@@ -336,8 +350,8 @@ document.addEventListener("click",async ev=>{
     if(found.length===1){ed.paste=false;ed.pasteText="";setSync(ed.pasteMsg)}render();return}
   if(a==="pastesaveall"){const todo=(ed.pasteFound||[]).filter(x=>x.date&&!x.dup);b.disabled=true;let n=0;
     for(const p of todo){b.textContent=`Sparar ${n+1}/${todo.length}…`;const id=`${p.date}-${Date.now().toString(36)}${n}`;
-      if(!await write("sessions/"+id,{date:p.date,tag:p.tag,note:p.note,ex:p.ex.filter(e=>e.s)}))break;n++}
-    setSync(`Sparade ${n} pass`);ed=null;location.hash="history";if(view==="history")render();return}
+      if(!await write("sessions/"+id,{date:p.date,tag:p.tag,note:p.note,ex:p.ex.filter(e=>e.s)},false))break;n++}
+    await load();setSync(`Sparade ${n} pass`);ed=null;location.hash="history";if(view==="history")render();return}
   if(a==="wk"){weekOff=b.dataset.d==="0"?0:weekOff+ +b.dataset.d;render()}
   else if(a==="newplan"){ed={kind:"plan",date:b.dataset.d,tag:"ÖK",note:"",ex:fromTag("ÖK",b.dataset.d)};render();$("edbox")?.scrollIntoView({block:"start"})}
   else if(a==="eplan"){const p=plans.find(x=>x.date===b.dataset.d);ed={kind:"plan",id:p.id,date:p.date,tag:p.tag,note:p.note||"",ex:JSON.parse(JSON.stringify(p.ex||[]))};render();$("edbox")?.scrollIntoView({block:"start"})}
