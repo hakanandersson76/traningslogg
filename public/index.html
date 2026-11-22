@@ -77,6 +77,9 @@ label{font-size:14px;color:var(--soft);display:block;margin-bottom:4px}
 .er .hint b{color:var(--ink)}
 .er .hint button{margin-left:6px}
 .x{padding:0;min-height:44px;width:44px;font-size:20px}
+.paste{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:12px 0;margin:8px 0}
+.paste textarea{min-height:140px;font:15px/1.4 Barlow,sans-serif}
+button.sm.on{background:var(--ink);color:var(--bg)}
 .fil{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
 .fil button.on{background:var(--ink);color:var(--bg)}
 .prog{display:grid;grid-template-columns:repeat(auto-fit,minmax(9em,1fr));gap:12px;margin:14px 0}
@@ -115,7 +118,7 @@ textarea{min-height:160px;font-size:14px}
 </div></nav>
 <main id="main"></main>
 <script type="module">
-import { parseSets } from "./parse.js";
+import { parseSets, parseSessionText } from "./parse.js";
 {
 const TAGS={"ÖK":["Överkropp","red"],"NK":["Nederkropp","blue"],"HK":["Helkropp","yellow"],"":["Pass","grey"]};
 const MERGE={"UK":"NK","FK":"HK"};const normTag=t=>MERGE[t]||t||"";
@@ -192,13 +195,28 @@ function editorHTML(){
   <div class="f3"><div><label for="e-date">Datum</label><input type="date" id="e-date" value="${ed.date}"></div>
   <div><label for="e-tag">Typ</label><select id="e-tag">${Object.keys(TAGS).filter(Boolean).map(t=>`<option value="${t}" ${t===ed.tag?"selected":""}>${t} ${TAGS[t][0]}</option>`).join("")}</select></div>
   <div><label for="e-note">Anteckning</label><input id="e-note" value="${esc(ed.note)}" placeholder="t.ex. Kyrkbyn"></div></div>
-  <div class="row" style="margin-bottom:6px"><span class="muted">Fyll med senaste:</span>${["ÖK","NK","HK"].map(t=>`<button class="sm" data-act="fill" data-t="${t}">${t}</button>`).join("")}</div>
+  <div class="row" style="margin-bottom:6px"><button class="sm ${ed.paste?"on":""}" data-act="pastetoggle">Klistra in från Anteckningar</button><span class="muted">eller fyll med senaste:</span>${["ÖK","NK","HK"].map(t=>`<button class="sm" data-act="fill" data-t="${t}">${t}</button>`).join("")}</div>
+  ${ed.paste?pasteHTML():""}
   <datalist id="exnames">${names.map(n=>`<option value="${esc(n)}">`).join("")}</datalist>
   <div id="rows">${ed.ex.map((e,i)=>rowHTML(e,i,isPlan)).join("")}</div>
   <div class="row" style="margin-top:12px"><button data-act="addrow">+ Övning</button><span class="sp"></span>
   ${ed.id?`<button class="dan" data-act="del">${armed==="del"?"Tryck igen för att radera":"Radera"}</button>`:""}
   <button data-act="cancel">Avbryt</button><button class="pri" data-act="save">${isPlan?"Spara plan":"Spara pass"}</button></div>
-  <p class="muted" style="margin:10px 0 0">Set skrivs som i anteckningen: <b>8@22,5, 6@25</b> · kroppsvikt <b>10, 8</b> · tid <b>2:30</b> · anteckning i (parentes).</p></section>`;
+  <p class="muted" style="margin:10px 0 0">Set skrivs som i anteckningen: <b>8@22,5, 6@25</b> (kg valfritt) · kroppsvikt <b>10, 8</b> · tid <b>2:30</b> · anteckning i (parentes).</p></section>`;
+}
+function pasteHTML(){
+  const found=ed.pasteFound||[];const many=found.length>1;
+  return `<div class="paste"><label for="pastetxt">Klistra in ett eller flera pass. Första raden kan vara datum och typ, t.ex. <b>261122 ÖK</b>.</label>
+  <textarea id="pastetxt" placeholder="261122 ÖK\nBänkpress (incline) 4@15, 6@22,5kg\nKabelrodd 6@33,5, 6@33,5\nPlankan 2:30">${esc(ed.pasteText||"")}</textarea>
+  <div class="row" style="margin-top:8px"><button class="sm" data-act="clip">Hämta från urklipp</button><span class="sp"></span><button class="sm pri" data-act="pastefill">Fyll i</button></div>
+  ${ed.pasteMsg?`<p class="muted" style="margin:8px 0 0">${ed.pasteMsg}</p>`:""}
+  ${many&&ed.kind==="log"?`<div class="row" style="margin-top:8px"><button class="sm pri" data-act="pastesaveall">Spara alla ${found.filter(x=>x.date&&!x.dup).length} nya pass direkt</button></div>`:""}</div>`;
+}
+const canon=n=>{const k=n.toLowerCase();for(const x of exIndex().keys())if(x.toLowerCase()===k)return x;return n};
+const sameSession=(p)=>sessions.some(s=>s.date===p.date&&(s.ex||[]).map(e=>e.n+"|"+e.s).join("~")===p.ex.map(e=>e.n+"|"+e.s).join("~"));
+function applyPaste(p){
+  if(p.date)ed.date=p.date;if(p.tag)ed.tag=p.tag;if(p.note)ed.note=p.note;
+  ed.ex=p.ex.map(e=>({n:canon(e.n),s:e.s}));
 }
 function rowHTML(e,i,isPlan){
   const l=e.n?lastFor(e.n,ed.date):null;const sg=suggest(l);
@@ -309,6 +327,17 @@ document.addEventListener("click",async ev=>{
   const b=ev.target.closest("[data-act]");if(!b)return;const a=b.dataset.act;syncEd();
   if(a!=="del")armed=null;
   if(a==="import"){runImport(b);return}
+  if(a==="pastetoggle"){ed.paste=!ed.paste;ed.pasteMsg="";render();if(ed.paste)setTimeout(()=>$("pastetxt")?.focus(),0);return}
+  if(a==="clip"){try{const t=await navigator.clipboard.readText();ed.pasteText=t;ed.pasteMsg="Hämtat från urklipp. Tryck Fyll i.";}catch(e){ed.pasteMsg="Kunde inte läsa urklipp. Håll fingret i rutan och välj Klistra in."}render();return}
+  if(a==="pastefill"){const found=parseSessionText(ed.pasteText||"",TODAY).map(p=>({...p,ex:p.ex.map(e=>({n:canon(e.n),s:e.s}))}));found.forEach(p=>p.dup=!!(p.date&&sameSession(p)));ed.pasteFound=found;
+    if(!found.length){ed.pasteMsg="Hittade inga övningar i texten.";render();return}
+    applyPaste(found[0]);const nEx=found[0].ex.length,nSets=found[0].ex.reduce((a,e)=>a+parseSets(e.s).length,0);
+    ed.pasteMsg=found.length>1?`Hittade ${found.length} pass. Det första (${found[0].date?nice(found[0].date):"utan datum"}) är ifyllt nedan${found.some(x=>x.dup)?`; ${found.filter(x=>x.dup).length} finns redan och hoppas över`:""}.`:`Fyllde i ${nEx} övningar och ${nSets} set${found[0].date?"":" (inget datum i texten, behåller "+nice(ed.date)+")"}. Kontrollera och tryck Spara pass.`;
+    if(found.length===1){ed.paste=false;ed.pasteText="";setSync(ed.pasteMsg)}render();return}
+  if(a==="pastesaveall"){const todo=(ed.pasteFound||[]).filter(x=>x.date&&!x.dup);b.disabled=true;let n=0;
+    for(const p of todo){b.textContent=`Sparar ${n+1}/${todo.length}…`;const id=`${p.date}-${Date.now().toString(36)}${n}`;
+      if(!await write("sessions/"+id,{date:p.date,tag:p.tag,note:p.note,ex:p.ex.filter(e=>e.s)}))break;n++}
+    setSync(`Sparade ${n} pass`);ed=null;location.hash="history";if(view==="history")render();return}
   if(a==="wk"){weekOff=b.dataset.d==="0"?0:weekOff+ +b.dataset.d;render()}
   else if(a==="newplan"){ed={kind:"plan",date:b.dataset.d,tag:"ÖK",note:"",ex:fromTag("ÖK",b.dataset.d)};render();$("edbox")?.scrollIntoView({block:"start"})}
   else if(a==="eplan"){const p=plans.find(x=>x.date===b.dataset.d);ed={kind:"plan",id:p.id,date:p.date,tag:p.tag,note:p.note||"",ex:JSON.parse(JSON.stringify(p.ex||[]))};render();$("edbox")?.scrollIntoView({block:"start"})}
@@ -332,7 +361,7 @@ document.addEventListener("click",async ev=>{
   else if(a==="copy"){const txt=[...sessions].sort((x,y)=>x.date<y.date?-1:1).map(s=>`${s.date.slice(2).replace(/-/g,"")}${s.tag?" "+s.tag:""}${s.note?` (${s.note})`:""}\n`+(s.ex||[]).map(e=>`${e.n} ${e.s}`).join("\n")).join("\n\n");
     try{await navigator.clipboard.writeText(txt);setSync("Kopierat")}catch(e){$("copyout").innerHTML=`<label for="cpt">Markera och kopiera</label><textarea id="cpt">${esc(txt)}</textarea>`}}
 });
-document.addEventListener("input",ev=>{if(ev.target.id==="hq"){filt.q=ev.target.value;const p=ev.target.selectionStart;render();const i=$("hq");i.focus();i.setSelectionRange(p,p)}});
+document.addEventListener("input",ev=>{if(ev.target.id==="pastetxt"&&ed){ed.pasteText=ev.target.value;return}if(ev.target.id==="hq"){filt.q=ev.target.value;const p=ev.target.selectionStart;render();const i=$("hq");i.focus();i.setSelectionRange(p,p)}});
 document.addEventListener("change",ev=>{const t=ev.target;
   if(t.id==="pex"){progEx=t.value.replace(/ \(\d+\)$/,"");render()}
   else if(t.dataset.f==="n"||t.id==="e-date"){syncEd();rerow()}});

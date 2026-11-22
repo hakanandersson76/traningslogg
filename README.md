@@ -7,6 +7,7 @@ Personal gym planner and training log for Håkan. It replaces the first version,
 ## Features (parity with v1)
 - **Plan:** week view (ISO weeks, Mon–Sun). Plan a session per day; "fill from last ÖK/NK/HK" copies the last session of that type with suggested targets.
 - **Logga pass:** log a session. Starting a planned session prefills targets ("Mål") and marks the plan done.
+- **Klistra in från Anteckningar:** paste one or more sessions written in Notes (e.g. on the iPhone). Header lines `261122 ÖK`, `2026-11-22 nk` or `22/11 HK (note)` start a session; every other line is `Exercise name sets`. Bullets are ignored, name variants are mapped to existing names (case-insensitive), and sessions that already exist are skipped. One session fills the form; several can be saved directly. Parser: `parseSessionText` in `public/parse.js`.
 - **Historik:** list, filter by type (incl. untyped), search exercise, edit or delete, and export everything as text in the note format.
 - **Utveckling:** per exercise: latest/best top set, change since first, estimated 1RM (Epley, reps capped at 12), chart and table.
 - **Header:** year grid, one cell per day coloured by session type, planned days outlined, today marked; stats (sessions this year/month, sessions per week over the last 8 weeks, days since last).
@@ -21,7 +22,7 @@ Personal gym planner and training log for Håkan. It replaces the first version,
 | "" | untyped (legacy) | grey |
 
 ## Set format (keep exactly; this is how Håkan writes)
-- `8@22,5kg, 6@25kg`: reps@weight with a decimal comma; sets are separated by comma + space. `kg` is optional.
+- `8@22,5kg, 6@25kg`: reps@weight with a decimal comma; sets are separated by comma + space. `kg` is optional and case-insensitive (`22,5`, `22,5kg`, `22,5 kg`, `22,5KG`).
 - `10x65kg` is also reps×weight. `33,5+2kg` is stacked weight (total 35,5, keep the label).
 - `x@72,5kg` means unknown reps. `10/8@16,25kg` means split reps (use the first number). `6@36,25kg x2` means two identical sets.
 - Bodyweight reps: `10, 8`. Time: `2:30`. Notes go in `(parentheses)`.

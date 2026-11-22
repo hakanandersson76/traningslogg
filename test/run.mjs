@@ -6,6 +6,7 @@ import { createServer } from "node:http";
 import { extname, join } from "node:path";
 import worker from "../src/worker.js";
 import { SCHEMA } from "../src/schema.js";
+import { parseSessionText, parseSets } from "../public/parse.js";
 
 class Stmt {
   constructor(db, sql, args = []) { this.db = db; this.sql = sql; this.args = args; }
@@ -84,6 +85,13 @@ d = (await call("/api/data")).body;
 assert(d.sessions.length === 88 && d.plans[0].done === null, "delete session clears plan link");
 await call("/api/plans/2026-11-24", { method: "DELETE" });
 assert((await call("/api/data")).body.plans.length === 0, "delete plan");
+
+// pasting from Notes
+const ps = parseSessionText("22/11 ök (Kyrkbyn)\n- Bänkpress (incline) 4@15, 6@22,5 kg, 7@20KG\n• Preachercurl (hantel) 8@15\nPull-ups 6, 6\nPlankan 2:30\n\n261123 UK\nHip abductor x2 10@30kg", "2026-11-22");
+assert(ps.length === 2 && ps[0].date === "2026-11-22" && ps[0].tag === "ÖK" && ps[0].note === "Kyrkbyn", "paste: header with date, type and note");
+assert(ps[0].ex[1].n === "Preacher curl (hantel)" && ps[0].ex.length === 4, "paste: bullets stripped, name variants mapped");
+assert(ps[1].tag === "NK" && ps[1].ex[0].n === "Hip abductor x2", "paste: second session, UK→NK, x2 stays in name");
+assert(JSON.stringify(parseSets("6@22,5 kg, 7@20KG, 4@15")) === JSON.stringify([{ r: 6, w: 22.5 }, { r: 7, w: 20 }, { r: 4, w: 15 }]), "kg optional and case-insensitive");
 
 const serveAt = process.argv.indexOf("--serve");
 if (serveAt > 0) {
