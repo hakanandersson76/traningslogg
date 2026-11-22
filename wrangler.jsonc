@@ -14,5 +14,16 @@
       "database_id": "02ff598c-d975-4db1-9f7e-d0514f92191c"
     }
   ],
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  // Admin account created on first start if there are no users yet.
+  // Only the PBKDF2 hash of the first password is stored here; change the password in the app.
+  // Email: to send real emails, add secret BREVO_API_KEY and set MAIL_FROM to a verified sender.
+  "vars": {
+    "ADMIN_EMAIL": "hakan.andersson@gmail.com",
+    "ADMIN_FIRST_NAME": "Håkan",
+    "ADMIN_LAST_NAME": "Andersson",
+    "ADMIN_PASSWORD_HASH": "pbkdf2$100000$Pb62qVj1qedQsC6sFgTIOQ==$JdsqPxAB87IOV6MJ3FZJK3kTVZLs3eas+E3R09v7y0I=",
+    "MAIL_FROM": "",
+    "MAIL_FROM_NAME": "Träningslogg"
+  }
 }

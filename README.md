@@ -36,9 +36,10 @@ public/            static app (served by Workers Assets)
   index.html       the whole UI (Swedish), talks to /api
   parse.js         set-notation parser, shared with the Worker
   manifest.webmanifest, icon-*.png   home-screen app on iPad
-src/worker.js      API: /api/data, /api/sessions/:id, /api/plans/:date, /api/import
-src/schema.js      D1 schema, created automatically on first request
-schema.sql         same schema, readable
+src/worker.js      API: /api/auth/*, /api/account/*, /api/admin/*, /api/data, /api/sessions/:id, /api/plans/:date, /api/import
+src/auth.js        password hashing, login sessions, tokens, password rules
+src/mail.js        outbox + optional Brevo sending, email texts
+src/schema.js      D1 schema + migrations (v2 = accounts), run automatically on first request
 data/sessions.json export from v1 (seed for /api/import)
 test/run.mjs       local tests with a fake D1 (npm test)
 wrangler.jsonc     Worker + Assets + D1 binding
@@ -46,13 +47,23 @@ wrangler.jsonc     Worker + Assets + D1 binding
 - `GET /api/data` returns all sessions and plans: `{sessions:[{id,date,tag,note,ex:[{n,s}]}], plans:[{date,tag,note,done,ex:[{n,s}]}]}`.
 - `PUT/DELETE /api/sessions/:id`, `PUT/DELETE /api/plans/:date`. On save, the Worker stores the raw text and re-parses it into `sets`.
 - `POST /api/import?offset=N` seeds from `data/sessions.json` in chunks of 5 sessions (D1 free plan: max 50 queries per request). Only allowed on an empty DB; the app shows an "Importera pass" button when the DB is empty.
-- Tables: `sessions`, `exercises(session_id,pos,name,sets_text)`, `sets(session_id,ex_pos,pos,reps,weight_kg,weight_label,seconds)`, `plans`, `plan_exercises`, `runs` (for Garmin). See `schema.sql`.
+- Tables: `sessions`, `exercises(session_id,pos,name,sets_text)`, `sets(session_id,ex_pos,pos,reps,weight_kg,weight_label,seconds)`, `plans`, `plan_exercises`, `runs` (for Garmin). See `src/schema.js`.
 
 ## Deploy (Cloudflare dashboard, works from iPad)
 1. **Storage & Databases → D1 → Create database**, name it `traningslogg`. Copy its **Database ID** into `wrangler.jsonc` (`database_id`).
 2. **Workers & Pages → Create → Import a repository**, pick `traningslogg`. Keep the defaults (deploy command `npx wrangler deploy`).
 3. Open the app URL (`traningslogg.<account>.workers.dev`) and turn on **Access** for it (Workers & Pages → traningslogg → Access; protect production and preview). Only then tap **Importera pass**.
 4. Every push to `main` deploys automatically.
+
+## Accounts and security
+- Anyone can register with first name, last name, email and a strong password (≥12 characters, ≥3 of lower/upper/digit/symbol, not containing their name/email or common words). The account can't log in until the email address is verified (link valid 48 h).
+- Passwords are stored only as PBKDF2-SHA256 hashes (100 000 iterations, random salt). Login gives a random 256-bit token in an `HttpOnly; Secure; SameSite=Lax` cookie (30 days); only its SHA-256 is stored. 5 wrong passwords lock the account for 15 minutes. Writes from other origins are refused.
+- **Settings:** change name; change password (needs the current password, and the new one only takes effect after clicking a link emailed to the account, after which all devices are logged out and a "password changed" notice is sent); log out / log out everywhere. **Forgot password:** emailed reset link valid 1 h.
+- Every user only sees and changes their own sessions and plans.
+- **Admin** (role `admin`): user list with status, session counts and last activity; verify, disable/enable and make/remove admin; email outbox with copyable links.
+- **First admin:** created on first start from `ADMIN_EMAIL` / `ADMIN_PASSWORD_HASH` in `wrangler.jsonc` when there are no users. Existing data without an owner is assigned to it.
+- **Email:** every message goes to the `outbox` table. To actually send, create a free Brevo account, verify the sender address, set `MAIL_FROM` in `wrangler.jsonc` and add the secret `BREVO_API_KEY` (Workers & Pages → traningslogg → Settings → Variables and secrets). Until then, admins pass on links from the outbox or verify users manually.
+- With accounts in place, Cloudflare Access should be turned off so others can reach the sign-up page.
 
 ## Data
 `data/sessions.json` holds 88 sessions (2026-01-02 → 2026-11-20) exported from v1. Import it once with a seed script. 42 sessions are untyped.
