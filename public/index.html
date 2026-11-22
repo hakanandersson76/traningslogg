@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Träningslogg</title>
+<meta name="theme-color" content="#17181a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Träning">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-512.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE everyday: a training logbook you actually use between sets
+   IDEA gym floor and bumper plates: black rubber band, plate colours mark session types
+   PICTURE the year as a training grid, every day a cell coloured by session type, planned days outlined
+   COLOUR white ground, rubber black band, plate red / blue / green / yellow
+   TYPE Barlow Condensed (gym signage) + Barlow
+   LAYOUT band with title, stats and year grid across full width; sticky tabs; one working column below */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#121314);--ink:light-dark(#141516,#ecebe8);--soft:light-dark(#5d6168,#a3a7ad);--line:light-dark(#e3e4e6,#2b2d31);--panel:light-dark(#f5f5f6,#1b1c1f);--rub:#17181a;--rub2:#2a2c30;--red:#d7263d;--blue:#2563c9;--green:#2a9d4b;--yellow:#f2b705;--grey:#8a8f98}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 Barlow,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:"Barlow Condensed",Barlow,sans-serif;font-weight:700;letter-spacing:-.01em;line-height:1.05;margin:0}
+.band{background:var(--rub);color:#f3f2ef;padding:calc(20px + env(safe-area-inset-top,0px)) max(4vw,16px,env(safe-area-inset-right,0px)) 16px max(4vw,16px,env(safe-area-inset-left,0px))}
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 28px;max-width:1240px;margin:0 auto 14px}
+.top h1{font-size:clamp(34px,5vw,48px)}
+.top p{margin:2px 0 0;color:#b9bcc2;font-size:15px}
+.stats{display:flex;flex-wrap:wrap;gap:6px 26px}
+.stat b{display:block;font:700 30px/1 "Barlow Condensed",sans-serif}
+.stat span{font-size:13px;color:#b9bcc2}
+.gridwrap{max-width:1240px;margin:0 auto;overflow-x:auto;scrollbar-width:thin}
+.gridwrap svg{display:block}
+.gridwrap text{fill:#9ea2a8;font:13px Barlow,sans-serif}
+.legend{max-width:1240px;margin:10px auto 0;display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:#b9bcc2}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+nav{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+nav div{max-width:1240px;margin:0 auto;display:flex;gap:4px;padding:0 max(4vw,16px);overflow-x:auto}
+nav a{flex:none;padding:13px 14px 11px;color:var(--soft);text-decoration:none;font-weight:600;border-bottom:3px solid transparent}
+nav a.on{color:var(--ink);border-color:var(--red)}
+#sync{margin-left:auto;align-self:center;font-size:13px;color:var(--soft);flex:none;padding-left:10px}
+main{max-width:1240px;margin:0 auto;padding:20px max(4vw,16px) 60px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.sp{flex:1}
+button,.btn{font:600 15px Barlow,sans-serif;min-height:44px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--soft)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,nav a:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+button.pri{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button.dan{color:var(--red)}
+button.sm{min-height:36px;padding:0 12px;font-size:14px}
+input,select,textarea{font:16px Barlow,sans-serif;color:var(--ink);background:var(--bg);border:1px solid color-mix(in srgb,var(--soft) 55%,transparent);border-radius:8px;padding:9px 11px;min-height:44px;width:100%}
+label{font-size:14px;color:var(--soft);display:block;margin-bottom:4px}
+.chip{display:inline-block;font:700 14px/1 "Barlow Condensed",sans-serif;padding:5px 8px 4px;border-radius:4px;color:#fff;white-space:nowrap}
+.chip.y{color:#17181a}
+.week h2{font-size:30px}
+.day{display:grid;grid-template-columns:86px minmax(0,1fr);gap:14px;padding:14px 0;border-top:1px solid var(--line)}
+.day.today .dn{color:var(--red)}
+.dn b{display:block;font:700 22px/1 "Barlow Condensed",sans-serif}
+.dn span{font-size:14px;color:var(--soft)}
+.card{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px;background:var(--bg)}
+.card.plan{border-style:dashed;background:var(--panel)}
+.card h3{font-size:20px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex{display:grid;grid-template-columns:minmax(0,15em) minmax(0,1fr);gap:2px 14px;font-size:15px;margin-top:6px}
+.ex div:nth-child(odd){font-weight:600}
+.ex div:nth-child(even){color:var(--soft)}
+.muted{color:var(--soft);font-size:14px}
+.ed{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:18px}
+.ed h2{font-size:28px;margin-bottom:12px}
+.f3{display:grid;grid-template-columns:repeat(auto-fit,minmax(12em,1fr));gap:12px;margin-bottom:12px}
+.er{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) 44px;gap:8px;align-items:start;padding:10px 0;border-top:1px solid var(--line)}
+.er .hint{grid-column:1/-1;font-size:14px;color:var(--soft);margin-top:-2px}
+.er .hint b{color:var(--ink)}
+.er .hint button{margin-left:6px}
+.x{padding:0;min-height:44px;width:44px;font-size:20px}
+.fil{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.fil button.on{background:var(--ink);color:var(--bg)}
+.prog{display:grid;grid-template-columns:repeat(auto-fit,minmax(9em,1fr));gap:12px;margin:14px 0}
+.prog div{border-top:3px solid var(--line);padding-top:6px}
+.prog div:first-child{border-color:var(--red)}
+.prog b{display:block;font:700 30px/1.05 "Barlow Condensed",sans-serif;white-space:nowrap}
+.fig{position:relative;height:340px;margin:8px 0 18px}
+.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+.fig text{font:13px Barlow,sans-serif;fill:var(--soft)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--soft)}
+td.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.note{background:var(--panel);border-radius:10px;padding:14px 16px;margin-top:20px;font-size:15px}
+textarea{min-height:160px;font-size:14px}
+.empty{padding:30px 0;color:var(--soft)}
+@media(max-width:600px){.day{grid-template-columns:1fr;gap:6px}.dn b{display:inline;margin-right:8px}.ex{grid-template-columns:1fr}.ex div:nth-child(even){margin-bottom:4px}.er{grid-template-columns:minmax(0,1fr) 44px}.er .sets{grid-column:1/2;grid-row:2}.fig{height:260px}table{font-size:13px}th,td{padding:6px 5px}}
+</style>
+</head>
+<body>
+<header class="band">
+  <div class="top">
+    <div><h1>Träningslogg</h1><p>Planera veckan, logga passet, se vikterna stiga.</p></div>
+    <div class="stats" id="stats"></div>
+  </div>
+  <div class="gridwrap" id="gw"></div>
+  <div class="legend" id="legend"></div>
+</header>
+<nav><div id="tabs">
+  <a href="#plan" data-v="plan">Plan</a>
+  <a href="#log" data-v="log">Logga pass</a>
+  <a href="#history" data-v="history">Historik</a>
+  <a href="#progress" data-v="progress">Utveckling</a>
+  <span id="sync">Laddar…</span>
+</div></nav>
+<main id="main"></main>
+<script type="module">
+import { parseSets } from "./parse.js";
+{
+const TAGS={"ÖK":["Överkropp","red"],"NK":["Nederkropp","blue"],"HK":["Helkropp","yellow"],"":["Pass","grey"]};
+const MERGE={"UK":"NK","FK":"HK"};const normTag=t=>MERGE[t]||t||"";
+const WD=["Mån","Tis","Ons","Tor","Fre","Lör","Sön"];
+const MO=["jan","feb","mar","apr","maj","jun","jul","aug","sep","okt","nov","dec"];
+let sessions=[],plans=[],db=null,view="plan",weekOff=0,ed=null,filt={tag:"*",q:""},progEx=null,armed=null;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num=s=>parseFloat(String(s).replace(",","."));
+const fmt=w=>String(Math.round(w*100)/100).replace(".",",");
+const pad=n=>String(n).padStart(2,"0");
+const ds=d=>`${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}`;
+const pd=s=>{const[a,b,c]=s.split("-").map(Number);return new Date(Date.UTC(a,b-1,c))};
+const now=new Date();const TODAY=ds(new Date(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())));
+const addD=(s,n)=>{const d=pd(s);d.setUTCDate(d.getUTCDate()+n);return ds(d)};
+const dow=s=>(pd(s).getUTCDay()+6)%7;
+const monday=s=>addD(s,-dow(s));
+const isoWeek=s=>{const d=pd(s);d.setUTCDate(d.getUTCDate()+3-dow(s));const y=new Date(Date.UTC(d.getUTCFullYear(),0,4));return 1+Math.round(((d-y)/864e5-3+((y.getUTCDay()+6)%7))/7)};
+const nice=s=>{const d=pd(s);return `${WD[dow(s)]} ${d.getUTCDate()} ${MO[d.getUTCMonth()]}`};
+const chip=t=>{const k=TAGS[t]?t:"";return `<span class="chip ${TAGS[k][1]==="yellow"?"y":""}" style="background:var(--${TAGS[k][1]})">${esc(t||"Pass")}</span>`};
+const mmss=t=>`${Math.floor(t/60)}:${pad(t%60)}`;
+
+const topSet=sets=>{const ws=sets.filter(s=>s.w!=null&&s.r);return ws.length?ws.reduce((a,b)=>b.w>a.w||(b.w===a.w&&b.r>a.r)?b:a):null};
+const e1rm=s=>s&&s.w>0?s.w*(1+Math.min(s.r,12)/30):null;
+
+function exIndex(){const m=new Map();for(const s of [...sessions].sort((a,b)=>a.date<b.date?-1:1))for(const e of s.ex||[]){if(!e.n)continue;if(!m.has(e.n))m.set(e.n,[]);m.get(e.n).push({date:s.date,s:e.s||"",sid:s.id})}return m}
+function lastFor(n,before){const l=exIndex().get(n)||[];for(let i=l.length-1;i>=0;i--)if(!before||l[i].date<before)return l[i];return null}
+function suggest(e){
+  if(!e)return "";const sets=parseSets(e.s);const t=topSet(sets);
+  if(t){if(t.r>=10){const st=t.w>=100?5:2.5;return `8@${fmt(t.w+st)}`}return `${t.r+1}@${t.wl?t.wl.replace(".",","):fmt(t.w)}`}
+  const r=sets.filter(s=>s.r);if(r.length)return String(Math.max(...r.map(s=>s.r))+1);
+  const tm=sets.filter(s=>s.t);if(tm.length)return mmss(Math.max(...tm.map(s=>s.t))+15);return "";
+}
+function fromTag(tag,date){const last=[...sessions].filter(s=>s.tag===tag&&s.date<date).sort((a,b)=>a.date<b.date?1:-1)[0];return last?(last.ex||[]).map(e=>({n:e.n,s:suggest(lastFor(e.n,date))})):[]}
+
+function save(){try{localStorage.setItem("gymlog-cache",JSON.stringify({s:sessions,p:plans}))}catch(e){}}
+try{const c=JSON.parse(localStorage.getItem("gymlog-cache")||"null");if(c){sessions=(c.s||[]).map(x=>({...x,tag:normTag(x.tag)}));plans=(c.p||[]).map(x=>({...x,tag:normTag(x.tag)}))}}catch(e){}
+const setSync=t=>{$("sync").textContent=t};
+
+function renderTop(){
+  const y=sessions.filter(s=>s.date.startsWith(TODAY.slice(0,4)));
+  const m=sessions.filter(s=>s.date.startsWith(TODAY.slice(0,7)));
+  const from=addD(TODAY,-56);const w8=sessions.filter(s=>s.date>from&&s.date<=TODAY).length/8;
+  const last=[...sessions].sort((a,b)=>a.date<b.date?1:-1)[0];
+  const since=last?Math.round((pd(TODAY)-pd(last.date))/864e5):null;
+  $("stats").innerHTML=[[y.length,`pass ${TODAY.slice(0,4)}`],[m.length,`pass i ${MO[pd(TODAY).getUTCMonth()]}`],[fmt(Math.round(w8*10)/10),"pass/vecka, 8 v"],[since==null?"–":since===0?"Idag":`${since} d`,"sedan senaste"]].map(([b,s])=>`<div class="stat"><b>${b}</b><span>${s}</span></div>`).join("");
+  const first=sessions.length?[...sessions].map(s=>s.date).sort()[0]:TODAY;
+  const start=monday(first<`${TODAY.slice(0,4)}-01-01`?first:`${TODAY.slice(0,4)}-01-01`);
+  const end=addD(monday(TODAY),20);
+  const byD={};for(const s of sessions)(byD[s.date]=byD[s.date]||[]).push(s);
+  const pl={};for(const p of plans)if(!p.done)pl[p.date]=p;
+  const C=15,G=3,L=34,T=20;const weeks=Math.round((pd(end)-pd(start))/864e5/7)+1;
+  let out="",lastM=-1;
+  for(let w=0;w<weeks;w++){const ws=addD(start,w*7);const x=L+w*(C+G);const mo=pd(addD(ws,6)).getUTCMonth();
+    if(mo!==lastM){out+=`<text x="${x}" y="13">${MO[mo]}</text>`;lastM=mo}
+    for(let d=0;d<7;d++){const day=addD(ws,d);const y0=T+d*(C+G);const s=byD[day];
+      if(s){const k=TAGS[s[0].tag]?s[0].tag:"";out+=`<rect x="${x}" y="${y0}" width="${C}" height="${C}" rx="3" fill="var(--${TAGS[k][1]})" data-go="${day}"><title>${nice(day)}: ${esc(s.map(z=>z.tag||"Pass").join(", "))}</title></rect>`}
+      else if(pl[day]){const k=TAGS[pl[day].tag]?pl[day].tag:"";out+=`<rect x="${x+1}" y="${y0+1}" width="${C-2}" height="${C-2}" rx="3" fill="none" stroke="var(--${TAGS[k][1]})" stroke-width="2" data-go="${day}"><title>Planerat ${nice(day)}</title></rect>`}
+      else out+=`<rect x="${x}" y="${y0}" width="${C}" height="${C}" rx="3" fill="${day>TODAY?"#1f2023":"var(--rub2)"}" data-go="${day}"/>`;
+      if(day===TODAY)out+=`<rect x="${x-1.5}" y="${y0-1.5}" width="${C+3}" height="${C+3}" rx="4" fill="none" stroke="#fff" stroke-width="1.5"/>`;
+    }}
+  for(const d of [0,2,4,6])out+=`<text x="0" y="${T+d*(C+G)+12}">${WD[d]}</text>`;
+  const W=L+weeks*(C+G),H=T+7*(C+G);
+  $("gw").innerHTML=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Träningsdagar i år">${out}</svg>`;
+  $("gw").scrollLeft=$("gw").scrollWidth;
+  $("legend").innerHTML=["ÖK","NK","HK"].map(t=>`<span><i style="background:var(--${TAGS[t][1]})"></i>${t} ${TAGS[t][0]}</span>`).join("")+`<span><i style="border:2px solid #b9bcc2"></i>Planerat</span>`;
+}
+
+const exList=ex=>`<div class="ex">${(ex||[]).map(e=>`<div>${esc(e.n)}</div><div>${esc(e.s)||"–"}</div>`).join("")}</div>`;
+function editorHTML(){
+  if(!ed)return "";const names=[...exIndex().keys()].sort((a,b)=>a.localeCompare(b,"sv"));
+  const isPlan=ed.kind==="plan";
+  return `<section class="ed" id="edbox"><h2>${isPlan?"Planera pass":ed.id?"Ändra pass":"Logga pass"}</h2>
+  <div class="f3"><div><label for="e-date">Datum</label><input type="date" id="e-date" value="${ed.date}"></div>
+  <div><label for="e-tag">Typ</label><select id="e-tag">${Object.keys(TAGS).filter(Boolean).map(t=>`<option value="${t}" ${t===ed.tag?"selected":""}>${t} ${TAGS[t][0]}</option>`).join("")}</select></div>
+  <div><label for="e-note">Anteckning</label><input id="e-note" value="${esc(ed.note)}" placeholder="t.ex. Kyrkbyn"></div></div>
+  <div class="row" style="margin-bottom:6px"><span class="muted">Fyll med senaste:</span>${["ÖK","NK","HK"].map(t=>`<button class="sm" data-act="fill" data-t="${t}">${t}</button>`).join("")}</div>
+  <datalist id="exnames">${names.map(n=>`<option value="${esc(n)}">`).join("")}</datalist>
+  <div id="rows">${ed.ex.map((e,i)=>rowHTML(e,i,isPlan)).join("")}</div>
+  <div class="row" style="margin-top:12px"><button data-act="addrow">+ Övning</button><span class="sp"></span>
+  ${ed.id?`<button class="dan" data-act="del">${armed==="del"?"Tryck igen för att radera":"Radera"}</button>`:""}
+  <button data-act="cancel">Avbryt</button><button class="pri" data-act="save">${isPlan?"Spara plan":"Spara pass"}</button></div>
+  <p class="muted" style="margin:10px 0 0">Set skrivs som i anteckningen: <b>8@22,5, 6@25</b> · kroppsvikt <b>10, 8</b> · tid <b>2:30</b> · anteckning i (parentes).</p></section>`;
+}
+function rowHTML(e,i,isPlan){
+  const l=e.n?lastFor(e.n,ed.date):null;const sg=suggest(l);
+  return `<div class="er" data-i="${i}"><input list="exnames" data-f="n" value="${esc(e.n)}" placeholder="Övning" aria-label="Övning">
+  <input class="sets" data-f="s" value="${esc(e.s)}" placeholder="${isPlan?"Mål, t.ex. 8@22,5":"8@20, 6@22,5"}" aria-label="Set">
+  <button class="x" data-act="rmrow" aria-label="Ta bort">×</button>
+  <div class="hint">${e.goal?`Mål <b>${esc(e.goal)}</b><button class="sm" data-act="use" data-sg="${esc(e.goal)}">Använd</button> · `:""}${l?`Senast ${nice(l.date)}: ${esc(l.s)}${sg&&!e.goal?` · Försök <b>${esc(sg)}</b><button class="sm" data-act="use" data-sg="${esc(sg)}">Använd</button>`:""}`:e.n?"Ny övning":""}</div></div>`;
+}
+
+function renderPlan(){
+  const ws=addD(monday(TODAY),weekOff*7);
+  let h=`<div class="row week" style="margin-bottom:8px"><button data-act="wk" data-d="-1" aria-label="Förra veckan">‹</button><h2>Vecka ${isoWeek(ws)}</h2><button data-act="wk" data-d="1" aria-label="Nästa vecka">›</button>${weekOff?`<button class="sm" data-act="wk" data-d="0">Denna vecka</button>`:""}<span class="sp"></span><span class="muted">${nice(ws)} – ${nice(addD(ws,6))}</span></div>`;
+  if(loaded&&!sessions.length)h+=`<div class="ed"><h2>Databasen är tom</h2><p>Importera dina 88 pass från v1 (januari–november 2026). Det körs en gång och bara mot en tom databas.</p><button class="pri" data-act="import">Importera pass</button></div>`;
+  h+=editorHTML();
+  for(let d=0;d<7;d++){const day=addD(ws,d);const ss=sessions.filter(s=>s.date===day);const p=plans.find(x=>x.date===day);
+    h+=`<div class="day ${day===TODAY?"today":""}"><div class="dn"><b>${WD[d]}</b><span>${pd(day).getUTCDate()} ${MO[pd(day).getUTCMonth()]}</span></div><div>`;
+    for(const s of ss)h+=`<div class="card"><h3>${chip(s.tag)} Genomfört ${s.note?`<span class="muted">${esc(s.note)}</span>`:""}<span class="sp"></span><button class="sm" data-act="edit" data-id="${s.id}">Ändra</button></h3>${exList(s.ex)}</div>`;
+    if(p&&!p.done)h+=`<div class="card plan"><h3>${chip(p.tag)} Planerat<span class="sp"></span><button class="sm" data-act="eplan" data-d="${day}">Ändra</button><button class="sm pri" data-act="start" data-d="${day}">Starta</button></h3>${exList(p.ex)}</div>`;
+    if(!ss.length&&!p)h+=day>=TODAY?`<button class="sm" data-act="newplan" data-d="${day}">+ Planera pass</button>`:`<span class="muted">Vila</span>`;
+    else if(!p&&day>=TODAY)h+=`<button class="sm" data-act="newplan" data-d="${day}">+ Planera</button>`;
+    h+=`</div></div>`;}
+  h+=`<div class="note"><b>Nästa steg: Garmin.</b> När en Cloudflare Worker hämtar dina aktiviteter visas de här bredvid planen.</div>`;
+  return h;
+}
+function renderLog(){
+  if(!ed||ed.kind!=="log")ed={kind:"log",date:TODAY,tag:"ÖK",note:"",ex:fromTag("ÖK",TODAY).map(e=>({n:e.n,s:"",goal:e.s}))};
+  return editorHTML()+`<p class="muted">Tips: planerade pass startas från fliken Plan med målen ifyllda.</p>`;
+}
+function renderHistory(){
+  const q=filt.q.toLowerCase();
+  const list=[...sessions].sort((a,b)=>a.date<b.date?1:-1).filter(s=>(filt.tag==="*"||s.tag===filt.tag)&&(!q||(s.ex||[]).some(e=>e.n.toLowerCase().includes(q))));
+  let h=editorHTML()+`<div class="fil">${["*","ÖK","NK","HK",""].map(t=>`<button class="sm ${filt.tag===t?"on":""}" data-act="ft" data-t="${t}">${t==="*"?"Alla":t||"Utan typ"}</button>`).join("")}<input id="hq" value="${esc(filt.q)}" placeholder="Sök övning" style="max-width:16em" aria-label="Sök övning"><span class="sp"></span><button class="sm" data-act="copy">Kopiera som text</button></div>`;
+  h+=`<p class="muted">${list.length} pass</p>`;
+  h+=list.map(s=>`<div class="card"><h3>${chip(s.tag)} ${nice(s.date)} <span class="muted">v${isoWeek(s.date)}${s.note?" · "+esc(s.note):""}</span><span class="sp"></span><button class="sm" data-act="edit" data-id="${s.id}">Ändra</button></h3>${exList(q?(s.ex||[]).filter(e=>e.n.toLowerCase().includes(q)):s.ex)}</div>`).join("")||`<p class="empty">Inga pass matchar.</p>`;
+  return h+`<div id="copyout"></div>`;
+}
+function renderProgress(){
+  const idx=exIndex();const names=[...idx.entries()].sort((a,b)=>b[1].length-a[1].length).map(e=>e[0]);
+  if(!names.length)return `<p class="empty">Inga pass än.</p>`;
+  if(!progEx||!idx.has(progEx))progEx=names.includes("Bänkpress (incline)")?"Bänkpress (incline)":names[0];
+  const rows=idx.get(progEx).map(e=>{const s=parseSets(e.s);const t=topSet(s);return{...e,t,e1:e1rm(t),bw:s.filter(x=>x.r&&x.w==null).reduce((a,x)=>Math.max(a,x.r),0),tm:s.filter(x=>x.t).reduce((a,x)=>Math.max(a,x.t),0)}});
+  const wt=rows.filter(r=>r.t);const first=wt[0],last=wt[wt.length-1];
+  const best=wt.reduce((a,r)=>!a||r.t.w>a.t.w||(r.t.w===a.t.w&&r.t.r>a.t.r)?r:a,null);
+  let h=`<div class="row"><div style="flex:1 1 18em"><label for="pex">Övning</label><select id="pex">${names.map(n=>`<option ${n===progEx?"selected":""}>${esc(n)} (${idx.get(n).length})</option>`).join("")}</select></div></div>`;
+  if(wt.length){const ch=last.t.w-first.t.w;
+    h+=`<div class="prog"><div><b>${last.t.r}@${fmt(last.t.w)}</b><span class="muted">Senaste toppset, ${nice(last.date)}</span></div><div><b>${best.t.r}@${fmt(best.t.w)}</b><span class="muted">Bästa, ${nice(best.date)}</span></div><div><b>${ch>=0?"+":"−"}${fmt(Math.abs(ch))} kg</b><span class="muted">Sedan ${nice(first.date)}</span></div><div><b>${fmt(Math.round(last.e1*10)/10)} kg</b><span class="muted">Beräknat 1RM (Epley)</span></div></div>
+    <h3 style="font-size:22px">Toppset per pass${wt.length>1?(ch>0?": uppåt":ch<0?": nedåt":": stilla"):""}</h3><div class="fig" id="chart"><svg id="csvg"></svg></div>`;}
+  else{const b=rows.reduce((a,r)=>Math.max(a,r.bw),0),t=rows.reduce((a,r)=>Math.max(a,r.tm),0);
+    h+=`<div class="prog"><div><b>${t?mmss(t):b}</b><span class="muted">Bästa ${t?"tid":"reps"}</span></div><div><b>${rows.length}</b><span class="muted">Pass</span></div></div>`;}
+  h+=`<div class="scroll"><table><thead><tr><th>Datum</th><th>Set</th><th style="text-align:right">Topp</th><th style="text-align:right">1RM</th></tr></thead><tbody>${[...rows].reverse().map(r=>`<tr><td style="white-space:nowrap">${nice(r.date)}</td><td>${esc(r.s)}</td><td class="n">${r.t?`${r.t.r}@${fmt(r.t.w)}`:r.tm?mmss(r.tm):r.bw||"–"}</td><td class="n">${r.e1?fmt(Math.round(r.e1)):"–"}</td></tr>`).join("")}</tbody></table></div>`;
+  setTimeout(()=>drawChart(wt),0);return h;
+}
+let ro=null;
+function drawChart(wt){
+  const s=$("csvg");if(!s||wt.length<1)return;
+  const draw=()=>{const W=s.clientWidth,H=s.clientHeight;if(!W)return;const m={l:44,r:58,t:14,b:28};
+    const t0=pd(wt[0].date).getTime(),t1=Math.max(pd(wt[wt.length-1].date).getTime(),t0+864e5*7);
+    const vals=wt.flatMap(r=>[r.t.w,r.e1||r.t.w]);let lo=Math.min(...vals),hi=Math.max(...vals);const pd2=(hi-lo)*.12||5;lo=Math.max(lo<0?lo-pd2:0,lo-pd2);hi+=pd2;
+    const X=d=>m.l+(pd(d).getTime()-t0)/(t1-t0)*(W-m.l-m.r),Y=v=>m.t+(hi-v)/(hi-lo)*(H-m.t-m.b);
+    const stp=[1,2.5,5,10,20,25,50].find(k=>(hi-lo)/k<=5)||100;let g="";
+    for(let v=Math.ceil(lo/stp)*stp;v<=hi;v+=stp)g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${m.l-8}" y="${Y(v)+4}" text-anchor="end">${fmt(v)}</text>`;
+    const d0=pd(wt[0].date);let mo=new Date(Date.UTC(d0.getUTCFullYear(),d0.getUTCMonth()+1,1)),k=0;
+    while(mo.getTime()<=t1){if(W>=520||k%2===0)g+=`<text x="${X(ds(mo))}" y="${H-8}" text-anchor="middle">${MO[mo.getUTCMonth()]}</text>`;mo=new Date(Date.UTC(mo.getUTCFullYear(),mo.getUTCMonth()+1,1));k++}
+    const e=wt.filter(r=>r.e1);const ln=(a,f)=>a.map((r,i)=>`${i?"L":"M"}${X(r.date).toFixed(1)},${Y(f(r)).toFixed(1)}`).join("");
+    g+=`<path d="${ln(e,r=>r.e1)}" fill="none" stroke="var(--soft)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+    g+=`<path d="${ln(wt,r=>r.t.w)}" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linejoin="round"/>`;
+    g+=wt.map(r=>`<circle cx="${X(r.date)}" cy="${Y(r.t.w)}" r="4" fill="var(--red)"><title>${nice(r.date)}: ${r.t.r}@${fmt(r.t.w)}</title></circle>`).join("");
+    const L=wt[wt.length-1];g+=`<text x="${X(L.date)+8}" y="${Y(L.t.w)+4}" style="fill:var(--red);font-weight:600">Toppset</text>`;
+    if(L.e1)g+=`<text x="${X(L.date)+8}" y="${Y(L.e1)+(Math.abs(Y(L.e1)-Y(L.t.w))<16?-12:4)}">1RM</text>`;
+    s.innerHTML=g};
+  if(ro)ro.disconnect();ro=new ResizeObserver(draw);ro.observe(s);draw();
+}
+
+function render(){
+  renderTop();
+  for(const a of document.querySelectorAll("#tabs a"))a.classList.toggle("on",a.dataset.v===view);
+  const f={plan:renderPlan,log:renderLog,history:renderHistory,progress:renderProgress}[view]||renderPlan;
+  $("main").innerHTML=f();
+}
+function route(){const h=location.hash.slice(1);view=["plan","log","history","progress"].includes(h)?h:"plan";if(view!=="log")ed=null;armed=null;render();window.scrollTo(0,0)}
+
+function syncEd(){if(!ed)return;const g=id=>$(id);if(g("e-date"))ed.date=g("e-date").value||ed.date;if(g("e-tag"))ed.tag=g("e-tag").value;if(g("e-note"))ed.note=g("e-note").value;
+  document.querySelectorAll(".er").forEach(r=>{const i=+r.dataset.i;if(!ed.ex[i])return;ed.ex[i].n=r.querySelector('[data-f="n"]').value.trim();ed.ex[i].s=r.querySelector('[data-f="s"]').value.trim()})}
+const rerow=()=>{const box=$("rows");if(box)box.innerHTML=ed.ex.map((e,i)=>rowHTML(e,i,ed.kind==="plan")).join("")};
+
+let loaded=false;
+async function api(path,opt={}){
+  const r=await fetch("/api/"+path,{headers:{"content-type":"application/json"},credentials:"same-origin",...opt});
+  if(r.redirected||r.type==="opaqueredirect"||!(r.headers.get("content-type")||"").includes("json"))throw{code:"auth"};
+  const j=await r.json();if(!r.ok)throw{code:r.status,message:j.error};return j;
+}
+async function load(){
+  try{const d=await api("data");sessions=d.sessions.map(x=>({...x,tag:normTag(x.tag)}));plans=d.plans.map(x=>({...x,tag:normTag(x.tag)}));loaded=true;save();setSync("Synkat");if(ed)syncEd();render();return true}
+  catch(e){setSync(e.code==="auth"?"Inte inloggad: ladda om sidan":sessions.length?"Offline: visar sparad kopia":"Når inte servern");return false}
+}
+async function write(path,data){
+  try{setSync("Sparar…");await api(path,data===null?{method:"DELETE"}:{method:"PUT",body:JSON.stringify(data)});await load();setSync("Sparat");return true}
+  catch(e){setSync(e.code==="auth"?"Inte inloggad: ladda om sidan":e.message||"Kunde inte spara, försök igen");return false}
+}
+async function runImport(btn){
+  btn.disabled=true;let next=0;
+  try{while(next!=null){const r=await api("import?offset="+next,{method:"POST"});btn.textContent=`Importerar… ${r.imported}/${r.total}`;next=r.next}await load();setSync("Import klar")}
+  catch(e){btn.disabled=false;btn.textContent="Försök igen";setSync(e.message||"Importen misslyckades")}
+}
+
+document.addEventListener("click",async ev=>{
+  const go=ev.target.closest("[data-go]");if(go){weekOff=Math.round((pd(monday(go.dataset.go))-pd(monday(TODAY)))/864e5/7);ed=null;if(location.hash!=="#plan")location.hash="plan";else render();return}
+  const b=ev.target.closest("[data-act]");if(!b)return;const a=b.dataset.act;syncEd();
+  if(a!=="del")armed=null;
+  if(a==="import"){runImport(b);return}
+  if(a==="wk"){weekOff=b.dataset.d==="0"?0:weekOff+ +b.dataset.d;render()}
+  else if(a==="newplan"){ed={kind:"plan",date:b.dataset.d,tag:"ÖK",note:"",ex:fromTag("ÖK",b.dataset.d)};render();$("edbox")?.scrollIntoView({block:"start"})}
+  else if(a==="eplan"){const p=plans.find(x=>x.date===b.dataset.d);ed={kind:"plan",id:p.id,date:p.date,tag:p.tag,note:p.note||"",ex:JSON.parse(JSON.stringify(p.ex||[]))};render();$("edbox")?.scrollIntoView({block:"start"})}
+  else if(a==="start"){const p=plans.find(x=>x.date===b.dataset.d);ed={kind:"log",planId:p.id,date:p.date,tag:p.tag,note:p.note||"",ex:(p.ex||[]).map(e=>({n:e.n,s:"",goal:e.s}))};location.hash="log";if(view==="log")render()}
+  else if(a==="edit"){const s=sessions.find(x=>x.id===b.dataset.id);ed={kind:"log",id:s.id,date:s.date,tag:s.tag,note:s.note||"",ex:JSON.parse(JSON.stringify(s.ex||[]))};render();$("edbox")?.scrollIntoView({block:"start"})}
+  else if(a==="fill"){ed.tag=b.dataset.t;ed.ex=fromTag(b.dataset.t,ed.date);if(ed.kind==="log")ed.ex=ed.ex.map(e=>({n:e.n,s:"",goal:e.s}));render()}
+  else if(a==="addrow"){ed.ex.push({n:"",s:""});rerow();document.querySelector(`.er[data-i="${ed.ex.length-1}"] input`)?.focus()}
+  else if(a==="rmrow"){ed.ex.splice(+b.closest(".er").dataset.i,1);rerow()}
+  else if(a==="use"){const i=+b.closest(".er").dataset.i;ed.ex[i].s=ed.ex[i].s?ed.ex[i].s+", "+b.dataset.sg:b.dataset.sg;rerow()}
+  else if(a==="cancel"){ed=null;if(view==="log")location.hash="plan";else render()}
+  else if(a==="save"){const ex=ed.ex.filter(e=>e.n);if(!ex.length){setSync("Lägg till minst en övning");return}
+    if(ed.kind==="plan"){const id=ed.date;if(ed.id&&ed.id!==id)await write("plans/"+ed.id,null);
+      if(await write("plans/"+id,{date:ed.date,tag:ed.tag,note:ed.note,ex,done:null})){ed=null;render()}}
+    else{const id=ed.id||`${ed.date}-${Date.now().toString(36)}`;
+      if(await write("sessions/"+id,{date:ed.date,tag:ed.tag,note:ed.note,ex:ex.filter(e=>e.s).map(e=>({n:e.n,s:e.s}))})){
+        if(ed.planId){const p=plans.find(x=>x.id===ed.planId);if(p)await write("plans/"+p.id,{date:p.date,tag:p.tag,note:p.note||"",ex:p.ex||[],done:id})}
+        const d=ed.date;ed=null;weekOff=Math.round((pd(monday(d))-pd(monday(TODAY)))/864e5/7);location.hash="plan";render()}}}
+  else if(a==="del"){if(armed!=="del"){armed="del";render();return}armed=null;
+    if(await write((ed.kind==="plan"?"plans/":"sessions/")+ed.id,null)){ed=null;render()}}
+  else if(a==="ft"){filt.tag=b.dataset.t;render()}
+  else if(a==="copy"){const txt=[...sessions].sort((x,y)=>x.date<y.date?-1:1).map(s=>`${s.date.slice(2).replace(/-/g,"")}${s.tag?" "+s.tag:""}${s.note?` (${s.note})`:""}\n`+(s.ex||[]).map(e=>`${e.n} ${e.s}`).join("\n")).join("\n\n");
+    try{await navigator.clipboard.writeText(txt);setSync("Kopierat")}catch(e){$("copyout").innerHTML=`<label for="cpt">Markera och kopiera</label><textarea id="cpt">${esc(txt)}</textarea>`}}
+});
+document.addEventListener("input",ev=>{if(ev.target.id==="hq"){filt.q=ev.target.value;const p=ev.target.selectionStart;render();const i=$("hq");i.focus();i.setSelectionRange(p,p)}});
+document.addEventListener("change",ev=>{const t=ev.target;
+  if(t.id==="pex"){progEx=t.value.replace(/ \(\d+\)$/,"");render()}
+  else if(t.dataset.f==="n"||t.id==="e-date"){syncEd();rerow()}});
+window.addEventListener("hashchange",route);
+route();
+
+load();
+}
+</script>
+</body>
+</html>

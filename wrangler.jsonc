@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "traningslogg",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-06-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "traningslogg",
+      // Paste the Database ID from Cloudflare dashboard → Storage & Databases → D1 → traningslogg
+      "database_id": "PASTE-DATABASE-ID-HERE"
+    }
+  ],
+  "observability": { "enabled": true }
+}

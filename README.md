@@ -28,17 +28,29 @@ Personal gym planner and training log for Håkan. It replaces the first version,
 - Store the raw text **and** parsed sets. The reference parser is in `reference/current-app.html` (`parseSets`), with a Python equivalent in `reference/parse_notes.py`.
 - **Progression suggestion:** if the top set has ≥10 reps → 8 reps at +2,5 kg (+5 kg from 100 kg); otherwise +1 rep at the same weight. Bodyweight: max reps + 1. Time: best + 0:15.
 
-## Suggested D1 schema
-```sql
-CREATE TABLE sessions (id TEXT PRIMARY KEY, date TEXT NOT NULL, tag TEXT NOT NULL DEFAULT '', note TEXT DEFAULT '', updated_at TEXT);
-CREATE TABLE exercises (id INTEGER PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, pos INTEGER NOT NULL, name TEXT NOT NULL, sets_text TEXT NOT NULL);
-CREATE TABLE sets (id INTEGER PRIMARY KEY, exercise_id INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE, pos INTEGER NOT NULL, reps REAL, weight_kg REAL, weight_label TEXT, seconds INTEGER);
-CREATE TABLE plans (date TEXT PRIMARY KEY, tag TEXT NOT NULL, note TEXT DEFAULT '', done_session_id TEXT);
-CREATE TABLE plan_exercises (id INTEGER PRIMARY KEY, plan_date TEXT NOT NULL REFERENCES plans(date) ON DELETE CASCADE, pos INTEGER NOT NULL, name TEXT NOT NULL, target TEXT);
-CREATE TABLE runs (id TEXT PRIMARY KEY, start_time TEXT NOT NULL, distance_m REAL, duration_s INTEGER, avg_hr INTEGER, source TEXT DEFAULT 'garmin');
-CREATE INDEX idx_sessions_date ON sessions(date);
-CREATE INDEX idx_exercises_name ON exercises(name);
+## How it is built
 ```
+public/            static app (served by Workers Assets)
+  index.html       the whole UI (Swedish), talks to /api
+  parse.js         set-notation parser, shared with the Worker
+  manifest.webmanifest, icon-*.png   home-screen app on iPad
+src/worker.js      API: /api/data, /api/sessions/:id, /api/plans/:date, /api/import
+src/schema.js      D1 schema, created automatically on first request
+schema.sql         same schema, readable
+data/sessions.json export from v1 (seed for /api/import)
+test/run.mjs       local tests with a fake D1 (npm test)
+wrangler.jsonc     Worker + Assets + D1 binding
+```
+- `GET /api/data` returns all sessions and plans: `{sessions:[{id,date,tag,note,ex:[{n,s}]}], plans:[{date,tag,note,done,ex:[{n,s}]}]}`.
+- `PUT/DELETE /api/sessions/:id`, `PUT/DELETE /api/plans/:date`. On save, the Worker stores the raw text and re-parses it into `sets`.
+- `POST /api/import?offset=N` seeds from `data/sessions.json` in chunks of 5 sessions (D1 free plan: max 50 queries per request). Only allowed on an empty DB; the app shows an "Importera pass" button when the DB is empty.
+- Tables: `sessions`, `exercises(session_id,pos,name,sets_text)`, `sets(session_id,ex_pos,pos,reps,weight_kg,weight_label,seconds)`, `plans`, `plan_exercises`, `runs` (for Garmin). See `schema.sql`.
+
+## Deploy (Cloudflare dashboard, works from iPad)
+1. **Storage & Databases → D1 → Create database**, name it `traningslogg`. Copy its **Database ID** into `wrangler.jsonc` (`database_id`).
+2. **Workers & Pages → Create → Import a repository**, pick `traningslogg`. Keep the defaults (deploy command `npx wrangler deploy`).
+3. Open the app URL (`traningslogg.<account>.workers.dev`) and turn on **Access** for it (Workers & Pages → traningslogg → Access; protect production and preview). Only then tap **Importera pass**.
+4. Every push to `main` deploys automatically.
 
 ## Data
 `data/sessions.json` holds 88 sessions (2026-01-02 → 2026-11-20) exported from v1. Import it once with a seed script. 42 sessions are untyped.

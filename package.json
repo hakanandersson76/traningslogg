@@ -1,0 +1,13 @@
+{
+  "name": "traningslogg",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node --experimental-sqlite test/run.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}
