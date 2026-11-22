@@ -97,6 +97,40 @@ td.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .note{background:var(--panel);border-radius:10px;padding:14px 16px;margin-top:20px;font-size:15px}
 textarea{min-height:160px;font-size:14px}
 .empty{padding:30px 0;color:var(--soft)}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:20px 28px;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:22px}
+.hero h2{font-size:clamp(30px,4vw,42px);margin:6px 0 8px}
+.hero .chip{font-size:16px;padding:6px 10px 5px}
+.warnbox{background:color-mix(in srgb,var(--yellow) 22%,transparent);border-radius:8px;padding:8px 12px;margin:8px 0;font-size:15px}
+.pl{list-style:none;margin:0;padding:0}
+.pl li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:9px 0;border-top:1px solid var(--line)}
+.pl li:first-child{border-top:0}
+.pl b{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:17px}
+.pl small{grid-column:1/-1;color:var(--soft);font-size:14px}
+.k{display:inline-block;font-size:12px;font-weight:600;border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:1px;background:var(--panel);color:var(--soft);white-space:nowrap}
+.k.weight,.k.reps,.k.time{background:color-mix(in srgb,var(--green) 18%,transparent);color:light-dark(#1d6e35,#7fd69a)}
+.k.plateau,.k.comeback{background:color-mix(in srgb,var(--yellow) 28%,transparent);color:light-dark(#7a5a00,#f5cf63)}
+.notes{list-style:none;padding:0;margin:0 0 24px}
+.notes li{position:relative;padding:8px 0 8px 22px;border-top:1px solid var(--line)}
+.notes li::before{content:"";position:absolute;left:2px;top:15px;width:10px;height:10px;border-radius:50%;background:var(--grey)}
+.notes li.warn::before{background:var(--yellow)}.notes li.good::before{background:var(--green)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:22px;margin-bottom:24px}
+.cols h3{font-size:22px;margin-bottom:6px}
+.wk{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;align-items:end;height:150px;margin-top:8px}
+.wk div{display:flex;flex-direction:column-reverse;gap:2px;height:100%;position:relative}
+.wk i{display:block;border-radius:2px;min-height:0}
+.wk span{position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:12px;color:var(--soft)}
+.vol{display:grid;grid-template-columns:4.5em minmax(0,1fr) 3em;gap:6px 10px;align-items:center;font-size:15px}
+.vol .bar{position:relative;height:14px;background:var(--panel);border-radius:3px}
+.vol .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--ink)}
+.vol .bar u{position:absolute;top:-3px;bottom:-3px;border-left:2px dashed color-mix(in srgb,var(--green) 70%,transparent);border-right:2px dashed color-mix(in srgb,var(--green) 70%,transparent);background:color-mix(in srgb,var(--green) 10%,transparent)}
+.vol b{text-align:right;font-variant-numeric:tabular-nums}
+.tl{list-style:none;padding:0;margin:0}
+.tl li{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:15px}
+.tl li:first-child{border-top:0}
+.tl a{color:var(--ink);text-decoration:none;font-weight:600}
+.tl em{font-style:normal;color:var(--soft);white-space:nowrap;font-variant-numeric:tabular-nums}
+.coachbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:var(--panel);border-radius:10px;padding:10px 14px;margin-bottom:14px}
+@media(max-width:700px){.hero{grid-template-columns:1fr}}
 @media(max-width:600px){.day{grid-template-columns:1fr;gap:6px}.dn b{display:inline;margin-right:8px}.ex{grid-template-columns:1fr}.ex div:nth-child(even){margin-bottom:4px}.er{grid-template-columns:minmax(0,1fr) 44px}.er .sets{grid-column:1/2;grid-row:2}.fig{height:260px}table{font-size:13px}th,td{padding:6px 5px}}
 </style>
 </head>
@@ -111,6 +145,7 @@ textarea{min-height:160px;font-size:14px}
 </header>
 <nav><div id="tabs">
   <a href="#plan" data-v="plan">Plan</a>
+  <a href="#coach" data-v="coach">Coach</a>
   <a href="#log" data-v="log">Logga pass</a>
   <a href="#history" data-v="history">Historik</a>
   <a href="#progress" data-v="progress">Utveckling</a>
@@ -119,6 +154,7 @@ textarea{min-height:160px;font-size:14px}
 <main id="main"></main>
 <script type="module">
 import { parseSets, parseSessionText } from "./parse.js";
+import { coachReport } from "./coach.js";
 {
 const TAGS={"ÖK":["Överkropp","red"],"NK":["Nederkropp","blue"],"HK":["Helkropp","yellow"],"":["Pass","grey"]};
 const MERGE={"UK":"NK","FK":"HK"};const normTag=t=>MERGE[t]||t||"";
@@ -243,6 +279,8 @@ function rowHTML(e,i,isPlan){
 function renderPlan(){
   const ws=addD(monday(TODAY),weekOff*7);
   let h=`<div class="row week" style="margin-bottom:8px"><button data-act="wk" data-d="-1" aria-label="Förra veckan">‹</button><h2>Vecka ${isoWeek(ws)}</h2><button data-act="wk" data-d="1" aria-label="Nästa vecka">›</button>${weekOff?`<button class="sm" data-act="wk" data-d="0">Denna vecka</button>`:""}<span class="sp"></span><span class="muted">${nice(ws)} – ${nice(addD(ws,6))}</span></div>`;
+  if(!weekOff&&sessions.length&&!plans.some(p=>p.date===TODAY)&&!sessions.some(s=>s.date===TODAY)){const n=coachReport(sessions,TODAY).next;
+    h+=`<div class="coachbar"><span>Coachen föreslår <b>${n.date===TODAY?"idag":"i morgon"}</b>:</span>${chip(n.tag)}<span>${TAGS[n.tag]?.[0]||""}</span><span class="sp"></span><a class="btn sm" href="#coach" style="display:inline-flex;align-items:center;text-decoration:none">Visa förslag</a></div>`}
   if(loaded&&!sessions.length)h+=`<div class="ed"><h2>Databasen är tom</h2><p>Importera dina 88 pass från v1 (januari–november 2026). Det körs en gång och bara mot en tom databas.</p><button class="pri" data-act="import">Importera pass</button></div>`;
   h+=editorHTML();
   for(let d=0;d<7;d++){const day=addD(ws,d);const ss=sessions.filter(s=>s.date===day);const p=plans.find(x=>x.date===day);
@@ -253,6 +291,33 @@ function renderPlan(){
     else if(!p&&day>=TODAY)h+=`<button class="sm" data-act="newplan" data-d="${day}">+ Planera</button>`;
     h+=`</div></div>`;}
   h+=`<div class="note"><b>Nästa steg: Garmin.</b> När en Cloudflare Worker hämtar dina aktiviteter visas de här bredvid planen.</div>`;
+  return h;
+}
+function renderCoach(){
+  if(!sessions.length)return `<p class="empty">Inga pass än. Importera eller logga ett pass först.</p>`;
+  const r=coachReport(sessions,TODAY);const n=r.next;
+  const when=n.date===TODAY?"idag":n.date===addD(TODAY,1)?"i morgon":nice(n.date);
+  const hasPlan=plans.find(p=>p.date===n.date&&!p.done);
+  const kindTxt={weight:"Öka vikt",reps:"+1 rep",time:"Längre",plateau:"Platå",comeback:"Comeback",new:"Ny"};
+  let h=`<section class="hero"><div><span class="muted">Nästa pass, ${when}</span><h2>${chip(n.tag)} ${TAGS[n.tag]?.[0]||"Pass"}</h2><p style="margin:0 0 6px">${esc(n.why)}</p>
+  ${n.restWhy?`<div class="warnbox">${esc(n.restWhy)}</div>`:""}
+  <div class="row" style="margin-top:12px"><button class="pri" data-act="cstart">Starta passet</button><button data-act="cplan">${hasPlan?"Ersätt planen":"Lägg i planen"}</button></div></div>
+  <ul class="pl">${r.plan.map(p=>`<li><span>${esc(p.n)}<span class="k ${p.kind}">${kindTxt[p.kind]||""}</span></span><b>${esc(p.target)||"–"}</b><small>${esc(p.why)}${p.last?` Senast ${nice(p.last.date)}: ${esc(p.last.s)}.`:""}</small></li>`).join("")||`<li><span class="muted">Inga tidigare ${n.tag}-pass att utgå från.</span></li>`}</ul></section>`;
+  if(r.notes.length)h+=`<h3 style="font-size:24px;margin-bottom:4px">Att tänka på</h3><ul class="notes">${r.notes.map(x=>`<li class="${x.k}">${esc(x.t)}</li>`).join("")}</ul>`;
+  const mx=Math.max(3,...r.weeks.map(w=>w.total));
+  h+=`<div class="cols"><div><h3>Pass per vecka</h3><p class="muted" style="margin:0">Snitt ${fmt(Math.round(r.last4*10)/10)} senaste 4 veckorna (${fmt(Math.round(r.prev4*10)/10)} innan). Otaggade pass färgas efter övningarna.</p>
+  <div class="wk" style="margin-bottom:26px">${r.weeks.map(w=>`<div title="v${isoWeek(w.start)}: ${w.total} pass">${["ÖK","NK","HK",""].map(t=>w[t]?`<i style="height:${w[t]/mx*100}%;background:var(--${TAGS[t][1]})"></i>`:"").join("")}<span>${isoWeek(w.start)}</span></div>`).join("")}</div></div>
+  <div><h3>Tunga set per vecka</h3><p class="muted" style="margin:0 0 10px">Snitt senaste 4 veckorna. Grönt band = 10–20 set, vanlig rekommendation för att bygga muskler.</p>
+  <div class="vol">${r.vol.map(v=>`<span>${v.name}</span><span class="bar"><u style="left:${10/25*100}%;right:${100-20/25*100}%"></u><i style="width:${Math.min(v.perWeek,25)/25*100}%"></i></span><b>${fmt(Math.round(v.perWeek*10)/10)}</b>`).join("")}</div></div></div>`;
+  const li=(arr,f)=>arr.length?`<ul class="tl">${arr.map(f).join("")}</ul>`:`<p class="muted">Inget just nu.</p>`;
+  const exl=n=>`<a href="#progress" data-ex="${esc(n)}">${esc(n)}</a>`;
+  const dp=t=>`${t.delta>0?"+":"−"}${Math.abs(Math.round(t.delta*100))} %`;
+  h+=`<div class="cols"><div><h3>Framsteg</h3><p class="muted" style="margin:0 0 6px">Beräknat 1RM, senaste 3 passen mot de 3 innan.</p>${li(r.up.slice(0,8),t=>`<li>${exl(t.n)}<em>${dp(t)}</em></li>`)}</div>
+  <div><h3>Står still</h3><p class="muted" style="margin:0 0 6px">Ingen ökning senaste 4 passen. Byt repsintervall eller variant.</p>${li(r.flat.slice(0,8),t=>`<li>${exl(t.n)}<em>${t.lastTop.r}@${fmt(t.lastTop.w)}</em></li>`)}</div>
+  <div><h3>Tappat</h3><p class="muted" style="margin:0 0 6px">Kan vara medvetet (djupare, bättre teknik) – kolla anteckningarna.</p>${li(r.down.slice(0,8),t=>`<li>${exl(t.n)}<em>${dp(t)}</em></li>`)}</div></div>
+  <div class="cols"><div><h3>Nya rekord, 30 dagar</h3>${li(r.prs,p=>`<li>${exl(p.n)}<em>${p.top.r}@${fmt(p.top.w)} · ${nice(p.date)}</em></li>`)}</div>
+  <div><h3>Bortglömda övningar</h3><p class="muted" style="margin:0 0 6px">Gjorda ofta förut, inte senaste 45 dagarna.</p>${li(r.neglected,x=>`<li>${exl(x.n)}<em>${x.since} d sedan · ${x.count} pass</em></li>`)}</div></div>
+  <p class="muted">Coachen räknar på din historik med fasta regler: dubbel progression (reps upp till 10, sedan +vikt), 90 % efter längre uppehåll, platå när toppsetet stått still tre pass, och överkropp ungefär var 3:e dag och ben var 6:e.</p>`;
   return h;
 }
 function renderLog(){
@@ -307,10 +372,10 @@ function drawChart(wt){
 function render(){
   renderTop();
   for(const a of document.querySelectorAll("#tabs a"))a.classList.toggle("on",a.dataset.v===view);
-  const f={plan:renderPlan,log:renderLog,history:renderHistory,progress:renderProgress}[view]||renderPlan;
+  const f={plan:renderPlan,coach:renderCoach,log:renderLog,history:renderHistory,progress:renderProgress}[view]||renderPlan;
   $("main").innerHTML=f();
 }
-function route(){const h=location.hash.slice(1);view=["plan","log","history","progress"].includes(h)?h:"plan";if(view!=="log")ed=null;armed=null;render();window.scrollTo(0,0)}
+function route(){const h=location.hash.slice(1);view=["plan","coach","log","history","progress"].includes(h)?h:"plan";if(view!=="log")ed=null;armed=null;render();window.scrollTo(0,0)}
 
 function syncEd(){if(!ed)return;const g=id=>$(id);if(g("e-date"))ed.date=g("e-date").value||ed.date;if(g("e-tag"))ed.tag=g("e-tag").value;if(g("e-note"))ed.note=g("e-note").value;
   document.querySelectorAll(".er").forEach(r=>{const i=+r.dataset.i;if(!ed.ex[i])return;ed.ex[i].n=r.querySelector('[data-f="n"]').value.trim();ed.ex[i].s=r.querySelector('[data-f="s"]').value.trim()})}
@@ -337,10 +402,14 @@ async function runImport(btn){
 }
 
 document.addEventListener("click",async ev=>{
+  const exa=ev.target.closest("a[data-ex]");if(exa){progEx=exa.dataset.ex;return}
   const go=ev.target.closest("[data-go]");if(go){weekOff=Math.round((pd(monday(go.dataset.go))-pd(monday(TODAY)))/864e5/7);ed=null;if(location.hash!=="#plan")location.hash="plan";else render();return}
   const b=ev.target.closest("[data-act]");if(!b)return;const a=b.dataset.act;syncEd();
   if(a!=="del")armed=null;
   if(a==="import"){runImport(b);return}
+  if(a==="cstart"||a==="cplan"){const r=coachReport(sessions,TODAY);const n=r.next;const ex=r.plan.map(p=>({n:p.n,s:p.target}));
+    if(a==="cstart"){ed={kind:"log",date:n.date,tag:n.tag,note:"",ex:ex.map(e=>({n:e.n,s:"",goal:e.s}))};location.hash="log";return}
+    if(await write("plans/"+n.date,{date:n.date,tag:n.tag,note:"",ex,done:null})){weekOff=Math.round((pd(monday(n.date))-pd(monday(TODAY)))/864e5/7);location.hash="plan"}return}
   if(a==="pastetoggle"){ed.paste=!ed.paste;ed.pasteMsg="";render();if(ed.paste)setTimeout(()=>$("pastetxt")?.focus(),0);return}
   if(a==="clip"){try{const t=await navigator.clipboard.readText();ed.pasteText=t;ed.pasteMsg="Hämtat från urklipp. Tryck Fyll i.";}catch(e){ed.pasteMsg="Kunde inte läsa urklipp. Håll fingret i rutan och välj Klistra in."}render();return}
   if(a==="pastefill"){const found=parseSessionText(ed.pasteText||"",TODAY).map(p=>({...p,ex:p.ex.map(e=>({n:canon(e.n),s:e.s}))}));found.forEach(p=>p.dup=!!(p.date&&sameSession(p)));ed.pasteFound=found;

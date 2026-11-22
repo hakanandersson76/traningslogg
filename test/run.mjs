@@ -7,6 +7,7 @@ import { extname, join } from "node:path";
 import worker from "../src/worker.js";
 import { SCHEMA } from "../src/schema.js";
 import { parseSessionText, parseSets } from "../public/parse.js";
+import { coachReport, nextTarget, history, groupOf, effectiveTag } from "../public/coach.js";
 
 class Stmt {
   constructor(db, sql, args = []) { this.db = db; this.sql = sql; this.args = args; }
@@ -92,6 +93,20 @@ assert(ps.length === 2 && ps[0].date === "2026-11-22" && ps[0].tag === "ÖK" && 
 assert(ps[0].ex[1].n === "Preacher curl (hantel)" && ps[0].ex.length === 4, "paste: bullets stripped, name variants mapped");
 assert(ps[1].tag === "NK" && ps[1].ex[0].n === "Hip abductor x2", "paste: second session, UK→NK, x2 stays in name");
 assert(JSON.stringify(parseSets("6@22,5 kg, 7@20KG, 4@15")) === JSON.stringify([{ r: 6, w: 22.5 }, { r: 7, w: 20 }, { r: 4, w: 15 }]), "kg optional and case-insensitive");
+
+// coach
+const all = (await call("/api/data")).body.sessions;
+const rep = coachReport(all, "2026-11-22");
+assert(rep.next.tag === "NK" && !rep.next.rest, `coach: legs due after ${rep.next.gl} days → NK`);
+assert(rep.plan.length >= 3 && rep.plan.every((p) => groupOf(p.n) === "ben" || groupOf(p.n) === "core"), "coach: proposed NK session uses leg/core exercises");
+assert(rep.plan.find((p) => p.n === "Vadpress (maskin)")?.kind === "plateau", "coach: calf press flagged as plateau (10@155 three times)");
+const h1 = history([{ date: "2026-01-01", ex: [{ n: "X", s: "10@20" }] }]).get("X");
+assert(nextTarget(h1, "2026-01-05").target === "8@22,5", "coach: 10 reps → +2,5 kg");
+assert(nextTarget(h1, "2026-03-01").kind === "comeback", "coach: long break → comeback at ~90 %");
+assert(groupOf("Leg curl") === "ben" && groupOf("Jefferson curls (skivstång)") === "ben" && groupOf("Preacher curl") === "armar", "coach: muscle groups (curl ambiguity)");
+assert(effectiveTag({ tag: "", ex: [{ n: "Squats" }, { n: "Leg extensions" }] }) === "NK", "coach: untyped session inferred");
+const restRep = coachReport([...all, { id: "t", date: "2026-11-22", tag: "NK", ex: [{ n: "Squats", s: "8@80" }] }], "2026-11-22");
+assert(restRep.next.rest && restRep.next.date === "2026-11-23", "coach: trained today → suggestion for tomorrow");
 
 const serveAt = process.argv.indexOf("--serve");
 if (serveAt > 0) {
