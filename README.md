@@ -9,7 +9,14 @@ Personal gym planner and training log for Håkan. It replaces the first version,
 - **Logga pass:** log a session. Starting a planned session prefills targets ("Mål") and marks the plan done.
 - **Klistra in från Anteckningar:** paste one or more sessions written in Notes (e.g. on the iPhone). Header lines `261122 ÖK`, `2026-11-22 nk` or `22/11 HK (note)` start a session; every other line is `Exercise name sets`. Bullets are ignored, name variants are mapped to existing names (case-insensitive), and sessions that already exist are skipped. One session fills the form; several can be saved directly. Parser: `parseSessionText` in `public/parse.js`.
 - **Historik:** list, filter by type (incl. untyped), search exercise, edit or delete, and export everything as text in the note format.
-- **Coach:** rule-based personal trainer (`public/coach.js`, pure functions, tested): which session type is due and why (upper ~every 3rd day, legs ~every 6th, rest warnings), a concrete session from his usual exercises with targets (double progression: +1 rep up to 10, then +2,5 kg / +5 kg ≥100 kg / +1 kg <10 kg; ~90 % after >28 days; plateau → lighter higher-rep set or variant), notes (frequency, upper/lower balance, weekly hard sets per muscle group vs 10–20, regressions, PRs), and lists of progressing / plateaued / regressed / forgotten exercises. "Starta passet" opens the log form with targets; "Lägg i planen" saves it as a plan. Untyped sessions get a type inferred from their exercises. Phase 3 can add Claude-written advice on top (Anthropic API key as a Worker secret).
+- **Coach (v2, research-referenced):** rule-based personal trainer in `public/coach.js` (pure functions, tested). Every piece of advice carries `src` ids into `SOURCES`. The UI shows these under "Varför?", with a full source list at the bottom of the Coach tab. Rules that are practical judgement point to `rule` ("Tumregel").
+  - **Goal** (Inställningar; `users.goal`): `strength` (4–6 reps compound / 8–12 isolation, 2–3 RIR), `muscle` (6–10 / 8–15, 1–2 RIR, default), `health` (8–12 / 10–15, 2–3 RIR). Rep ranges and effort follow Currier 2023, Robinson 2024 and Refalo 2024.
+  - **Progression:** double progression inside the goal's range (Plotkin 2022): +1 rep (+2 when the last set had ≥3 reps left); at the top of the range, or near it with ≥3 left, add weight (+2,5 kg; +5 kg from 100 kg; +1 kg under 10 kg) and drop to the bottom of the range; below the range with 0 left → lower the weight.
+  - **Rules of thumb:** ~90 % after >28 days off; plateau when the top set has been unchanged for 3 sessions (unless it felt easy) → a higher-rep set at ~90 % or a different variant.
+  - **Frequency:** each muscle group ≥2×/week (Schoenfeld 2016/2019, Pelland 2024). Upper/lower are due every ~3,5 days; when both are due, the clearly more overdue one wins, otherwise HK. Rest warnings at ≥5 sessions in 7 days, or when everything was trained in the last ~2 days.
+  - **Hard sets:** working sets = ≥80 % of that day's top weight, plus bodyweight/timed sets. With RIR logged: 0–3 counts 1, 4 counts 0,5, 5+ counts 0. Band 10–20 per muscle and week (Ralston 2017, Pelland 2024); health 4–10 (rule of thumb).
+  - **Notes:** groups under 2×/week, low volume, missing RIR, change in sessions per week, regressions, plateaus, PRs. Lists: progress / plateau / regressed / PRs / forgotten exercises. A chart shows times per week per muscle group.
+- **Reps kvar (RIR):** optional per exercise in the log form (0–5+), stored in `exercises.rir`, shown in history and exported as `RIR n`. Paste understands `RIR 2`, `rir2` and `2 kvar`.
 - **Utveckling:** per exercise: latest/best top set, change since first, estimated 1RM (Epley, reps capped at 12), chart and table.
 - **Header:** year grid, one cell per day coloured by session type, planned days outlined, today marked; stats (sessions this year/month, sessions per week over the last 8 weeks, days since last).
 - UI language is Swedish; dates are Swedish style.
@@ -38,7 +45,7 @@ public/            static app (served by Workers Assets)
   manifest.webmanifest, icon-*.png   home-screen app on iPad
 src/worker.js      API: /api/auth/*, /api/account/*, /api/admin/*, /api/data, /api/sessions/:id, /api/plans/:date, /api/import
 src/auth.js        password hashing, login sessions, reset tokens, password rules
-src/schema.js      D1 schema + migrations (v2 = accounts, v3 = approval/status, no email), run automatically on first request
+src/schema.js      D1 schema + migrations (v2 = accounts, v3 = approval/status, no email, v4 = RIR + goal), run automatically on first request
 data/sessions.json export from v1 (seed for /api/import)
 test/run.mjs       local tests with a fake D1 (npm test)
 wrangler.jsonc     Worker + Assets + D1 binding

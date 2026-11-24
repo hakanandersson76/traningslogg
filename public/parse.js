@@ -9,10 +9,17 @@ const SET_RE = /(\d+(?:[,.]\d+)?(?:\/\d+)?|x)\s*[@x]\s*(-?\d+(?:[,.]\d+)?(?:\+\d
 const TIME_RE = /\b(\d+):(\d\d)\b/g;
 const BARE_RE = /(?<![\d@,.])\b(\d+)\b(?![@\d.:x]|,\d)/g;
 
+// Effort marker in text: "RIR 2", "rir2", "2 kvar" (reps left in the tank).
+const RIR_RE = /\b(?:rir\s*(\d)|(\d)\s*kvar)\b/gi;
+export function rirFromText(txt) {
+  const m = [...String(txt || "").matchAll(RIR_RE)].at(-1);
+  return m ? Math.min(5, +(m[1] ?? m[2])) : null;
+}
+
 // Returns [{r: reps|null, w: kg|null, wl?: "33,5+2", t?: seconds}]
 export function parseSets(txt) {
   const sets = [];
-  let body = String(txt || "").replace(/\([^)]*\)/g, " ");
+  let body = String(txt || "").replace(/\([^)]*\)/g, " ").replace(RIR_RE, " ");
   body = body.replace(SET_RE, (m, r, w, mult) => {
     const wv = w.split("+").reduce((a, p) => a + num(p), 0);
     const s = { r: r === "x" ? null : num(r.split("/")[0]), w: Math.round(wv * 100) / 100 };
@@ -105,7 +112,9 @@ export function parseSessionText(text, today) {
     const [n0, s] = splitLine(line);
     if (!n0) continue;
     if (!cur) { cur = { date: null, tag: "", note: "", ex: [] }; sessions.push(cur); }
-    cur.ex.push({ n: NAME_MAP[n0] || n0, s });
+    const r = rirFromText(s);
+    const clean = s.replace(RIR_RE, "").replace(/,\s*\)/g, ")").replace(/\(\s*\)/g, "").replace(/\s*,\s*$/, "").replace(/\s{2,}/g, " ").trim();
+    cur.ex.push(r === null ? { n: NAME_MAP[n0] || n0, s } : { n: NAME_MAP[n0] || n0, s: clean, r });
   }
   return sessions.filter((x) => x.ex.length);
 }

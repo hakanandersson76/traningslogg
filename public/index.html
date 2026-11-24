@@ -77,6 +77,23 @@ label{font-size:14px;color:var(--soft);display:block;margin-bottom:4px}
 .er .hint b{color:var(--ink)}
 .er .hint button{margin-left:6px}
 .x{padding:0;min-height:44px;width:44px;font-size:20px}
+.rirl{display:inline-flex;align-items:center;gap:6px;margin:0 12px 4px 0;font-size:14px;color:var(--soft)}
+.rirl select{width:auto;min-height:36px;padding:4px 8px}
+.why{grid-column:1/-1;margin-top:2px}
+.why summary{cursor:pointer;color:var(--blue);font-size:14px;width:max-content}
+.why ul{margin:6px 0 2px;padding-left:18px;font-size:14px;color:var(--soft)}
+.why a{color:var(--blue)}
+.goalopt{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;align-items:start;padding:10px 0;border-top:1px solid var(--line);cursor:pointer}
+.goalopt:first-of-type{border-top:0}
+.goalopt input{width:22px;height:22px;min-height:0;margin:2px 0 0}
+.goalopt b{font-size:17px}
+.goalopt span{grid-column:2;color:var(--soft);font-size:14px}
+.freq{display:grid;grid-template-columns:4.5em minmax(0,1fr) 3em;gap:6px 10px;align-items:center;font-size:15px}
+.freq .bar{position:relative;height:14px;background:var(--panel);border-radius:3px}
+.freq .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--ink)}
+.freq .bar u{position:absolute;top:-3px;bottom:-3px;border-left:2px dashed color-mix(in srgb,var(--green) 80%,transparent)}
+.freq b{text-align:right;font-variant-numeric:tabular-nums}
+.refs{font-size:14px;color:var(--soft);padding-left:18px}.refs li{margin-bottom:4px}.refs a{color:var(--blue)}
 .paste{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:12px 0;margin:8px 0}
 .paste textarea{min-height:140px;font:15px/1.4 Barlow,sans-serif}
 button.sm.on{background:var(--ink);color:var(--bg)}
@@ -186,7 +203,7 @@ td .row{gap:6px}
 <main id="main"></main>
 <script type="module">
 import { parseSets, parseSessionText } from "./parse.js";
-import { coachReport } from "./coach.js";
+import { coachReport, nextTarget, history, SOURCES, GOALS, effectiveTag } from "./coach.js";
 {
 const TAGS={"ÖK":["Överkropp","red"],"NK":["Nederkropp","blue"],"HK":["Helkropp","yellow"],"":["Pass","grey"]};
 const MERGE={"UK":"NK","FK":"HK"};const normTag=t=>MERGE[t]||t||"";
@@ -214,13 +231,9 @@ const e1rm=s=>s&&s.w>0?s.w*(1+Math.min(s.r,12)/30):null;
 
 function exIndex(){const m=new Map();for(const s of [...sessions].sort((a,b)=>a.date<b.date?-1:1))for(const e of s.ex||[]){if(!e.n)continue;if(!m.has(e.n))m.set(e.n,[]);m.get(e.n).push({date:s.date,s:e.s||"",sid:s.id})}return m}
 function lastFor(n,before){const l=exIndex().get(n)||[];for(let i=l.length-1;i>=0;i--)if(!before||l[i].date<before)return l[i];return null}
-function suggest(e){
-  if(!e)return "";const sets=parseSets(e.s);const t=topSet(sets);
-  if(t){if(t.r>=10){const st=t.w>=100?5:2.5;return `8@${fmt(t.w+st)}`}return `${t.r+1}@${t.wl?t.wl.replace(".",","):fmt(t.w)}`}
-  const r=sets.filter(s=>s.r);if(r.length)return String(Math.max(...r.map(s=>s.r))+1);
-  const tm=sets.filter(s=>s.t);if(tm.length)return mmss(Math.max(...tm.map(s=>s.t))+15);return "";
-}
-function fromTag(tag,date){const last=[...sessions].filter(s=>s.tag===tag&&s.date<date).sort((a,b)=>a.date<b.date?1:-1)[0];return last?(last.ex||[]).map(e=>({n:e.n,s:suggest(lastFor(e.n,date))})):[]}
+const goalNow=()=>me?.goal||"muscle";
+function coachTarget(n,date){const ents=history(sessions.filter(s=>s.date<date)).get(n);return ents?nextTarget(ents,date,goalNow(),n).target:""}
+function fromTag(tag,date){const last=[...sessions].filter(s=>effectiveTag(s)===tag&&s.date<date).sort((a,b)=>a.date<b.date?1:-1)[0];return last?(last.ex||[]).map(e=>({n:e.n,s:coachTarget(e.n,date)})):[]}
 
 const cacheKey=()=>me?"gymlog-cache-"+me.id:null;
 function save(){try{if(cacheKey())localStorage.setItem(cacheKey(),JSON.stringify({s:sessions,p:plans}))}catch(e){}}
@@ -256,7 +269,8 @@ function renderTop(){
   $("legend").innerHTML=["ÖK","NK","HK"].map(t=>`<span><i style="background:var(--${TAGS[t][1]})"></i>${t} ${TAGS[t][0]}</span>`).join("")+`<span><i style="border:2px solid #b9bcc2"></i>Planerat</span>`;
 }
 
-const exList=ex=>`<div class="ex">${(ex||[]).map(e=>`<div>${esc(e.n)}</div><div>${esc(e.s)||"–"}</div>`).join("")}</div>`;
+const rirTxt=r=>r===null||r===undefined?"":` · ${r===5?"5+":r} kvar`;
+const exList=ex=>`<div class="ex">${(ex||[]).map(e=>`<div>${esc(e.n)}</div><div>${esc(e.s)||"–"}${rirTxt(e.r)}</div>`).join("")}</div>`;
 function editorHTML(){
   if(!ed)return "";const names=[...exIndex().keys()].sort((a,b)=>a.localeCompare(b,"sv"));
   const isPlan=ed.kind==="plan";
@@ -299,21 +313,23 @@ const canon=n=>{const k=n.toLowerCase();for(const x of exIndex().keys())if(x.toL
 const sameSession=(p)=>sessions.some(s=>s.date===p.date&&(s.ex||[]).map(e=>e.n+"|"+e.s).join("~")===p.ex.map(e=>e.n+"|"+e.s).join("~"));
 function applyPaste(p){
   if(p.date)ed.date=p.date;if(p.tag)ed.tag=p.tag;if(p.note)ed.note=p.note;
-  ed.ex=p.ex.map(e=>({n:canon(e.n),s:e.s}));
+  ed.ex=p.ex.map(e=>({n:canon(e.n),s:e.s,r:e.r??null}));
 }
 function rowHTML(e,i,isPlan){
-  const l=e.n?lastFor(e.n,ed.date):null;const sg=suggest(l);
+  const l=e.n?lastFor(e.n,ed.date):null;const sg=e.n&&!isPlan?coachTarget(e.n,ed.date):"";
+  const rv=e.r===null||e.r===undefined?"":String(e.r);
+  const rirSel=isPlan?"":`<label class="rirl" for="rir-${i}">Reps kvar <select id="rir-${i}" data-f="r" aria-label="Reps kvar i sista setet"><option value="">–</option>${[0,1,2,3,4,5].map(v=>`<option value="${v}" ${rv===String(v)?"selected":""}>${v===5?"5+":v}</option>`).join("")}</select></label>`;
   return `<div class="er" data-i="${i}"><input list="exnames" data-f="n" value="${esc(e.n)}" placeholder="Övning" aria-label="Övning">
   <input class="sets" data-f="s" value="${esc(e.s)}" placeholder="${isPlan?"Mål, t.ex. 8@22,5":"8@20, 6@22,5"}" aria-label="Set">
   <button class="x" data-act="rmrow" aria-label="Ta bort">×</button>
-  <div class="hint">${e.goal?`Mål <b>${esc(e.goal)}</b><button class="sm" data-act="use" data-sg="${esc(e.goal)}">Använd</button> · `:""}${l?`Senast ${nice(l.date)}: ${esc(l.s)}${sg&&!e.goal?` · Försök <b>${esc(sg)}</b><button class="sm" data-act="use" data-sg="${esc(sg)}">Använd</button>`:""}`:e.n?"Ny övning":""}</div></div>`;
+  <div class="hint">${rirSel}${e.goal?`Mål <b>${esc(e.goal)}</b><button class="sm" data-act="use" data-sg="${esc(e.goal)}">Använd</button> · `:""}${l?`Senast ${nice(l.date)}: ${esc(l.s)}${sg&&!e.goal?` · Försök <b>${esc(sg)}</b><button class="sm" data-act="use" data-sg="${esc(sg)}">Använd</button>`:""}`:e.n?"Ny övning":""}</div></div>`;
 }
 
 function renderPlan(){
   const ws=addD(monday(TODAY),weekOff*7);
   let h=`<div class="row week" style="margin-bottom:8px"><button data-act="wk" data-d="-1" aria-label="Förra veckan">‹</button><h2>Vecka ${isoWeek(ws)}</h2><button data-act="wk" data-d="1" aria-label="Nästa vecka">›</button>${weekOff?`<button class="sm" data-act="wk" data-d="0">Denna vecka</button>`:""}<span class="sp"></span><span class="muted">${nice(ws)} – ${nice(addD(ws,6))}</span></div>`;
   h+=taskBar();
-  if(!weekOff&&sessions.length&&!plans.some(p=>p.date===TODAY)&&!sessions.some(s=>s.date===TODAY)){const n=coachReport(sessions,TODAY).next;
+  if(!weekOff&&sessions.length&&!plans.some(p=>p.date===TODAY)&&!sessions.some(s=>s.date===TODAY)){const n=coachReport(sessions,TODAY,goalNow()).next;
     h+=`<div class="coachbar"><span>Coachen föreslår <b>${n.date===TODAY?"idag":"i morgon"}</b>:</span>${chip(n.tag)}<span>${TAGS[n.tag]?.[0]||""}</span><span class="sp"></span><a class="btn sm" href="#coach" style="display:inline-flex;align-items:center;text-decoration:none">Visa förslag</a></div>`}
   if(loaded&&!sessions.length&&me.role!=="admin")h+=`<div class="ed"><h2>Välkommen${me.firstName?", "+esc(me.firstName):""}!</h2><p>Logga ditt första pass under <b>Logga pass</b>, eller klistra in pass du skrivit i Anteckningar. Coachen börjar ge förslag när du har några pass.</p></div>`;
   if(loaded&&!sessions.length&&me.role==="admin")h+=`<div class="ed"><h2>Databasen är tom</h2><p>Importera dina 88 pass från v1 (januari–november 2026). Det körs en gång och bara mot en tom databas.</p><button class="pri" data-act="import">Importera pass</button></div>`;
@@ -328,22 +344,28 @@ function renderPlan(){
   h+=`<div class="note"><b>Nästa steg: Garmin.</b> När en Cloudflare Worker hämtar dina aktiviteter visas de här bredvid planen.</div>`;
   return h;
 }
+const srcHTML=ids=>{ids=[...new Set(ids||[])].filter(i=>SOURCES[i]);if(!ids.length)return "";
+  return `<details class="why"><summary>Varför?</summary><ul>${ids.map(i=>`<li>${esc(SOURCES[i].t)}${SOURCES[i].u?` <a href="${SOURCES[i].u}" target="_blank" rel="noopener">Läs mer</a>`:""}</li>`).join("")}</ul></details>`};
 function renderCoach(){
   if(!sessions.length)return `<p class="empty">Inga pass än. Importera eller logga ett pass först.</p>`;
-  const r=coachReport(sessions,TODAY);const n=r.next;
+  const r=coachReport(sessions,TODAY,goalNow());const n=r.next,G=r.G;
   const when=n.date===TODAY?"idag":n.date===addD(TODAY,1)?"i morgon":nice(n.date);
   const hasPlan=plans.find(p=>p.date===n.date&&!p.done);
-  const kindTxt={weight:"Öka vikt",reps:"+1 rep",time:"Längre",plateau:"Platå",comeback:"Comeback",new:"Ny"};
-  let h=`<section class="hero"><div><span class="muted">Nästa pass, ${when}</span><h2>${chip(n.tag)} ${TAGS[n.tag]?.[0]||"Pass"}</h2><p style="margin:0 0 6px">${esc(n.why)}</p>
-  ${n.restWhy?`<div class="warnbox">${esc(n.restWhy)}</div>`:""}
+  const kindTxt={weight:"Öka vikt",reps:"Fler reps",lower:"Sänk",time:"Längre",plateau:"Platå",comeback:"Comeback",new:"Ny"};
+  let h=`<div class="row" style="margin-bottom:12px"><span class="muted">Ditt mål:</span><b>${G.label}</b><span class="muted">· ${G.comp[0]}–${G.comp[1]} reps i basövningar, ${G.iso[0]}–${G.iso[1]} i isolationsövningar, ${G.rir} reps kvar</span><a href="#settings" class="linkbtn" style="font-size:15px">Ändra</a></div>
+  <section class="hero"><div><span class="muted">Nästa pass, ${when}</span><h2>${chip(n.tag)} ${TAGS[n.tag]?.[0]||"Pass"}</h2><p style="margin:0 0 6px">${esc(n.why)}</p>
+  ${n.restWhy?`<div class="warnbox">${esc(n.restWhy)}</div>`:""}${srcHTML(n.src)}
   <div class="row" style="margin-top:12px"><button class="pri" data-act="cstart">Starta passet</button><button data-act="cplan">${hasPlan?"Ersätt planen":"Lägg i planen"}</button></div></div>
-  <ul class="pl">${r.plan.map(p=>`<li><span>${esc(p.n)}<span class="k ${p.kind}">${kindTxt[p.kind]||""}</span></span><b>${esc(p.target)||"–"}</b><small>${esc(p.why)}${p.last?` Senast ${nice(p.last.date)}: ${esc(p.last.s)}.`:""}</small></li>`).join("")||`<li><span class="muted">Inga tidigare ${n.tag}-pass att utgå från.</span></li>`}</ul></section>`;
-  if(r.notes.length)h+=`<h3 style="font-size:24px;margin-bottom:4px">Att tänka på</h3><ul class="notes">${r.notes.map(x=>`<li class="${x.k}">${esc(x.t)}</li>`).join("")}</ul>`;
+  <ul class="pl">${r.plan.map(p=>`<li><span>${esc(p.n)}<span class="k ${p.kind}">${kindTxt[p.kind]||""}</span></span><b>${esc(p.target)||"–"}</b><small>${esc(p.why)}${p.last?` Senast ${nice(p.last.date)}: ${esc(p.last.s)}${rirTxt(p.last.rir)}.`:""}</small>${srcHTML(p.src)}</li>`).join("")||`<li><span class="muted">Inga tidigare ${n.tag}-pass att utgå från.</span></li>`}</ul></section>`;
+  if(r.notes.length)h+=`<h3 style="font-size:24px;margin-bottom:4px">Att tänka på</h3><ul class="notes">${r.notes.map(x=>`<li class="${x.k}">${esc(x.t)}${srcHTML(x.src)}</li>`).join("")}</ul>`;
   const mx=Math.max(3,...r.weeks.map(w=>w.total));
-  h+=`<div class="cols"><div><h3>Pass per vecka</h3><p class="muted" style="margin:0">Snitt ${fmt(Math.round(r.last4*10)/10)} senaste 4 veckorna (${fmt(Math.round(r.prev4*10)/10)} innan). Otaggade pass färgas efter övningarna.</p>
-  <div class="wk" style="margin-bottom:26px">${r.weeks.map(w=>`<div title="v${isoWeek(w.start)}: ${w.total} pass">${["ÖK","NK","HK",""].map(t=>w[t]?`<i style="height:${w[t]/mx*100}%;background:var(--${TAGS[t][1]})"></i>`:"").join("")}<span>${isoWeek(w.start)}</span></div>`).join("")}</div></div>
-  <div><h3>Tunga set per vecka</h3><p class="muted" style="margin:0 0 10px">Snitt senaste 4 veckorna. Grönt band = 10–20 set, vanlig rekommendation för att bygga muskler.</p>
-  <div class="vol">${r.vol.map(v=>`<span>${v.name}</span><span class="bar"><u style="left:${10/25*100}%;right:${100-20/25*100}%"></u><i style="width:${Math.min(v.perWeek,25)/25*100}%"></i></span><b>${fmt(Math.round(v.perWeek*10)/10)}</b>`).join("")}</div></div></div>`;
+  const B=G.band,SC=Math.max(25,B[1]+5);
+  h+=`<div class="cols"><div><h3>Gånger per vecka och muskelgrupp</h3><p class="muted" style="margin:0 0 10px">Snitt senaste 4 veckorna. Streckad linje = målet 2 gånger.</p>
+  <div class="freq">${r.freq.map(f=>`<span>${f.name}</span><span class="bar"><u style="left:${2/4*100}%"></u><i style="width:${Math.min(f.perWeek,4)/4*100}%;background:${f.g!=="core"&&f.perWeek<1.75?"var(--red)":"var(--ink)"}"></i></span><b>${fmt(Math.round(f.perWeek*10)/10)}</b>`).join("")}</div>${srcHTML(["schoenfeld2016","schoenfeld2019"])}</div>
+  <div><h3>Tunga set per vecka</h3><p class="muted" style="margin:0 0 10px">Snitt senaste 4 veckorna. Grönt band = ${B[0]}–${B[1]} set för målet ${G.label.toLowerCase()}. ${r.rirShare<0.3?"Utan loggade reps kvar räknas alla arbetsset som tunga.":"Set med 4+ reps kvar räknas som halva eller inget."}</p>
+  <div class="vol">${r.vol.map(v=>`<span>${v.name}</span><span class="bar"><u style="left:${B[0]/SC*100}%;right:${100-B[1]/SC*100}%"></u><i style="width:${Math.min(v.perWeek,SC)/SC*100}%"></i></span><b>${fmt(Math.round(v.perWeek*10)/10)}</b>`).join("")}</div>${srcHTML(goalNow()==="health"?["rule"]:["ralston2017","pelland2024"])}</div></div>
+  <div class="cols"><div><h3>Pass per vecka</h3><p class="muted" style="margin:0">Snitt ${fmt(Math.round(r.last4*10)/10)} senaste 4 veckorna (${fmt(Math.round(r.prev4*10)/10)} innan). Otaggade pass färgas efter övningarna.</p>
+  <div class="wk" style="margin-bottom:26px">${r.weeks.map(w=>`<div title="v${isoWeek(w.start)}: ${w.total} pass">${["ÖK","NK","HK",""].map(t=>w[t]?`<i style="height:${w[t]/mx*100}%;background:var(--${TAGS[t][1]})"></i>`:"").join("")}<span>${isoWeek(w.start)}</span></div>`).join("")}</div></div></div>`;
   const li=(arr,f)=>arr.length?`<ul class="tl">${arr.map(f).join("")}</ul>`:`<p class="muted">Inget just nu.</p>`;
   const exl=n=>`<a href="#progress" data-ex="${esc(n)}">${esc(n)}</a>`;
   const dp=t=>`${t.delta>0?"+":"−"}${Math.abs(Math.round(t.delta*100))} %`;
@@ -352,7 +374,13 @@ function renderCoach(){
   <div><h3>Tappat</h3><p class="muted" style="margin:0 0 6px">Kan vara medvetet (djupare, bättre teknik) – kolla anteckningarna.</p>${li(r.down.slice(0,8),t=>`<li>${exl(t.n)}<em>${dp(t)}</em></li>`)}</div></div>
   <div class="cols"><div><h3>Nya rekord, 30 dagar</h3>${li(r.prs,p=>`<li>${exl(p.n)}<em>${p.top.r}@${fmt(p.top.w)} · ${nice(p.date)}</em></li>`)}</div>
   <div><h3>Bortglömda övningar</h3><p class="muted" style="margin:0 0 6px">Gjorda ofta förut, inte senaste 45 dagarna.</p>${li(r.neglected,x=>`<li>${exl(x.n)}<em>${x.since} d sedan · ${x.count} pass</em></li>`)}</div></div>
-  <p class="muted">Coachen räknar på din historik med fasta regler: dubbel progression (reps upp till 10, sedan +vikt), 90 % efter längre uppehåll, platå när toppsetet stått still tre pass, och överkropp ungefär var 3:e dag och ben var 6:e.</p>`;
+  <section class="panel"><h2>Så tänker coachen</h2>
+  <ul class="refs"><li><b>Ökning:</b> dubbel progression – fler reps inom ditt intervall, sedan mer vikt. Kändes det lätt (3+ reps kvar) ökar den snabbare.</li>
+  <li><b>Hur nära failure:</b> ${G.rir} reps kvar i sista setet för målet ${G.label.toLowerCase()}.</li>
+  <li><b>Frekvens:</b> varje muskelgrupp minst två gånger i veckan.</li>
+  <li><b>Volym:</b> ${B[0]}–${B[1]} tunga set per muskelgrupp och vecka.</li>
+  <li><b>Tumregler</b> (inte direkt från studier): 90 % efter mer än 4 veckors uppehåll, platå när toppsetet stått still tre pass, steg på 2,5 kg (5 kg från 100 kg, 1 kg under 10 kg).</li></ul>
+  <h3 style="font-size:20px;margin:12px 0 6px">Källor</h3><ul class="refs">${Object.entries(SOURCES).filter(([k])=>k!=="rule").map(([,s])=>`<li>${esc(s.t)} <a href="${s.u}" target="_blank" rel="noopener">Läs mer</a></li>`).join("")}</ul></section>`;
   return h;
 }
 // ---- accounts ----
@@ -383,7 +411,11 @@ function renderAuth(){
     <div class="links"><a href="#" data-auth="register">Skapa konto</a><a href="#" data-auth="forgot">Glömt lösenord?</a></div></div>`;
 }
 function renderSettings(){
-  return `<section class="panel"><h2>Profil</h2><form data-form="name">
+  const g=goalNow();
+  return `<section class="panel"><h2>Träningsmål</h2><p class="muted" style="margin-top:0">Styr coachens repsintervall, hur nära failure den föreslår och hur mycket volym den siktar på.</p>
+    <form data-form="goal">${Object.entries(GOALS).map(([k,G])=>`<label class="goalopt"><input type="radio" name="goal" value="${k}" ${k===g?"checked":""}><b>${G.label}</b><span>${G.comp[0]}–${G.comp[1]} reps i basövningar, ${G.iso[0]}–${G.iso[1]} i isolationsövningar, ${G.rir} reps kvar, ${G.band[0]}–${G.band[1]} tunga set per muskelgrupp och vecka.${k==="health"?" Lugnare tempo, fokus på att träna regelbundet.":""}</span></label>`).join("")}
+    <div style="margin-top:10px"><button class="pri">Spara mål</button></div></form></section>
+  <section class="panel"><h2>Profil</h2><form data-form="name">
     <div class="f3" style="margin:0"><div><label for="s-first">Förnamn</label><input id="s-first" name="firstName" value="${esc(me.firstName)}" autocomplete="given-name" required></div>
     <div><label for="s-last">Efternamn</label><input id="s-last" name="lastName" value="${esc(me.lastName)}" autocomplete="family-name" required></div></div>
     <div><label>E-post</label><div>${esc(me.email)}</div></div>
@@ -447,6 +479,7 @@ document.addEventListener("submit",async ev=>{
     if(k==="forgot"){const r=await api("auth/forgot",{method:"POST",body:JSON.stringify({email:v.email})});authMode="login";setA("ok",r.message);return}
     if(k==="reset"){if(v.password!==v.password2){setA("err","Lösenorden är inte lika.");return}
       const r=await api("auth/reset",{method:"POST",body:JSON.stringify({token:resetToken,password:v.password})});resetToken=null;authMode="login";setA("ok",r.message);return}
+    if(k==="goal"){const r=await api("account/goal",{method:"PUT",body:JSON.stringify({goal:v.goal})});me=r.user;flash={k:"ok",t:`Målet är sparat: ${GOALS[me.goal].label}. Coachen räknar om sina förslag.`};render();return}
     if(k==="name"){const r=await api("account/name",{method:"PUT",body:JSON.stringify(v)});me=r.user;flash={k:"ok",t:"Namnet är sparat."};render();return}
     if(k==="password"){if(v.password!==v.password2){flash={k:"err",t:"De nya lösenorden är inte lika."};render();return}
       const r=await api("account/password",{method:"POST",body:JSON.stringify({current:v.current,password:v.password})});flash={k:"ok",t:r.message};render();return}
@@ -532,7 +565,7 @@ function render(){
 function route(){const h=location.hash.slice(1);view=["plan","coach","log","history","progress","settings","admin"].includes(h)?h:"plan";if(view!=="admin")resetLink=null;if(view==="admin"&&me?.role!=="admin")view="plan";if(view!=="log")ed=null;armed=null;flash=null;if(view==="admin")loadAdmin();render();window.scrollTo(0,0)}
 
 function syncEd(){if(!ed)return;const g=id=>$(id);if(g("e-date"))ed.date=g("e-date").value||ed.date;if(g("e-tag"))ed.tag=g("e-tag").value;if(g("e-note"))ed.note=g("e-note").value;
-  document.querySelectorAll(".er").forEach(r=>{const i=+r.dataset.i;if(!ed.ex[i])return;ed.ex[i].n=r.querySelector('[data-f="n"]').value.trim();ed.ex[i].s=r.querySelector('[data-f="s"]').value.trim()})}
+  document.querySelectorAll(".er").forEach(r=>{const i=+r.dataset.i;if(!ed.ex[i])return;ed.ex[i].n=r.querySelector('[data-f="n"]').value.trim();ed.ex[i].s=r.querySelector('[data-f="s"]').value.trim();const rs=r.querySelector('[data-f="r"]');if(rs)ed.ex[i].r=rs.value===""?null:+rs.value})}
 const rerow=()=>{const box=$("rows");if(box)box.innerHTML=ed.ex.map((e,i)=>rowHTML(e,i,ed.kind==="plan")).join("")};
 
 let loaded=false;
@@ -564,12 +597,12 @@ document.addEventListener("click",async ev=>{
   const b=ev.target.closest("[data-act]");if(!b)return;const a=b.dataset.act;syncEd();
   if(a!=="del"&&a!=="admin")armed=null;
   if(a==="import"){runImport(b);return}
-  if(a==="cstart"||a==="cplan"){const r=coachReport(sessions,TODAY);const n=r.next;const ex=r.plan.map(p=>({n:p.n,s:p.target}));
+  if(a==="cstart"||a==="cplan"){const r=coachReport(sessions,TODAY,goalNow());const n=r.next;const ex=r.plan.map(p=>({n:p.n,s:p.target}));
     if(a==="cstart"){ed={kind:"log",date:n.date,tag:n.tag,note:"",ex:ex.map(e=>({n:e.n,s:"",goal:e.s}))};location.hash="log";return}
     if(await write("plans/"+n.date,{date:n.date,tag:n.tag,note:"",ex,done:null})){weekOff=Math.round((pd(monday(n.date))-pd(monday(TODAY)))/864e5/7);location.hash="plan"}return}
   if(a==="pastetoggle"){ed.paste=!ed.paste;ed.pasteMsg="";render();if(ed.paste)setTimeout(()=>$("pastetxt")?.focus(),0);return}
   if(a==="clip"){try{const t=await navigator.clipboard.readText();ed.pasteText=t;ed.pasteMsg="Hämtat från urklipp. Tryck Fyll i.";}catch(e){ed.pasteMsg="Kunde inte läsa urklipp. Håll fingret i rutan och välj Klistra in."}render();return}
-  if(a==="pastefill"){const found=parseSessionText(ed.pasteText||"",TODAY).map(p=>({...p,ex:p.ex.map(e=>({n:canon(e.n),s:e.s}))}));found.forEach(p=>p.dup=!!(p.date&&sameSession(p)));ed.pasteFound=found;
+  if(a==="pastefill"){const found=parseSessionText(ed.pasteText||"",TODAY).map(p=>({...p,ex:p.ex.map(e=>({n:canon(e.n),s:e.s,r:e.r??null}))}));found.forEach(p=>p.dup=!!(p.date&&sameSession(p)));ed.pasteFound=found;
     if(!found.length){ed.pasteMsg="Hittade inga övningar i texten.";render();return}
     applyPaste(found[0]);const nEx=found[0].ex.length,nSets=found[0].ex.reduce((a,e)=>a+parseSets(e.s).length,0);
     ed.pasteMsg=found.length>1?`Hittade ${found.length} pass. Det första (${found[0].date?nice(found[0].date):"utan datum"}) är ifyllt nedan${found.some(x=>x.dup)?`; ${found.filter(x=>x.dup).length} finns redan och hoppas över`:""}.`:`Fyllde i ${nEx} övningar och ${nSets} set${found[0].date?"":" (inget datum i texten, behåller "+nice(ed.date)+")"}. Kontrollera och tryck Spara pass.`;
@@ -592,13 +625,13 @@ document.addEventListener("click",async ev=>{
     if(ed.kind==="plan"){const id=ed.date;if(ed.id&&ed.id!==id)await write("plans/"+ed.id,null);
       if(await write("plans/"+id,{date:ed.date,tag:ed.tag,note:ed.note,ex,done:null})){ed=null;render()}}
     else{const id=ed.id||`${ed.date}-${Date.now().toString(36)}`;
-      if(await write("sessions/"+id,{date:ed.date,tag:ed.tag,note:ed.note,ex:ex.filter(e=>e.s).map(e=>({n:e.n,s:e.s}))})){
+      if(await write("sessions/"+id,{date:ed.date,tag:ed.tag,note:ed.note,ex:ex.filter(e=>e.s).map(e=>({n:e.n,s:e.s,r:e.r??null}))})){
         if(ed.planId){const p=plans.find(x=>x.id===ed.planId);if(p)await write("plans/"+p.id,{date:p.date,tag:p.tag,note:p.note||"",ex:p.ex||[],done:id})}
         const d=ed.date;ed=null;weekOff=Math.round((pd(monday(d))-pd(monday(TODAY)))/864e5/7);location.hash="plan";render()}}}
   else if(a==="del"){if(armed!=="del"){armed="del";render();return}armed=null;
     if(await write((ed.kind==="plan"?"plans/":"sessions/")+ed.id,null)){ed=null;render()}}
   else if(a==="ft"){filt.tag=b.dataset.t;render()}
-  else if(a==="copy"){const txt=[...sessions].sort((x,y)=>x.date<y.date?-1:1).map(s=>`${s.date.slice(2).replace(/-/g,"")}${s.tag?" "+s.tag:""}${s.note?` (${s.note})`:""}\n`+(s.ex||[]).map(e=>`${e.n} ${e.s}`).join("\n")).join("\n\n");
+  else if(a==="copy"){const txt=[...sessions].sort((x,y)=>x.date<y.date?-1:1).map(s=>`${s.date.slice(2).replace(/-/g,"")}${s.tag?" "+s.tag:""}${s.note?` (${s.note})`:""}\n`+(s.ex||[]).map(e=>`${e.n} ${e.s}${e.r!==null&&e.r!==undefined?" RIR "+e.r:""}`).join("\n")).join("\n\n");
     try{await navigator.clipboard.writeText(txt);setSync("Kopierat")}catch(e){$("copyout").innerHTML=`<label for="cpt">Markera och kopiera</label><textarea id="cpt">${esc(txt)}</textarea>`}}
 });
 document.addEventListener("input",ev=>{if(ev.target.id==="pastetxt"&&ed){ed.pasteText=ev.target.value;return}if(ev.target.id==="hq"){filt.q=ev.target.value;const p=ev.target.selectionStart;render();const i=$("hq");i.focus();i.setSelectionRange(p,p)}});

@@ -46,7 +46,14 @@ const V3 = [
   `INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '3')`,
 ];
 
-export const SCHEMA_VERSION = 3;
+// Version 4: effort per exercise (RIR = reps in reserve, 0–5) and a training goal per user.
+const V4 = [
+  `ALTER TABLE exercises ADD COLUMN rir INTEGER`,
+  `ALTER TABLE users ADD COLUMN goal TEXT NOT NULL DEFAULT 'muscle'`,
+  `INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '4')`,
+];
+
+export const SCHEMA_VERSION = 4;
 
 let ready = null;
 export function ensureSchema(db) {
@@ -64,6 +71,7 @@ async function migrate(db) {
   // One batch = one transaction in D1, so v2 is applied all or nothing.
   if (v < 2) await db.batch(V2.map((s) => db.prepare(s)));
   if (v < 3) await db.batch(V3.map((s) => db.prepare(s)));
+  if (v < 4) await db.batch(V4.map((s) => db.prepare(s)));
 }
 
 // Create the admin account on first start (from the ADMIN_EMAIL and

@@ -28,17 +28,21 @@ const normTag = (t) => {
   return TAGS.has(v) ? v : "";
 };
 
+// Reps in reserve (how many more reps were left in the tank): 0–5, or unknown.
+const cleanRir = (r) => (r === null || r === undefined || r === "" || !Number.isFinite(+r) ? null : Math.max(0, Math.min(5, Math.round(+r))));
+const GOALS = new Set(["strength", "muscle", "health"]);
+
 function cleanExercises(ex) {
   if (!Array.isArray(ex)) return null;
   return ex
-    .map((e) => ({ n: str(e?.n, 120).trim(), s: str(e?.s, 1000).trim() }))
+    .map((e) => ({ n: str(e?.n, 120).trim(), s: str(e?.s, 1000).trim(), r: cleanRir(e?.r) }))
     .filter((e) => e.n)
     .slice(0, 60);
 }
 
 // Statements that replace one session (and its exercises and parsed sets).
 function sessionStatements(db, userId, id, s) {
-  const exRows = s.ex.map((e, i) => ({ p: i, n: e.n, s: e.s }));
+  const exRows = s.ex.map((e, i) => ({ p: i, n: e.n, s: e.s, r: e.r ?? null }));
   const setRows = s.ex.flatMap((e, i) =>
     parseSets(e.s).map((x, j) => ({ e: i, p: j, r: x.r ?? null, w: x.w ?? null, l: x.wl ?? null, t: x.t ?? null })),
   );
@@ -53,8 +57,8 @@ function sessionStatements(db, userId, id, s) {
       .bind(id, userId, s.date, s.tag, s.note),
     db
       .prepare(
-        `INSERT INTO exercises (session_id, pos, name, sets_text)
-         SELECT ?1, json_extract(value, '$.p'), json_extract(value, '$.n'), json_extract(value, '$.s') FROM json_each(?2)`,
+        `INSERT INTO exercises (session_id, pos, name, sets_text, rir)
+         SELECT ?1, json_extract(value, '$.p'), json_extract(value, '$.n'), json_extract(value, '$.s'), json_extract(value, '$.r') FROM json_each(?2)`,
       )
       .bind(id, JSON.stringify(exRows)),
     db
@@ -71,7 +75,7 @@ async function getData(db, userId) {
   const [sess, ex, plans, pex] = await db.batch([
     db.prepare("SELECT id, date, tag, note FROM sessions WHERE user_id = ?1 ORDER BY date, id").bind(userId),
     db.prepare(
-      `SELECT e.session_id, e.pos, e.name, e.sets_text FROM exercises e JOIN sessions s ON s.id = e.session_id
+      `SELECT e.session_id, e.pos, e.name, e.sets_text, e.rir FROM exercises e JOIN sessions s ON s.id = e.session_id
        WHERE s.user_id = ?1 ORDER BY e.session_id, e.pos`,
     ).bind(userId),
     db.prepare("SELECT date, tag, note, done_session_id FROM plans WHERE user_id = ?1 ORDER BY date").bind(userId),
@@ -80,7 +84,7 @@ async function getData(db, userId) {
   const exBy = new Map();
   for (const r of ex.results) {
     if (!exBy.has(r.session_id)) exBy.set(r.session_id, []);
-    exBy.get(r.session_id).push({ n: r.name, s: r.sets_text });
+    exBy.get(r.session_id).push(r.rir === null || r.rir === undefined ? { n: r.name, s: r.sets_text } : { n: r.name, s: r.sets_text, r: r.rir });
   }
   const pexBy = new Map();
   for (const r of pex.results) {
@@ -190,6 +194,12 @@ async function handleAccount(request, env, url, db, user, action) {
     if (!f || !l) return bad("Ange förnamn och efternamn.");
     await db.prepare("UPDATE users SET first_name = ?2, last_name = ?3 WHERE id = ?1").bind(user.id, f, l).run();
     return json({ ok: true, user: await meOut(db, { ...user, first_name: f, last_name: l }) });
+  }
+  if (action === "goal" && request.method === "PUT") {
+    const b = (await readBody(request)) || {};
+    if (!GOALS.has(b.goal)) return bad("Välj styrka, muskler eller hälsa.");
+    await db.prepare("UPDATE users SET goal = ?2 WHERE id = ?1").bind(user.id, b.goal).run();
+    return json({ ok: true, user: await meOut(db, { ...user, goal: b.goal }) });
   }
   if (action === "password" && request.method === "POST") {
     const b = (await readBody(request)) || {};

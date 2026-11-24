@@ -9,7 +9,7 @@ import worker from "../src/worker.js";
 import { _resetForTests } from "../src/schema.js";
 import { hashPassword } from "../src/auth.js";
 import { parseSessionText, parseSets } from "../public/parse.js";
-import { coachReport, nextTarget, history, groupOf, effectiveTag } from "../public/coach.js";
+import { coachReport, nextTarget, history, groupOf, effectiveTag, isCompound, SOURCES, weeklyVolume } from "../public/coach.js";
 
 class Stmt {
   constructor(db, sql, args = []) { this.db = db; this.sql = sql; this.args = args; }
@@ -137,6 +137,16 @@ d = (await admin("/api/data")).body;
 assert(d.plans[0].tag === "ÖK" && (await anna("/api/data")).body.plans[0].tag === "HK", "plans on the same date are separate per user");
 assert((await post(anna, "/api/import", {})).status === 403, "only admin may import");
 
+// ---- 3b. Effort (RIR) and training goal ----
+r = await put(anna, "/api/sessions/2026-11-25-r", { date: "2026-11-25", tag: "ÖK", note: "", ex: [{ n: "Bänkpress", s: "8@60", r: 2 }, { n: "Rodd", s: "10@50", r: 9 }, { n: "Dips", s: "10", r: "x" }] });
+const rs = (await anna("/api/data")).body.sessions.find((s) => s.id === "2026-11-25-r");
+assert(rs.ex[0].r === 2 && rs.ex[1].r === 5 && rs.ex[2].r === undefined, "RIR stored, clamped to 0–5, invalid ignored");
+assert((await anna("/api/me")).body.user.goal === "muscle", "default goal is muscle");
+r = await put(anna, "/api/account/goal", { goal: "strength" });
+assert(r.status === 200 && r.body.user.goal === "strength" && (await anna("/api/me")).body.user.goal === "strength", "goal can be changed");
+assert((await put(anna, "/api/account/goal", { goal: "bulk" })).status === 400, "unknown goal refused");
+await anna("/api/sessions/2026-11-25-r", { method: "DELETE" });
+
 // ---- 4. Settings: name and password ----
 r = await put(anna, "/api/account/name", { firstName: "Annie", lastName: "Berg-Lind" });
 assert(r.status === 200 && (await anna("/api/me")).body.user.firstName === "Annie", "change name");
@@ -235,9 +245,24 @@ const rep = coachReport(seedS, "2026-11-22");
 assert(rep.next.tag === "NK" && !rep.next.rest, `coach: legs due after ${rep.next.gl} days → NK`);
 assert(rep.plan.length >= 3 && rep.plan.every((p) => groupOf(p.n) === "ben" || groupOf(p.n) === "core"), "coach: proposed NK session uses leg/core exercises");
 assert(rep.plan.find((p) => p.n === "Vadpress (maskin)")?.kind === "plateau", "coach: calf press flagged as plateau");
-const h1 = history([{ date: "2026-01-01", ex: [{ n: "X", s: "10@20" }] }]).get("X");
-assert(nextTarget(h1, "2026-01-05").target === "8@22,5", "coach: 10 reps → +2,5 kg");
-assert(nextTarget(h1, "2026-03-01").kind === "comeback", "coach: long break → comeback");
+const H = (s, rir = null, date = "2026-01-01") => history([{ date, ex: [{ n: "Bänkpress", s, r: rir }] }]).get("Bänkpress");
+assert(isCompound("Bänkpress (incline)") && !isCompound("Tricepspress (kabelmaskin)") && !isCompound("Vadpress (maskin)") && !isCompound("Preacher curl"), "coach: compound vs isolation");
+assert(nextTarget(H("10@20"), "2026-01-05", "muscle", "Bänkpress").target === "6@22,5", "coach (muskler, 6–10): 10 reps → +2,5 kg and back to 6");
+assert(nextTarget(H("7@20"), "2026-01-05", "muscle", "Bänkpress").target === "8@20", "coach: inside range → +1 rep");
+assert(nextTarget(H("7@20", 3), "2026-01-05", "muscle", "Bänkpress").target === "9@20", "coach: felt easy (3 kvar) → +2 reps");
+assert(nextTarget(H("8@20", 4), "2026-01-05", "muscle", "Bänkpress").target === "6@22,5", "coach: easy near top of range → more weight");
+assert(nextTarget(H("4@20", 0), "2026-01-05", "muscle", "Bänkpress").kind === "lower", "coach: below range with 0 kvar → lower the weight");
+assert(nextTarget(H("6@100"), "2026-01-05", "strength", "Bänkpress").target === "4@105", "coach (styrka, 4–6): 6 reps → +5 kg (≥100 kg)");
+assert(nextTarget(H("10@20"), "2026-03-01", "muscle", "Bänkpress").kind === "comeback", "coach: long break → comeback");
+const t1 = nextTarget(H("7@20"), "2026-01-05", "muscle", "Bänkpress");
+assert(/1–2 reps kvar/.test(t1.why) && t1.src.includes("plotkin2022") && t1.src.every((s) => SOURCES[s]), "coach: advice says how close to failure and has valid sources");
+const v = weeklyVolume([{ date: "2026-01-02", ex: [{ n: "Bänkpress", s: "8@40, 8@60, 8@60", r: 2 }, { n: "Kabelrodd", s: "10@30, 10@30", r: 5 }] }], "2026-01-05", 1).groups;
+assert(v.find((x) => x.g === "bröst").perWeek === 2 && v.find((x) => x.g === "rygg").perWeek === 0, "coach: warm-ups not counted; 5+ kvar not a hard set");
+const repF = coachReport(seedS, "2026-11-24", "muscle");
+assert(repF.notes.some((n) => /2 gånger i veckan/.test(n.t)) && repF.freq.find((f) => f.g === "ben").perWeek < 1, "coach: flags muscle groups trained under twice a week");
+assert(repF.notes.every((n) => (n.src || []).every((s) => SOURCES[s])), "coach: every note's sources exist");
+const pr = parseSessionText("261124 ÖK\nBänkpress 8@20, 6@22,5 RIR 2\nPull-ups 6, 5 (1 kvar)", "2026-11-24")[0];
+assert(pr.ex[0].r === 2 && pr.ex[0].s === "8@20, 6@22,5" && pr.ex[1].r === 1 && pr.ex[1].s === "6, 5", "paste: 'RIR 2' and '1 kvar' become reps-left");
 assert(groupOf("Leg curl") === "ben" && groupOf("Jefferson curls (skivstång)") === "ben" && groupOf("Preacher curl") === "armar", "coach: muscle groups");
 assert(effectiveTag({ tag: "", ex: [{ n: "Squats" }, { n: "Leg extensions" }] }) === "NK", "coach: untyped session inferred");
 
