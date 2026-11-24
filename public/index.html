@@ -79,6 +79,8 @@ label{font-size:14px;color:var(--soft);display:block;margin-bottom:4px}
 .x{padding:0;min-height:44px;width:44px;font-size:20px}
 .rirl{display:inline-flex;align-items:center;gap:6px;margin:0 12px 4px 0;font-size:14px;color:var(--soft)}
 .rirl select{width:auto;min-height:36px;padding:4px 8px}
+.insight .cols{margin-top:8px}.insight h3{font-size:17px;margin:6px 0 4px}
+.focusbox{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:10px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--yellow,#e8b500) 14%,transparent)}
 .swapw{position:relative;display:inline-block;margin-left:8px;font-size:13px;font-weight:400;color:var(--soft);text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 40%,transparent);cursor:pointer}
 .swapw select{position:absolute;inset:0;opacity:0;width:100%;cursor:pointer;font-size:16px}
 .muslist{list-style:none;padding:0;margin:0 0 6px}
@@ -217,7 +219,7 @@ import { t as _, tn as _n, setLang, getLang, detectLang, LANGS, weekdays, months
 // Colours per session type; labels come from i18n (tagShort/tagName).
 const TAGS={"ÖK":[null,"red"],"NK":[null,"blue"],"HK":[null,"yellow"],"":[null,"grey"]};
 const MERGE={"UK":"NK","FK":"HK"};const normTag=t=>MERGE[t]||t||"";
-let me=null,authMode="login",authMsg=null,resetToken=null,adminData=null,flash=null,sessions=[],plans=[],muscles={},swaps={},aiOn=false,aiSug={},aiBusy=false,aiData=null,db=null,view="plan",weekOff=0,ed=null,filt={tag:"*",q:""},progEx=null,armed=null;
+let me=null,authMode="login",authMsg=null,resetToken=null,adminData=null,flash=null,sessions=[],plans=[],muscles={},swaps={},aiOn=false,aiSug={},aiBusy=false,aiData=null,ins={state:"",data:null,error:""},db=null,view="plan",weekOff=0,ed=null,filt={tag:"*",q:""},progEx=null,armed=null;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const num=s=>parseFloat(String(s).replace(",","."));
@@ -247,7 +249,31 @@ const minNow=()=>me?.sessionMin||40;
 const swapKey=()=>me?"gymlog-swaps-"+me.id:"";
 function loadSwaps(){try{const s=JSON.parse(localStorage.getItem(swapKey())||"null");swaps=s&&s.d===TODAY?s.m:{}}catch(e){swaps={}}}
 function saveSwaps(){try{localStorage.setItem(swapKey(),JSON.stringify({d:TODAY,m:swaps}))}catch(e){}}
-const coachNow=()=>coachReport(sessions,TODAY,goalNow(),minNow(),{swaps});
+const focusNow=()=>ins.data?.focusOn?ins.data.focus||[]:[];
+const coachNow=()=>coachReport(sessions,TODAY,goalNow(),minNow(),{swaps,focus:focusNow()});
+// Weekly AI insight: fetched (and made, when the week is over) when the Coach tab opens.
+async function loadInsight(manual=false){
+  if(!aiOn||ins.state==="busy")return;ins.state="busy";ins.error="";if(view==="coach")render();
+  try{const r=await api("ai/insight?lang="+getLang(),manual?{method:"POST"}:{});ins.data=r.insight;ins.error=r.error||"";ins.state="done"}
+  catch(e){ins.error=e.message||"Något gick fel.";ins.state="done"}
+  if(view==="coach")render()}
+function insightHTML(){
+  if(!aiOn)return "";
+  if(ins.state==="busy"&&!ins.data)return `<section class="panel insight"><p class="muted" style="margin:0">${_("Skapar veckans insikt…")}</p></section>`;
+  const d=ins.data;
+  const err=ins.error?`<p class="flash err" style="margin:0 0 8px">${esc(_(ins.error))}</p>`:"";
+  if(!d)return ins.state==="done"?`<section class="panel insight"><h2>${_("Veckans insikt")}</h2>${err}<p class="muted" style="margin:0">${_("Kommer när du har loggat minst ett pass de senaste fyra veckorna.")}</p></section>`:"";
+  const ul=(t,a,cls)=>a.length?`<div><h3>${t}</h3><ul class="notes">${a.map(x=>`<li class="${cls}">${esc(x)}</li>`).join("")}</ul></div>`:"";
+  const day=s=>nice(s.slice(0,10));const canNew=Date.now()>=Date.parse(d.manualAt);
+  const fm=d.focus.map(m=>_(MUSCLES[m]?.name||m).toLowerCase()).join(" "+_("och")+" ");
+  return `<section class="panel insight"><div class="row" style="justify-content:space-between;align-items:baseline"><h2 style="margin:0">${_("Veckans insikt")}</h2><span class="tag2 y">${_("AI")}</span></div>
+  ${err}<h3 style="margin:10px 0 4px">${esc(d.title)}</h3><p style="margin:0 0 6px">${esc(d.summary)}</p>
+  <div class="cols">${ul(_("Bra"),d.good,"good")}${ul(_("Håll koll på"),d.watch,"warn")}${ul(_("Tips för veckan"),d.advice,"info")}</div>
+  ${d.focus.length?`<div class="focusbox"><span>${_("Föreslaget fokus: <b>{m}</b>.",{m:esc(fm)})} ${esc(d.focusWhy)}</span>
+    <button class="sm ${d.focusOn?"":"pri"}" data-act="insfocus" data-on="${d.focusOn?0:1}">${d.focusOn?_("Sluta använda i coachen"):_("Använd i coachen")}</button></div>`:""}
+  <p class="muted" style="margin:10px 0 0;font-size:13px">${_("Skapad {d} · nästa skapas {n}.",{d:day(d.createdAt),n:day(d.nextAt)})} ${_("AI-genererad och kan ha fel. Vikter, reps och set kommer från den regelbaserade coachen.")}
+  <button class="linkbtn" data-act="insnew" ${canNew&&ins.state!=="busy"?"":"disabled"} style="font-size:13px">${ins.state==="busy"?_("Skapar…"):canNew?_("Ny insikt nu"):_("Ny insikt möjlig {d}",{d:day(d.manualAt)})}</button></p></section>`;
+}
 function coachTarget(n,date){const ents=exHistory(sessions.filter(s=>s.date<date)).get(n);return ents?nextTarget(ents,date,goalNow(),n).target:""}
 function fromTag(tag,date){const last=[...sessions].filter(s=>effectiveTag(s)===tag&&s.date<date).sort((a,b)=>a.date<b.date?1:-1)[0];if(!last)return [];const ex=(last.ex||[]).filter(e=>e.n);const n=allocSets(ex.map(e=>e.n),goalNow());const fit=fitToTime(ex.map((e,i)=>({n:e.n,sets:n[i],one:coachTarget(e.n,date)})),minNow(),goalNow()==="health"?2:3);return fit.items.map(x=>({n:x.n,s:withSets(x.one,x.sets)}))}
 
@@ -368,11 +394,13 @@ function renderCoach(){
   const hasPlan=plans.find(p=>p.date===n.date&&!p.done);
   const kindTxt={weight:_("Öka vikt"),reps:_("Fler reps"),lower:_("Sänk"),time:_("Längre"),plateau:_("Platå"),comeback:_("Comeback"),new:_("Ny"),variant:_("Variation")};
   const swapSel=p=>{const opts=[p.orig,...p.alts.filter(a=>a!==p.orig)];if(!opts.includes(p.n))opts.splice(1,0,p.n);return opts.length>1?`<label class="swapw">${_("Byt")} ▾<select data-swap="${esc(p.orig)}" aria-label="${_("Byt övning")}">${opts.map(o=>`<option value="${esc(o)}" ${o===p.n?"selected":""}>${o===p.n?_("Byt övning"):esc(o)}</option>`).join("")}</select></label>`:""};
+  if(aiOn&&!ins.state)setTimeout(()=>loadInsight(),0);
   let h=`<div class="row" style="margin-bottom:12px"><span class="muted">${_("Ditt mål:")}</span><b>${_(G.label)}</b><span class="muted">· ${_("{a} reps i basövningar, {b} i isolationsövningar, {r} reps kvar",{a:`${G.comp[0]}–${G.comp[1]}`,b:`${G.iso[0]}–${G.iso[1]}`,r:G.rir})}</span><a href="#settings" class="linkbtn" style="font-size:15px">${_("Ändra")}</a></div>
   <section class="hero"><div><span class="muted">${_("Nästa pass, {when}",{when})}</span><h2>${chip(n.tag)} ${tagName(n.tag)}</h2><p style="margin:0 0 6px">${esc(n.why)}</p>
   ${n.restWhy?`<div class="warnbox">${esc(n.restWhy)}</div>`:""}${srcHTML(n.src)}
   <div class="row" style="margin-top:12px"><button class="pri" data-act="cstart">${_("Starta passet")}</button><button data-act="cplan">${hasPlan?_("Ersätt planen"):_("Lägg i planen")}</button></div></div>
-  <div><ul class="pl">${r.plan.map(p=>`<li><span>${esc(p.n)}<span class="k ${p.kind}">${p.added?_("Tillagd"):kindTxt[p.kind]||""}</span>${swapSel(p)}</span><b>${esc(p.target)||"–"}</b><small>${esc(p.why)}${p.last?` ${_("Senast {d}",{d:nice(p.last.date)})}: ${esc(p.last.s)}${rirTxt(p.last.rir)}.`:""}</small>${srcHTML(p.src)}</li>`).join("")||`<li><span class="muted">${_("Inga tidigare {t}-pass att utgå från.",{t:tagShort(n.tag)})}</span></li>`}</ul>${r.plan.length?`<p class="muted" style="margin:8px 0 0;font-size:14px">${_("Cirka {m} min av dina {t} min, {n} arbetsset (x3 = tre likadana set), uppvärmning ej inräknad.",{m:r.plan.minutes,t:r.minutes,n:r.plan.reduce((a,p)=>a+(p.sets||0),0)})}${r.plan.dropped?.length?" "+_("Fick inte plats: {list}.",{list:r.plan.dropped.map(esc).join(", ")}):""} <a href="#settings">${_("Ändra passlängd")}</a></p>${srcHTML(["rule"])}`:""}</div></section>`;
+  <div><ul class="pl">${r.plan.map(p=>`<li><span>${esc(p.n)}<span class="k ${p.kind}">${p.focus?_("Fokus"):p.added?_("Tillagd"):kindTxt[p.kind]||""}</span>${swapSel(p)}</span><b>${esc(p.target)||"–"}</b><small>${esc(p.why)}${p.last?` ${_("Senast {d}",{d:nice(p.last.date)})}: ${esc(p.last.s)}${rirTxt(p.last.rir)}.`:""}</small>${srcHTML(p.src)}</li>`).join("")||`<li><span class="muted">${_("Inga tidigare {t}-pass att utgå från.",{t:tagShort(n.tag)})}</span></li>`}</ul>${r.plan.length?`<p class="muted" style="margin:8px 0 0;font-size:14px">${_("Cirka {m} min av dina {t} min, {n} arbetsset (x3 = tre likadana set), uppvärmning ej inräknad.",{m:r.plan.minutes,t:r.minutes,n:r.plan.reduce((a,p)=>a+(p.sets||0),0)})}${r.plan.dropped?.length?" "+_("Fick inte plats: {list}.",{list:r.plan.dropped.map(esc).join(", ")}):""} <a href="#settings">${_("Ändra passlängd")}</a></p>${srcHTML(["rule"])}`:""}</div></section>`;
+  h+=insightHTML();
   if(r.notes.length)h+=`<h3 style="font-size:24px;margin-bottom:4px">${_("Att tänka på")}</h3><ul class="notes">${r.notes.map(x=>`<li class="${x.k}">${esc(x.t)}${srcHTML(x.src)}</li>`).join("")}</ul>`;
   const mx=Math.max(3,...r.weeks.map(w=>w.total));
   const B=G.band,SC=Math.max(25,B[1]+5);
@@ -573,7 +601,7 @@ document.addEventListener("click",async ev=>{
   const lg=ev.target.closest("[data-lang]");if(lg){ev.preventDefault();rememberLang(lg.dataset.lang);chooseLang();render();return}
   const b=ev.target.closest("[data-act]");if(!b)return;const act=b.dataset.act;
   if(act==="logout"||act==="logoutall"){try{await api(act==="logout"?"auth/logout":"account/logout-all",{method:"POST",body:"{}"})}catch(e){}
-    try{localStorage.removeItem(cacheKey())}catch(e){}me=null;sessions=[];plans=[];muscles={};swaps={};setMuscleOverrides({});loaded=false;authMode="login";authMsg={k:"ok",t:act==="logout"?"Du är utloggad.":"Du är utloggad på alla enheter."};chooseLang();history.replaceState(null,"",location.pathname);render();return}
+    try{localStorage.removeItem(cacheKey())}catch(e){}me=null;sessions=[];plans=[];muscles={};swaps={};ins={state:"",data:null,error:""};setMuscleOverrides({});loaded=false;authMode="login";authMsg={k:"ok",t:act==="logout"?"Du är utloggad.":"Du är utloggad på alla enheter."};chooseLang();history.replaceState(null,"",location.pathname);render();return}
   if(act==="admin"){const id=b.dataset.id,a=b.dataset.a,key=a+":"+id;
     if((a==="ban"||a==="reject")&&armed!==key){armed=key;render();return}armed=null;
     const x=adminData?.users?.find(u=>u.id===id);
@@ -653,7 +681,7 @@ async function api(path,opt={}){
   const r=await fetch("/api/"+path,{headers:{"content-type":"application/json"},credentials:"same-origin",...opt});
   if(r.redirected||r.type==="opaqueredirect"||!(r.headers.get("content-type")||"").includes("json"))throw{code:"auth"};
   const j=await r.json();
-  if(r.status===401&&j.auth){if(me){me=null;sessions=[];plans=[];muscles={};swaps={};setMuscleOverrides({});authMode="login";authMsg={k:"err",t:"Du har loggats ut. Logga in igen."};render()}throw{code:"auth",message:j.error}}
+  if(r.status===401&&j.auth){if(me){me=null;sessions=[];plans=[];muscles={};swaps={};ins={state:"",data:null,error:""};setMuscleOverrides({});authMode="login";authMsg={k:"err",t:"Du har loggats ut. Logga in igen."};render()}throw{code:"auth",message:j.error}}
   if(!r.ok)throw{code:r.status,message:j.error,body:j};return j;
 }
 async function load(){
@@ -693,6 +721,8 @@ document.addEventListener("click",async ev=>{
     await load();setSync(_n(n,"Sparade {n} pass","Sparade {n} pass"));ed=null;location.hash="history";if(view==="history")render();return}
   if(a==="musedit"){musEdit=b.dataset.n||null;render();return}
   if(a==="musall"){musAll=!musAll;render();return}
+  if(a==="insnew"){if(confirm(_("Skapa en ny insikt nu? Nästa automatiska kommer då om en vecka.")))loadInsight(true);return}
+  if(a==="insfocus"){try{const r=await api("ai/insight/focus",{method:"POST",body:JSON.stringify({on:b.dataset.on==="1"})});ins.data=r.insight;render()}catch(e){flash={k:"err",t:e.message||"Något gick fel."};render()}return}
   if(a==="aimus"){const names=[...new Set(sessions.flatMap(s=>(s.ex||[]).map(e=>e.n)).filter(Boolean))].filter(n=>!musclesOf(n).known&&!aiSug[n]).slice(0,25);if(names.length)aiSuggest(names);return}
   if(a==="musok"){const g=aiSug[b.dataset.n];if(g)await saveMuscles(b.dataset.n,g.p,g.s,g.c);return}
   if(a==="musauto"){await saveMuscles(b.dataset.n,[],[]);return}

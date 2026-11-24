@@ -32,7 +32,9 @@ const normTag = (t) => {
 const cleanRir = (r) => (r === null || r === undefined || r === "" || !Number.isFinite(+r) ? null : Math.max(0, Math.min(5, Math.round(+r))));
 const GOALS = new Set(["strength", "muscle", "health"]);
 // UI languages (must match LANGS in public/i18n.js). "" = follow the device.
-import { aiEnabled, suggestMuscles, usageReport, spent, aiConfig } from "./ai.js";
+import { aiEnabled, suggestMuscles, usageReport, spent, aiConfig, latestInsight, insightDue, generateInsight } from "./ai.js";
+import { insightFacts } from "./facts.js";
+const stockholmToday = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Stockholm" });
 const LANGS = new Set(["sv", "en"]);
 // Muscle ids (must match MUSCLES in public/muscles.js).
 const MUSCLE_IDS = new Set(["bröst", "rygg", "trapets", "axlar", "bakaxlar", "biceps", "triceps", "underarmar", "framlår", "baklår", "säte", "höft", "vader", "bål"]);
@@ -327,6 +329,39 @@ async function handleApi(request, env, url) {
   if (!user) return bad("Inte inloggad.", 401, { auth: true });
 
   if (resource === "me" && method === "GET") return json({ user: await meOut(db, user), ai: aiEnabled(env) });
+
+  // Weekly AI insight. GET makes a new one when the week is over (and there is
+  // training to talk about); POST asks for one now (once a day), starting a new week.
+  if (resource === "ai" && key === "insight") {
+    const sub = parts[2];
+    const lang = ["sv", "en"].includes(url.searchParams.get("lang")) ? url.searchParams.get("lang") : user.lang || "sv";
+    let ins = await latestInsight(db, user.id);
+    const out = (extra = {}) => json({ enabled: aiEnabled(env), insight: ins, ...extra });
+    if (sub === "focus" && method === "POST") {
+      if (!ins) return bad("Hittades inte.", 404);
+      const b = (await readBody(request)) || {};
+      await db.prepare("UPDATE ai_insights SET focus_on = ?2 WHERE id = ?1").bind(ins.id, b.on ? 1 : 0).run();
+      ins = await latestInsight(db, user.id);
+      return out();
+    }
+    if (sub) return bad("Hittades inte.", 404);
+    if (method !== "GET" && method !== "POST") return bad("Hittades inte.", 404);
+    if (!aiEnabled(env)) return method === "GET" ? out() : bad("AI är inte aktiverat.", 503);
+    const manual = method === "POST";
+    if (manual && ins && Date.now() < Date.parse(ins.manualAt)) return bad("Du kan be om en ny insikt en gång per dygn.", 429);
+    if (!manual && !insightDue(ins)) return out();
+    const data = await getData(db, user.id);
+    const today = stockholmToday();
+    const recent = data.sessions.filter((s) => s.date <= today && s.date >= new Date(Date.now() - 28 * 864e5).toISOString().slice(0, 10));
+    if (!recent.length) return manual ? bad("Logga minst ett pass de senaste fyra veckorna först.") : out();
+    try {
+      ins = await generateInsight(db, env, user.id, insightFacts(data, user, today), lang, manual ? "manual" : "auto");
+      return out({ created: true });
+    } catch (e) {
+      if (e && e.status) { if (e.detail) console.log("AI error:", e.detail); return manual ? bad(e.message, e.status) : out({ error: e.message }); }
+      throw e;
+    }
+  }
 
   // AI help: muscle suggestions for exercise names the rules don't know.
   if (resource === "ai" && key === "muscles" && method === "POST") {

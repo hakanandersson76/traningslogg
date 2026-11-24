@@ -344,15 +344,21 @@ export function proposeSession(sessions, tag, date, goal = "muscle", minutes = 0
   const vol = new Map(weeklyVolume(sessions, date, 4).muscles.map((v) => [v.g, v.perWeek]));
   const covered = new Set(items.flatMap((x) => musclesOf(x.n).p));
   let added = 0;
-  for (const m of REGION_MUSCLES[tag] || []) {
-    if (added >= 2 || covered.has(m) || (vol.get(m) ?? 0) >= G.band[0]) continue;
+  // Focus muscles the user switched on from the weekly AI insight come first, when
+  // they belong to this session type (core fits any day).
+  const regionOf = (m) => (MUSCLES[m]?.group === "ben" ? ["NK", "HK"] : MUSCLES[m]?.group === "core" ? ["ÖK", "NK", "HK"] : ["ÖK", "HK"]);
+  const focus = (opts.focus || []).filter((m) => MUSCLES[m] && regionOf(m).includes(tag));
+  for (const m of [...focus, ...(REGION_MUSCLES[tag] || [])]) {
+    const isFocus = focus.includes(m);
+    if (added >= 2 || covered.has(m) || (!isFocus && (vol.get(m) ?? 0) >= G.band[0])) continue;
     const pick = [...hist].filter(([n]) => musclesOf(n).p[0] === m && !items.some((x) => x.n === n)).sort((a, b) => b[1].length - a[1].length)[0]?.[0]
       || CATALOG.find((n) => musclesOf(n).p[0] === m);
     if (!pick) continue;
     const nt = nextTarget(hist.get(pick), date, goal, pick);
     items.push({ n: pick, ...nt, kind: hist.has(pick) ? nt.kind : "new", added: true,
-      why: tx("Tillagd för {muscle}: {v} tunga set i veckan senaste 4 veckorna, målet är minst {lo}.", { muscle: tx(MUSCLES[m].name).toLowerCase(), v: fmt1(vol.get(m) ?? 0), lo: G.band[0] }) + " " + nt.why,
-      src: ["pelland2024", ...nt.src], prio: 0, pos: 99, last: hist.get(pick)?.at(-1) });
+      why: (isFocus ? tx("Tillagd för {muscle}: veckans fokus från AI-insikten.", { muscle: tx(MUSCLES[m].name).toLowerCase() })
+        : tx("Tillagd för {muscle}: {v} tunga set i veckan senaste 4 veckorna, målet är minst {lo}.", { muscle: tx(MUSCLES[m].name).toLowerCase(), v: fmt1(vol.get(m) ?? 0), lo: G.band[0] })) + " " + nt.why,
+      src: isFocus ? nt.src : ["pelland2024", ...nt.src], focus: isFocus, prio: isFocus ? 1 : 0, pos: 99, last: hist.get(pick)?.at(-1) });
     covered.add(m); added++;
   }
   const want = allocSets(items.map((x) => x.n), goal);

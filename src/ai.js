@@ -109,3 +109,51 @@ Answer with JSON only: {"results":[{"name":"<exactly as given>","p":[],"s":[],"c
   }
   return out;
 }
+
+// ---- weekly insight ----
+// One insight per user and week. Opening the app after 7 days makes a new one
+// (automatic); the user can ask for a new one at most once a day (manual), which
+// starts a new 7-day cycle. The AI gets the coach's own numbers so it comments on
+// them instead of inventing its own; weights, reps and sets stay rule-based.
+// It may propose up to 2 focus muscles that the user can switch on in the coach.
+export const INSIGHT_DAYS = 7;
+export const MANUAL_COOLDOWN_H = 24;
+const FOCUS_OK = ["bröst", "rygg", "axlar", "bakaxlar", "biceps", "triceps", "framlår", "baklår", "säte", "vader", "höft", "bål"];
+
+export async function latestInsight(db, userId) {
+  const r = await db.prepare("SELECT * FROM ai_insights WHERE user_id = ?1 ORDER BY id DESC LIMIT 1").bind(userId).first();
+  if (!r) return null;
+  const created = r.created_at.replace(" ", "T") + "Z";
+  return {
+    id: r.id, createdAt: created, trigger: r.trigger, lang: r.lang, model: r.model, focusOn: !!r.focus_on,
+    ...JSON.parse(r.body),
+    nextAt: new Date(Date.parse(created) + INSIGHT_DAYS * 864e5).toISOString(),
+    manualAt: new Date(Date.parse(created) + MANUAL_COOLDOWN_H * 36e5).toISOString(),
+  };
+}
+export const insightDue = (ins) => !ins || Date.now() >= Date.parse(ins.nextAt);
+
+export async function generateInsight(db, env, userId, facts, lang, trigger) {
+  const language = lang === "en" ? "English" : "Swedish (svenska, natural and plain)";
+  const system = `You are a knowledgeable, friendly personal trainer writing a short weekly check-in for one person who trains in a gym.
+Base everything only on the data you get. Never invent numbers, exercises or events. Use the exercise names as written.
+The person's app has a rule-based coach that sets weights, reps, sets and session type; do not give other numbers for those, and do not contradict it. Comment on patterns, consistency, balance between muscles, what went well and what to watch, and give practical advice for the coming week.
+No medical advice. If notes mention pain or injury, advise easing off and seeing a professional if it persists.
+Write in ${language}. Be concrete and brief; address the person as "du"/"you".
+Answer with JSON only, in this shape:
+{"title": "<max 8 words>", "summary": "<2–3 sentences>", "good": ["<max 3 short points>"], "watch": ["<max 3 short points>"], "advice": ["<max 3 short, concrete tips for this week>"], "focus": ["<0–2 muscle ids that most need extra work, from: ${FOCUS_OK.join(", ")}>"], "focus_why": "<one sentence, empty if no focus>"}`;
+  const text = await callClaude(db, env, userId, "insight", system, "Training data (JSON):\n" + JSON.stringify(facts), 1500);
+  let j;
+  try { j = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1)); } catch { throw { status: 502, message: "AI-svaret gick inte att läsa. Försök igen senare." }; }
+  const str = (s, n) => String(s || "").trim().slice(0, n);
+  const arr = (a) => (Array.isArray(a) ? a.map((x) => str(x, 300)).filter(Boolean).slice(0, 3) : []);
+  const body = {
+    title: str(j.title, 80), summary: str(j.summary, 700), good: arr(j.good), watch: arr(j.watch), advice: arr(j.advice),
+    focus: (Array.isArray(j.focus) ? [...new Set(j.focus.filter((m) => FOCUS_OK.includes(m)))] : []).slice(0, 2),
+    focusWhy: str(j.focus_why, 300),
+  };
+  if (!body.summary) throw { status: 502, message: "AI-svaret gick inte att läsa. Försök igen senare." };
+  await db.prepare("INSERT INTO ai_insights (user_id, created_at, trigger, lang, model, body, focus_on) VALUES (?1, datetime('now'), ?2, ?3, ?4, ?5, 0)")
+    .bind(userId, trigger, lang === "en" ? "en" : "sv", aiConfig(env).model, JSON.stringify(body)).run();
+  return latestInsight(db, userId);
+}

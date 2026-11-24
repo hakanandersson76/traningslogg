@@ -12,6 +12,8 @@ import { parseSessionText, parseSets } from "../public/parse.js";
 import { coachReport, nextTarget, history, groupOf, effectiveTag, isCompound, SOURCES, weeklyVolume, allocSets, proposeSession, sessionMinutes } from "../public/coach.js";
 import { setLang, detectLang, t as tr, tn, fmtNum, LANGS, _dicts } from "../public/i18n.js";
 import { collectKeys } from "./i18n-keys.mjs";
+import { musclesOf as _mo } from "../public/muscles.js";
+const musclesOf0 = (n) => _mo(n).p[0];
 
 class Stmt {
   constructor(db, sql, args = []) { this.db = db; this.sql = sql; this.args = args; }
@@ -187,6 +189,49 @@ await anna("/api/sessions/2026-11-25-r", { method: "DELETE" });
   globalThis.fetch = realFetch;
   delete env.ANTHROPIC_API_KEY;
 }
+// Weekly AI insight: cycle, manual refresh with cooldown, focus into the coach
+{
+  const realFetch = globalThis.fetch;
+  let calls = 0, facts = null, system = "";
+  globalThis.fetch = async (url, opt) => {
+    if (!String(url).startsWith("https://api.anthropic.com/")) return realFetch(url, opt);
+    calls++; const b = JSON.parse(opt.body); system = b.system; facts = JSON.parse(b.messages[0].content.replace(/^[^{]*/, ""));
+    const body = { title: "Bra vecka", summary: "Du har tränat jämnt.", good: ["Fler pass", "x", "y", "z"], watch: ["Låg benvolym"], advice: ["Lägg till ett benpass"], focus: ["framlår", "vingar", "säte", "rygg"], focus_why: "Benen får minst." };
+    return new Response(JSON.stringify({ content: [{ type: "text", text: JSON.stringify(body) }], usage: { input_tokens: 3000, output_tokens: 400 } }), { status: 200 });
+  };
+  Object.assign(env, { ANTHROPIC_API_KEY: "test-key", AI_USER_CAP_SEK: "20", AI_TOTAL_CAP_SEK: "100" });
+  env.DB.db.prepare("DELETE FROM ai_usage").run();
+  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Stockholm" });
+  const eve = client();
+  await post(eve, "/api/auth/register", { email: "ina@example.com", password: "Green-Kite-Flies-4", firstName: "Ina", lastName: "Ek" });
+  const inaId = env.DB.db.prepare("SELECT id FROM users WHERE email = 'ina@example.com'").get().id;
+  await post(admin, `/api/admin/users/${inaId}/approve`, {});
+  await post(eve, "/api/auth/login", { email: "ina@example.com", password: "Green-Kite-Flies-4" });
+  r = await eve("/api/ai/insight");
+  assert(r.status === 200 && r.body.insight === null && calls === 0, "insight: nothing to say without recent training, no AI call");
+  assert((await post(eve, "/api/ai/insight", {})).status === 400, "insight: manual needs a recent workout");
+  await put(eve, "/api/sessions/" + today + "-a", { date: today, tag: "ÖK", note: "", ex: [{ n: "Bänkpress", s: "8@60, 8@60" }, { n: "Kabelrodd", s: "10@50" }] });
+  r = await eve("/api/ai/insight?lang=en");
+  const ins = r.body.insight;
+  assert(r.body.created && calls === 1 && ins.trigger === "auto" && ins.lang === "en" && ins.title === "Bra vecka", "insight: first one made automatically when the coach tab opens");
+  assert(ins.good.length === 3 && JSON.stringify(ins.focus) === '["framlår","säte"]', "insight: answer trimmed and focus muscles validated (max 2)");
+  assert(/English/.test(system) && facts.goal.id === "muscle" && facts.recent_sessions[0].ex[0].startsWith("Bänkpress") && "rygg" in facts.hard_sets_per_week_per_muscle_last_4_weeks, "insight: AI gets the coach's numbers and recent sessions");
+  assert((await eve("/api/ai/insight")).body.insight.id === ins.id && calls === 1, "insight: same week → same insight, no new call");
+  r = await post(eve, "/api/ai/insight", {});
+  assert(r.status === 429 && calls === 1, "insight: manual refresh at most once a day");
+  env.DB.db.prepare("UPDATE ai_insights SET created_at = datetime('now', '-2 days') WHERE user_id = ?").run(inaId);
+  r = await post(eve, "/api/ai/insight", {});
+  const ins2 = r.body.insight;
+  assert(r.status === 200 && calls === 2 && ins2.trigger === "manual" && Date.parse(ins2.nextAt) - Date.now() > 6.9 * 864e5, "insight: manual refresh starts a new 7-day cycle");
+  env.DB.db.prepare("UPDATE ai_insights SET created_at = datetime('now', '-8 days') WHERE id = ?").run(ins2.id);
+  r = await eve("/api/ai/insight");
+  assert(r.body.created && calls === 3 && r.body.insight.trigger === "auto", "insight: new one automatically after 7 days");
+  r = await post(eve, "/api/ai/insight/focus", { on: true });
+  assert(r.body.insight.focusOn === true, "insight: focus can be switched on for the coach");
+  assert(Math.abs(env.DB.db.prepare("SELECT SUM(cost_sek) AS s FROM ai_usage WHERE feature = 'insight'").get().s - 3 * (3000 * 0.1 + 400 * 0.5) / 1e6 * 11) < 1e-9, "insight: each call logged against the caps");
+  globalThis.fetch = realFetch;
+  delete env.ANTHROPIC_API_KEY;
+}
 // own muscle choice per exercise
 r = await put(anna, "/api/muscles", { name: "Konstig maskin", p: ["rygg"], s: ["biceps"] });
 assert(r.status === 200 && JSON.stringify((await anna("/api/data")).body.muscles["Konstig maskin"]) === JSON.stringify({ p: ["rygg"], s: ["biceps"] }), "muscles: own choice saved and returned with data");
@@ -337,6 +382,16 @@ for (const [tag, m] of [["NK", 35], ["ÖK", 35], ["HK", 35], ["NK", 25]]) {
 }
 const legs35 = proposeSession(seedS, "NK", "2026-11-25", "muscle", 35);
 assert(!legs35.dropped.length && legs35.filter((x) => groupOf(x.n) === "ben").length >= 6, "coach: short leg day keeps all exercises with fewer sets");
+{
+  const base = proposeSession(seedS, "NK", "2026-11-25", "muscle", 0).map((x) => x.n);
+  const nk = proposeSession(seedS, "NK", "2026-11-25", "muscle", 0, { focus: ["vader"] });
+  const nk2 = proposeSession(seedS, "NK", "2026-11-25", "muscle", 0, { focus: ["framlår"] });
+  assert(nk2.some((x) => musclesOf0(x.n) === "framlår") && nk.some((x) => musclesOf0(x.n) === "vader"), "coach: focus muscle covered in the proposal");
+  const up = proposeSession(seedS, "ÖK", "2026-11-25", "muscle", 0, { focus: ["framlår"] });
+  assert(!up.some((x) => x.focus), "coach: leg focus not added to an upper-body day");
+  const upf = proposeSession(seedS, "ÖK", "2026-11-25", "muscle", 0, { focus: ["bakaxlar"] });
+  assert(upf.some((x) => x.focus && musclesOf0(x.n) === "bakaxlar"), "coach: focus adds an exercise even when weekly volume isn't low");
+}
 const legs20 = proposeSession(seedS, "NK", "2026-11-25", "muscle", 20);
 assert(legs20.minutes <= 20 && legs20.dropped[0] === "Plankan" && legs20.filter((x) => x.sets === 1).length >= legs20.length - 1, "coach: very short: one set each, core left out first");
 const sets35 = legs35.map((x) => x.sets);
@@ -396,7 +451,14 @@ if (serveAt > 0) {
     const realFetch = globalThis.fetch;
     globalThis.fetch = async (url, opt) => {
       if (!String(url).startsWith("https://api.anthropic.com/")) return realFetch(url, opt);
-      const names = JSON.parse(opt.body).messages[0].content.split("\n").map((l) => l.replace(/^- /, ""));
+      const b = JSON.parse(opt.body);
+      if (/weekly check-in/.test(b.system)) {
+        const en = /English/.test(b.system);
+        const body = en ? { title: "Steady upper body, legs lagging", summary: "You trained once a week lately, down from 2.5. Upper body is moving: Bänkpress (incline) is up, but legs got only one session in four weeks.", good: ["New record in Kabelrodd", "Consistent bench progress"], watch: ["Legs trained once in 4 weeks", "10 exercises have stalled"], advice: ["Book a leg day early this week", "Log reps in reserve so the coach can progress faster"], focus: ["framlår", "säte"], focus_why: "Quads and glutes get the fewest hard sets." }
+          : { title: "Stabil överkropp, benen halkar efter", summary: "Du har tränat en gång i veckan senaste tiden, mot 2,5 innan. Överkroppen går framåt men benen har bara fått ett pass på fyra veckor.", good: ["Nytt rekord i Kabelrodd", "Jämn utveckling i bänkpress"], watch: ["Benen tränade en gång på 4 veckor", "10 övningar står still"], advice: ["Lägg ett benpass tidigt i veckan", "Logga reps kvar så kan coachen öka snabbare"], focus: ["framlår", "säte"], focus_why: "Framsida lår och säte får minst tunga set." };
+        return new Response(JSON.stringify({ content: [{ type: "text", text: JSON.stringify(body) }], usage: { input_tokens: 3500, output_tokens: 450 } }), { status: 200 });
+      }
+      const names = b.messages[0].content.split("\n").map((l) => l.replace(/^- /, ""));
       return new Response(JSON.stringify({ content: [{ type: "text", text: JSON.stringify({ results: names.map((n) => ({ name: n, p: ["rygg"], s: ["biceps"], c: true })) }) }], usage: { input_tokens: 700, output_tokens: 120 } }), { status: 200 });
     };
   }

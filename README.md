@@ -49,6 +49,10 @@ In English the labels are UB / LB / FB (Upper / Lower / Full body); the stored t
 - Model `claude-haiku-5-5` (USD 0,10 / 0,50 per million input/output tokens). Every call is logged in `ai_usage` with its cost in kronor (tokens × price × `USD_SEK`, 11 to be on the safe side).
 - Caps per calendar month (UTC), checked before each call: 20 kr per user (`AI_USER_CAP_SEK`), 100 kr for the whole app (`AI_TOTAL_CAP_SEK`). Admin page shows this month's cost per user. Also set a spend limit in the Anthropic Console as a second safety net.
 - Endpoints: `POST /api/ai/muscles {names}`, `GET /api/admin/ai`. `/api/me` returns `ai: true|false`.
+- **Weekly insight** (Coach tab, top): `GET /api/ai/insight?lang=` returns the latest insight and makes a new one when 7 days have passed since the last (and there is a workout in the last 4 weeks). `POST /api/ai/insight` makes one now, at most once per 24 h, and starts a new 7-day cycle. Written in the UI language at creation.
+  - Input: `src/facts.js` runs the same coach code on the server (goal, session length, frequency, volume per muscle, trends, records, rule notes, last 8 sessions). The prompt tells the AI not to give other numbers for weights/reps/sets than the coach.
+  - Output (validated): title, summary, good/watch/advice (max 3 each), up to 2 focus muscles + why.
+  - Coach link (opt-in): "Använd i coachen" sets `focus_on`; the coach then adds an exercise for each focus muscle that fits the session type (marked "Fokus"), before the low-volume fill. Weights, reps and sets stay rule-based.
 - Tests use a fake Anthropic API; `node --experimental-sqlite test/run.mjs --serve 8799 --fake-ai` for screenshots.
 
 ## Languages
@@ -74,7 +78,7 @@ public/            static app (served by Workers Assets)
   manifest.webmanifest, icon-*.png   home-screen app on iPad
 src/worker.js      API: /api/auth/*, /api/account/*, /api/admin/*, /api/data, /api/sessions/:id, /api/plans/:date, /api/import
 src/auth.js        password hashing, login sessions, reset tokens, password rules
-src/schema.js      D1 schema + migrations (v2 = accounts, v3 = approval/status, no email, v4 = RIR + goal, v5 = language, v6 = session length, v7 = own muscle choices, v8 = AI cost log and cache), run automatically on first request
+src/schema.js      D1 schema + migrations (v2 = accounts, v3 = approval/status, no email, v4 = RIR + goal, v5 = language, v6 = session length, v7 = own muscle choices, v8 = AI cost log and cache, v9 = weekly AI insights), run automatically on first request
 data/sessions.json export from v1 (seed for /api/import)
 test/run.mjs       local tests with a fake D1 (npm test)
 wrangler.jsonc     Worker + Assets + D1 binding
