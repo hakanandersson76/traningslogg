@@ -43,6 +43,14 @@ In English the labels are UB / LB / FB (Upper / Lower / Full body); the stored t
 - Proposals vary: a stalled exercise is swapped for the user's own other exercise for the same main muscle (same kind of lift first; Kassiano 2022: planned variation helps, too frequent switching may not). A big muscle of the session type with under the weekly band and no exercise in the proposal gets one added (max two). Every row has a "Byt" picker (own exercises first, then catalog suggestions); swaps last for the day.
 - Time fitting builds up instead of cutting down: 1 set per exercise first (core, then a second exercise for the same muscle, are left out only if even that doesn't fit), then sets are added one at a time to the exercise with the fewest, up to the planned count, then up to 3. Few sets on many exercises, because the first sets per muscle and session give the most (Remmert 2025).
 
+## AI help (optional)
+- `src/ai.js`. Off until the Worker secret `ANTHROPIC_API_KEY` exists; the rest of the app never depends on it.
+- Feature: Coach → Övningar och muskler → "Föreslå muskler med AI" for exercise names the rules don't know. The user approves each suggestion (saved as their own muscle choice). Answers are cached for all users (`ai_muscle_cache`), so each name is asked once.
+- Model `claude-haiku-5-5` (USD 0,10 / 0,50 per million input/output tokens). Every call is logged in `ai_usage` with its cost in kronor (tokens × price × `USD_SEK`, 11 to be on the safe side).
+- Caps per calendar month (UTC), checked before each call: 20 kr per user (`AI_USER_CAP_SEK`), 100 kr for the whole app (`AI_TOTAL_CAP_SEK`). Admin page shows this month's cost per user. Also set a spend limit in the Anthropic Console as a second safety net.
+- Endpoints: `POST /api/ai/muscles {names}`, `GET /api/admin/ai`. `/api/me` returns `ai: true|false`.
+- Tests use a fake Anthropic API; `node --experimental-sqlite test/run.mjs --serve 8799 --fake-ai` for screenshots.
+
 ## Languages
 - Swedish and English. Default: the iPhone/browser language if supported, else English. Override in Inställningar → Språk (saved per user in `users.lang`; `""` = follow the device). The login screen has Svenska/English links (remembered on the device).
 - Swedish is the source text and the key: code calls `_("Logga pass")` (index.html) or `tx(...)` (coach.js); `public/locales/<code>.js` maps Swedish → translation. `{placeholders}` are filled in; numbers use the language's decimal mark. Server messages stay Swedish and are translated in the app.
@@ -66,7 +74,7 @@ public/            static app (served by Workers Assets)
   manifest.webmanifest, icon-*.png   home-screen app on iPad
 src/worker.js      API: /api/auth/*, /api/account/*, /api/admin/*, /api/data, /api/sessions/:id, /api/plans/:date, /api/import
 src/auth.js        password hashing, login sessions, reset tokens, password rules
-src/schema.js      D1 schema + migrations (v2 = accounts, v3 = approval/status, no email, v4 = RIR + goal, v5 = language, v6 = session length, v7 = own muscle choices), run automatically on first request
+src/schema.js      D1 schema + migrations (v2 = accounts, v3 = approval/status, no email, v4 = RIR + goal, v5 = language, v6 = session length, v7 = own muscle choices, v8 = AI cost log and cache), run automatically on first request
 data/sessions.json export from v1 (seed for /api/import)
 test/run.mjs       local tests with a fake D1 (npm test)
 wrangler.jsonc     Worker + Assets + D1 binding

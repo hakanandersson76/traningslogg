@@ -217,7 +217,7 @@ import { t as _, tn as _n, setLang, getLang, detectLang, LANGS, weekdays, months
 // Colours per session type; labels come from i18n (tagShort/tagName).
 const TAGS={"ÖK":[null,"red"],"NK":[null,"blue"],"HK":[null,"yellow"],"":[null,"grey"]};
 const MERGE={"UK":"NK","FK":"HK"};const normTag=t=>MERGE[t]||t||"";
-let me=null,authMode="login",authMsg=null,resetToken=null,adminData=null,flash=null,sessions=[],plans=[],muscles={},swaps={},db=null,view="plan",weekOff=0,ed=null,filt={tag:"*",q:""},progEx=null,armed=null;
+let me=null,authMode="login",authMsg=null,resetToken=null,adminData=null,flash=null,sessions=[],plans=[],muscles={},swaps={},aiOn=false,aiSug={},aiBusy=false,aiData=null,db=null,view="plan",weekOff=0,ed=null,filt={tag:"*",q:""},progEx=null,armed=null;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const num=s=>parseFloat(String(s).replace(",","."));
@@ -409,21 +409,24 @@ function musclePanel(r){
   const cnt=n=>sessions.filter(s=>(s.ex||[]).some(e=>e.n===n)).length;
   const unk=names.filter(n=>!musclesOf(n).known).sort((a,b)=>cnt(b)-cnt(a));
   const chips=n=>{const m=musclesOf(n);return m.known?m.p.map(x=>`<b>${_(MUSCLES[x].name)}</b>`).concat(m.s.map(x=>`<span class="muted">${_(MUSCLES[x].name)}</span>`)).join(", ")+(m.own?` <small class="muted">· ${_("ditt val")}</small>`:""):`<span class="muted">${_("okänd")}</span>`};
-  const row=n=>musEdit===n?musForm(n):`<li><span>${esc(n)}</span><span class="mus">${chips(n)}</span><button class="linkbtn" data-act="musedit" data-n="${esc(n)}">${_("Ändra")}</button></li>`;
+  const sugTxt=n=>{const g=aiSug[n];return `<span class="tag2 y">${_("AI-förslag")}</span> `+g.p.map(x=>`<b>${_(MUSCLES[x].name)}</b>`).concat(g.s.map(x=>`<span class="muted">${_(MUSCLES[x].name)}</span>`)).join(", ")};
+  const row=n=>musEdit===n?musForm(n):!musclesOf(n).known&&aiSug[n]?`<li><span>${esc(n)}</span><span class="mus">${sugTxt(n)}</span><span class="row" style="gap:6px"><button class="sm pri" data-act="musok" data-n="${esc(n)}">${_("Godkänn")}</button><button class="linkbtn" data-act="musedit" data-n="${esc(n)}">${_("Ändra")}</button></span></li>`:`<li><span>${esc(n)}</span><span class="mus">${chips(n)}</span><button class="linkbtn" data-act="musedit" data-n="${esc(n)}">${_("Ändra")}</button></li>`;
+  const askAi=unk.filter(n=>!aiSug[n]).slice(0,25);
   const shown=musAll?[...names].sort((a,b)=>a.localeCompare(b)):unk.slice(0,10);
   return `<section class="panel"><h2>${_("Övningar och muskler")}</h2><p class="muted" style="margin-top:0">${_("Coachen läser av vilka muskler en övning tränar från namnet du skriver. Huvudmuskler räknas fullt, muskler som hjälper till som ett halvt set. Rätta om den gissar fel.")}</p>
   ${unk.length?`<p style="margin:0 0 6px">${_n(unk.length,"Coachen känner inte igen {n} övning:","Coachen känner inte igen {n} övningar:")}</p>`:`<p class="muted" style="margin:0 0 6px">${_("Alla dina övningar är igenkända.")}</p>`}
+  ${aiOn&&askAi.length?`<p style="margin:0 0 8px"><button class="sm" data-act="aimus" ${aiBusy?"disabled":""}>${aiBusy?_("Frågar AI…"):_n(askAi.length,"Föreslå muskler med AI ({n} övning)","Föreslå muskler med AI ({n} övningar)")}</button> <small class="muted">${_("Du godkänner varje förslag. Övningsnamnen skickas till Anthropic.")}</small></p>`:""}
   <ul class="muslist">${shown.map(row).join("")}</ul>
   <button class="linkbtn" data-act="musall">${musAll?_("Visa bara okända"):_("Visa alla {n} övningar",{n:names.length})}</button></section>`;
 }
-function musForm(n){const m=musclesOf(n);const box=(k,x,on)=>`<label class="chk"><input type="checkbox" name="${k}" value="${x}" ${on?"checked":""}>${_(MUSCLES[x].name)}</label>`;
+function musForm(n){const m=!musclesOf(n).known&&aiSug[n]?aiSug[n]:musclesOf(n);const box=(k,x,on)=>`<label class="chk"><input type="checkbox" name="${k}" value="${x}" ${on?"checked":""}>${_(MUSCLES[x].name)}</label>`;
   return `<li class="musform"><form data-form="muscles" data-n="${esc(n)}"><b>${esc(n)}</b>
   <p class="muted" style="margin:6px 0 2px">${_("Huvudmuskler")}</p><div class="chks">${Object.keys(MUSCLES).map(x=>box("p",x,m.p.includes(x))).join("")}</div>
   <p class="muted" style="margin:8px 0 2px">${_("Hjälper till")}</p><div class="chks">${Object.keys(MUSCLES).map(x=>box("s",x,m.s.includes(x))).join("")}</div>
   <div class="row" style="margin-top:8px"><button class="pri">${_("Spara")}</button>${m.own?`<button type="button" data-act="musauto" data-n="${esc(n)}">${_("Automatiskt")}</button>`:""}<button type="button" data-act="musedit" data-n="">${_("Avbryt")}</button></div></form></li>`}
-async function saveMuscles(n,p,s){
-  try{await api("muscles",{method:"PUT",body:JSON.stringify({name:n,p,s})});
-    if(p.length)muscles[n]={p,s};else delete muscles[n];setMuscleOverrides(muscles);save();musEdit=null;render()}
+async function saveMuscles(n,p,s,c){
+  try{await api("muscles",{method:"PUT",body:JSON.stringify(typeof c==="boolean"?{name:n,p,s,c}:{name:n,p,s})});
+    if(p.length)muscles[n]=typeof c==="boolean"?{p,s,c}:{p,s};else delete muscles[n];delete aiSug[n];setMuscleOverrides(muscles);save();musEdit=null;render()}
   catch(e){flash={k:"err",t:e.message||"Kunde inte spara, försök igen"};render()}}
 // ---- accounts ----
 const PW_CLASSES=p=>[/[a-zåäö]/,/[A-ZÅÄÖ]/,/\d/,/[^A-Za-zÅÄÖåäö\d]/].filter(r=>r.test(p)).length;
@@ -481,7 +484,7 @@ function renderSettings(){
 let resetLink=null;
 function taskText(t){const p=[];if(t.pending)p.push(_n(t.pending,"{n} konto som väntar på godkännande","{n} konton som väntar på godkännande"));if(t.resets)p.push(_n(t.resets,"{n} begäran om nytt lösenord","{n} begäranden om nytt lösenord"));return p.join(_(" och "))}
 function taskBar(){const t=me?.tasks;if(me?.role!=="admin"||!t?.total)return "";return `<div class="taskbar"><span><b>${_("Att göra som admin:")}</b> ${esc(taskText(t))}.</span><span class="sp"></span><a class="btn sm" href="#admin" style="display:inline-flex;align-items:center;text-decoration:none">${_("Öppna admin")}</a></div>`}
-async function loadAdmin(){try{const u=await api("admin/users");adminData=u;if(me)me.tasks=u.tasks;if(view==="admin")render()}catch(e){adminData={error:e.message||"Kunde inte hämta"};if(view==="admin")render()}}
+async function loadAdmin(){api("admin/ai").then(a=>{aiData=a;if(view==="admin")render()}).catch(()=>{});try{const u=await api("admin/users");adminData=u;if(me)me.tasks=u.tasks;if(view==="admin")render()}catch(e){adminData={error:e.message||"Kunde inte hämta"};if(view==="admin")render()}}
 const STATUS={pending:["Väntar","y"],active:["Aktiv","g"],frozen:["Fryst",""],banned:["Spärrad","r"]};
 function renderAdmin(){
   if(!adminData)return `<p class="muted">${_("Hämtar…")}</p>`;if(adminData.error)return `<p class="flash err">${esc(_(adminData.error))}</p>`;
@@ -504,8 +507,25 @@ function renderAdmin(){
     <td><div class="row">${acts}</div></td></tr>`}).join("")}
   </tbody></table></div>
   <p class="muted">${_("<b>Godkänn</b> ger kontot tillgång. <b>Avslå</b> tar bort en registrering som väntar. <b>Frys</b> stänger av inloggning tillfälligt; data sparas och kontot kan aktiveras igen. <b>Spärra</b> stänger av kontot och adressen kan inte registreras på nytt; spärren kan hävas.")}</p></section>`;
+  h+=aiPanel();
   return h;
 }
+// AI cost this month, against the caps (admin page).
+function aiPanel(){
+  if(!aiData)return "";const a=aiData,kr=x=>_("{n} kr",{n:fmt(Math.round(x*100)/100)});
+  if(!a.enabled)return `<section class="panel"><h2>${_("AI")}</h2><p class="muted" style="margin:0">${_("AI är inte aktiverat. Lägg in ANTHROPIC_API_KEY som hemlighet i Cloudflare för att slå på det.")}</p></section>`;
+  const pct=Math.min(100,a.total/a.totalCap*100);
+  return `<section class="panel"><h2>${_("AI den här månaden")}</h2>
+  <p style="margin:0 0 6px"><b>${kr(a.total)}</b> ${_("av {cap} totalt",{cap:kr(a.totalCap)})} · ${_("tak per användare {cap}",{cap:kr(a.userCap)})} · <span class="muted">${esc(a.model)}</span></p>
+  <div class="bar" style="height:8px;margin-bottom:10px"><i style="width:${pct}%;background:${pct>=80?"var(--red)":"var(--ink)"}"></i></div>
+  ${a.users.length?`<ul class="tl">${a.users.map(u=>`<li><span>${esc(u.first_name+" "+u.last_name)}</span><em>${kr(u.sek)} · ${_n(u.calls,"{n} anrop","{n} anrop")}</em></li>`).join("")}</ul>`:`<p class="muted" style="margin:0">${_("Inga AI-anrop än den här månaden.")}</p>`}
+  <p class="muted" style="margin:8px 0 0;font-size:14px">${_("Kostnaden räknas från antalet tokens i varje svar. När ett tak är nått slutar appen fråga AI:n resten av månaden; allt annat fungerar som vanligt.")}</p></section>`;
+}
+async function aiSuggest(names){aiBusy=true;render();
+  try{const r=await api("ai/muscles",{method:"POST",body:JSON.stringify({names})});Object.assign(aiSug,r.suggestions);
+    const miss=names.filter(n=>!r.suggestions[n]);flash={k:"ok",t:_n(Object.keys(r.suggestions).length,"AI föreslog muskler för {n} övning. Kontrollera och godkänn.","AI föreslog muskler för {n} övningar. Kontrollera och godkänn.")+(miss.length?" "+_("Ingen gissning för: {list}.",{list:miss.join(", ")}):"")}}
+  catch(e){flash={k:"err",t:e.message||"Något gick fel."}}
+  aiBusy=false;render()}
 // Language: the user's saved choice, else a choice made on this device before login,
 // else the iPhone/browser language (Swedish or English), else English.
 function chooseLang(){let l="";try{l=localStorage.getItem("lang")||""}catch(e){}if(me?.lang)l=me.lang;setLang(l||detectLang());applyStatic();if(syncKey)setSync(syncKey)}
@@ -516,7 +536,7 @@ async function boot(){
   if(q.get("reset")){resetToken=q.get("reset");authMode="reset"}
   if(q.toString())history.replaceState(null,"",location.pathname+location.hash);
   try{const r=await fetch("/api/me",{credentials:"same-origin"});
-    if(r.ok){me=(await r.json()).user}else me=null}
+    if(r.ok){const j=await r.json();me=j.user;aiOn=!!j.ai}else me=null}
   catch(e){me=null;authMsg={k:"err",t:"Når inte servern. Kontrollera uppkopplingen."}}
   if(me&&resetToken){me=null}
   chooseLang();
@@ -536,7 +556,7 @@ document.addEventListener("submit",async ev=>{
     if(k==="reset"){if(v.password!==v.password2){setA("err","Lösenorden är inte lika.");return}
       const r=await api("auth/reset",{method:"POST",body:JSON.stringify({token:resetToken,password:v.password})});resetToken=null;authMode="login";setA("ok",r.message);return}
     if(k==="lang"){const r=await api("account/lang",{method:"PUT",body:JSON.stringify({lang:v.lang})});me=r.user;rememberLang(me.lang);chooseLang();flash={k:"ok",t:"Språket är sparat."};render();return}
-    if(k==="muscles"){const fd=new FormData(f);const pm=fd.getAll("p"),sm=fd.getAll("s").filter(x=>!pm.includes(x));if(!pm.length){flash={k:"err",t:_("Välj minst en huvudmuskel, eller tryck Automatiskt.")};done();render();return}await saveMuscles(f.dataset.n,pm,sm);return}
+    if(k==="muscles"){const fd=new FormData(f);const pm=fd.getAll("p"),sm=fd.getAll("s").filter(x=>!pm.includes(x));if(!pm.length){flash={k:"err",t:_("Välj minst en huvudmuskel, eller tryck Automatiskt.")};done();render();return}await saveMuscles(f.dataset.n,pm,sm,aiSug[f.dataset.n]?.c);return}
     if(k==="sessionlen"){const r=await api("account/session-length",{method:"PUT",body:JSON.stringify({minutes:+v.minutes})});me=r.user;flash={k:"ok",t:_("Passlängden är sparad: {n} min. Coachen anpassar sina förslag.",{n:me.sessionMin})};render();return}
     if(k==="goal"){const r=await api("account/goal",{method:"PUT",body:JSON.stringify({goal:v.goal})});me=r.user;flash={k:"ok",t:_("Målet är sparat: {g}. Coachen räknar om sina förslag.",{g:_(GOALS[me.goal].label)})};render();return}
     if(k==="name"){const r=await api("account/name",{method:"PUT",body:JSON.stringify(v)});me=r.user;flash={k:"ok",t:"Namnet är sparat."};render();return}
@@ -673,6 +693,8 @@ document.addEventListener("click",async ev=>{
     await load();setSync(_n(n,"Sparade {n} pass","Sparade {n} pass"));ed=null;location.hash="history";if(view==="history")render();return}
   if(a==="musedit"){musEdit=b.dataset.n||null;render();return}
   if(a==="musall"){musAll=!musAll;render();return}
+  if(a==="aimus"){const names=[...new Set(sessions.flatMap(s=>(s.ex||[]).map(e=>e.n)).filter(Boolean))].filter(n=>!musclesOf(n).known&&!aiSug[n]).slice(0,25);if(names.length)aiSuggest(names);return}
+  if(a==="musok"){const g=aiSug[b.dataset.n];if(g)await saveMuscles(b.dataset.n,g.p,g.s,g.c);return}
   if(a==="musauto"){await saveMuscles(b.dataset.n,[],[]);return}
   if(a==="wk"){weekOff=b.dataset.d==="0"?0:weekOff+ +b.dataset.d;render()}
   else if(a==="newplan"){ed={kind:"plan",date:b.dataset.d,tag:"ÖK",note:"",ex:fromTag("ÖK",b.dataset.d)};render();$("edbox")?.scrollIntoView({block:"start"})}

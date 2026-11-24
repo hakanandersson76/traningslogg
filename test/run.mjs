@@ -148,6 +148,45 @@ r = await put(anna, "/api/account/goal", { goal: "strength" });
 assert(r.status === 200 && r.body.user.goal === "strength" && (await anna("/api/me")).body.user.goal === "strength", "goal can be changed");
 assert((await put(anna, "/api/account/goal", { goal: "bulk" })).status === 400, "unknown goal refused");
 await anna("/api/sessions/2026-11-25-r", { method: "DELETE" });
+// AI muscle suggestions: fake Anthropic API, cost log, cache, caps
+{
+  assert((await post(anna, "/api/ai/muscles", { names: ["Konstig maskin"] })).status === 503 && (await anna("/api/me")).body.ai === false, "ai: off without an API key");
+  const realFetch = globalThis.fetch;
+  let calls = 0, sent = null;
+  globalThis.fetch = async (url, opt) => {
+    if (!String(url).startsWith("https://api.anthropic.com/")) return realFetch(url, opt);
+    calls++; sent = { headers: opt.headers, body: JSON.parse(opt.body) };
+    const names = sent.body.messages[0].content.split("\n").map((l) => l.replace(/^- /, ""));
+    const results = names.map((n) => /gurka/i.test(n) ? { name: n, p: [], s: [] } : { name: n, p: ["rygg", "vingar"], s: ["biceps", "rygg"], c: true });
+    return new Response(JSON.stringify({ content: [{ type: "text", text: "Here: " + JSON.stringify({ results }) }], usage: { input_tokens: 400000, output_tokens: 200000 } }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  Object.assign(env, { ANTHROPIC_API_KEY: "test-key", AI_USER_CAP_SEK: "2", AI_TOTAL_CAP_SEK: "4" });
+  assert((await anna("/api/me")).body.ai === true, "ai: on with an API key");
+  r = await post(anna, "/api/ai/muscles", { names: ["Konstig maskin", "Gurka"] });
+  const g = r.body.suggestions["Konstig maskin"];
+  assert(r.status === 200 && JSON.stringify(g.p) === '["rygg"]' && JSON.stringify(g.s) === '["biceps"]' && g.c === true && !r.body.suggestions["Gurka"], "ai: suggestions validated (unknown muscle ids and duplicates dropped, no guess left out)");
+  assert(sent.headers["x-api-key"] === "test-key" && sent.body.model === "claude-haiku-5-5", "ai: calls the API with the key and the small model");
+  // 400k in × 0,10 + 200k out × 0,50 USD per million = 0,14 USD × 11 = 1,54 kr
+  const log = env.DB.db.prepare("SELECT SUM(cost_sek) AS s, COUNT(*) AS n FROM ai_usage").get();
+  assert(Math.abs(log.s - 1.54) < 1e-9 && log.n === 1 && Math.abs(r.body.spentSek - 1.54) < 1e-9, "ai: cost logged in kronor");
+  r = await post(anna, "/api/ai/muscles", { names: ["konstig  MASKIN"] });
+  assert(calls === 1 && r.body.suggestions["konstig  MASKIN"]?.from === "cache", "ai: same name answered from the shared cache, no new call");
+  await post(anna, "/api/ai/muscles", { names: ["Annan maskin"] });
+  r = await post(anna, "/api/ai/muscles", { names: ["Tredje maskin"] });
+  assert(r.status === 429 && calls === 2 && /ditt AI-tak/.test(r.body.error), "ai: per-user monthly cap stops further calls");
+  r = await post(admin, "/api/ai/muscles", { names: ["Fjärde maskin"] });
+  assert(r.status === 200 && calls === 3, "ai: other users still have their own budget");
+  r = await post(admin, "/api/ai/muscles", { names: ["Femte maskin"] });
+  assert(r.status === 429 && /hela appen/.test(r.body.error) && calls === 3, "ai: total monthly cap stops everyone");
+  r = await admin("/api/admin/ai");
+  assert(r.status === 200 && r.body.enabled && Math.abs(r.body.total - 4.62) < 1e-9 && r.body.users.length === 2 && r.body.totalCap === 4 && r.body.userCap === 2, "ai: admin sees this month's cost per user and the caps");
+  assert((await anna("/api/admin/ai")).status === 403, "ai: cost report is admin only");
+  r = await put(anna, "/api/muscles", { name: "Konstig maskin", p: ["rygg"], s: ["biceps"], c: true });
+  assert(JSON.stringify((await anna("/api/data")).body.muscles["Konstig maskin"]) === JSON.stringify({ p: ["rygg"], s: ["biceps"], c: true }), "ai: approved suggestion saved with the compound flag");
+  await put(anna, "/api/muscles", { name: "Konstig maskin", p: [] });
+  globalThis.fetch = realFetch;
+  delete env.ANTHROPIC_API_KEY;
+}
 // own muscle choice per exercise
 r = await put(anna, "/api/muscles", { name: "Konstig maskin", p: ["rygg"], s: ["biceps"] });
 assert(r.status === 200 && JSON.stringify((await anna("/api/data")).body.muscles["Konstig maskin"]) === JSON.stringify({ p: ["rygg"], s: ["biceps"] }), "muscles: own choice saved and returned with data");
@@ -351,6 +390,16 @@ const serveAt = process.argv.indexOf("--serve");
 if (serveAt > 0) {
   const port = +process.argv[serveAt + 1] || 8787;
   if (process.argv.includes("--empty")) { env.DB = new FakeD1(); _resetForTests(); }
+  if (process.argv.includes("--fake-ai")) {
+    // Pretend AI for screenshots: every name gets back + biceps.
+    env.ANTHROPIC_API_KEY = "fake"; env.AI_USER_CAP_SEK = "20"; env.AI_TOTAL_CAP_SEK = "100";
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async (url, opt) => {
+      if (!String(url).startsWith("https://api.anthropic.com/")) return realFetch(url, opt);
+      const names = JSON.parse(opt.body).messages[0].content.split("\n").map((l) => l.replace(/^- /, ""));
+      return new Response(JSON.stringify({ content: [{ type: "text", text: JSON.stringify({ results: names.map((n) => ({ name: n, p: ["rygg"], s: ["biceps"], c: true })) }) }], usage: { input_tokens: 700, output_tokens: 120 } }), { status: 200 });
+    };
+  }
   createServer(async (req, res) => {
     const chunks = []; for await (const c of req) chunks.push(c);
     const resp = await worker.fetch(new Request("http://localhost:" + port + req.url, { method: req.method, headers: req.headers, body: chunks.length ? Buffer.concat(chunks) : undefined, redirect: "manual" }), env);

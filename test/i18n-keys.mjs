@@ -82,7 +82,7 @@ export function collectKeys() {
   const html = read("public/index.html");
   const script = html.slice(html.indexOf('<script type="module">'));
   const coach = read("public/coach.js");
-  const server = read("src/worker.js") + read("src/auth.js");
+  const server = read("src/worker.js") + read("src/auth.js") + read("src/ai.js");
   const keys = new Set();
   const add = (a) => a.forEach((k) => k && /\p{L}/u.test(k) && keys.add(k));
 

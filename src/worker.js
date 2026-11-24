@@ -32,6 +32,7 @@ const normTag = (t) => {
 const cleanRir = (r) => (r === null || r === undefined || r === "" || !Number.isFinite(+r) ? null : Math.max(0, Math.min(5, Math.round(+r))));
 const GOALS = new Set(["strength", "muscle", "health"]);
 // UI languages (must match LANGS in public/i18n.js). "" = follow the device.
+import { aiEnabled, suggestMuscles, usageReport, spent, aiConfig } from "./ai.js";
 const LANGS = new Set(["sv", "en"]);
 // Muscle ids (must match MUSCLES in public/muscles.js).
 const MUSCLE_IDS = new Set(["bröst", "rygg", "trapets", "axlar", "bakaxlar", "biceps", "triceps", "underarmar", "framlår", "baklår", "säte", "höft", "vader", "bål"]);
@@ -84,7 +85,7 @@ async function getData(db, userId) {
     ).bind(userId),
     db.prepare("SELECT date, tag, note, done_session_id FROM plans WHERE user_id = ?1 ORDER BY date").bind(userId),
     db.prepare("SELECT plan_date, pos, name, target FROM plan_exercises WHERE user_id = ?1 ORDER BY plan_date, pos").bind(userId),
-    db.prepare("SELECT name, primary_m, secondary_m FROM exercise_muscles WHERE user_id = ?1").bind(userId),
+    db.prepare("SELECT name, primary_m, secondary_m, compound FROM exercise_muscles WHERE user_id = ?1").bind(userId),
   ]);
   const split = (s) => String(s || "").split(",").filter(Boolean);
   const exBy = new Map();
@@ -100,7 +101,7 @@ async function getData(db, userId) {
   return {
     sessions: sess.results.map((r) => ({ id: r.id, date: r.date, tag: r.tag, note: r.note, ex: exBy.get(r.id) || [] })),
     plans: plans.results.map((r) => ({ id: r.date, date: r.date, tag: r.tag, note: r.note, done: r.done_session_id, ex: pexBy.get(r.date) || [] })),
-    muscles: Object.fromEntries(mus.results.map((r) => [r.name, { p: split(r.primary_m), s: split(r.secondary_m) }])),
+    muscles: Object.fromEntries(mus.results.map((r) => [r.name, r.compound === null || r.compound === undefined ? { p: split(r.primary_m), s: split(r.secondary_m) } : { p: split(r.primary_m), s: split(r.secondary_m), c: !!r.compound }])),
   };
 }
 
@@ -258,6 +259,7 @@ async function handleAdmin(request, env, url, db, user, parts) {
   if (user.role !== "admin") return bad("Endast för administratörer.", 403);
   const [what, id, sub] = parts;
   if (what === "tasks" && request.method === "GET") return json(await adminTasks(db));
+  if (what === "ai" && request.method === "GET") return json(await usageReport(db, env));
   if (what === "users" && !id && request.method === "GET") {
     const r = await db.prepare(
       `SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.status, u.created_at, u.last_login_at, u.status_changed_at, u.reset_requested_at,
@@ -324,7 +326,21 @@ async function handleApi(request, env, url) {
   const user = await currentUser(db, request);
   if (!user) return bad("Inte inloggad.", 401, { auth: true });
 
-  if (resource === "me" && method === "GET") return json({ user: await meOut(db, user) });
+  if (resource === "me" && method === "GET") return json({ user: await meOut(db, user), ai: aiEnabled(env) });
+
+  // AI help: muscle suggestions for exercise names the rules don't know.
+  if (resource === "ai" && key === "muscles" && method === "POST") {
+    if (!aiEnabled(env)) return bad("AI är inte aktiverat.", 503);
+    const b = (await readBody(request)) || {};
+    try {
+      const suggestions = await suggestMuscles(db, env, user.id, b.names);
+      const s = await spent(db, user.id), c = aiConfig(env);
+      return json({ suggestions, spentSek: s.user, capSek: c.userCap });
+    } catch (e) {
+      if (e && e.status) { if (e.detail) console.log("AI error:", e.detail); return bad(e.message, e.status); }
+      throw e;
+    }
+  }
   if (resource === "account") return handleAccount(request, env, url, db, user, key);
   if (resource === "admin") return handleAdmin(request, env, url, db, user, parts.slice(1));
 
@@ -338,7 +354,8 @@ async function handleApi(request, env, url) {
     if (!name || !ok(b.p || []) || !ok(b.s || [])) return bad("Ogiltig begäran.");
     const p = [...new Set(b.p || [])], s = [...new Set(b.s || [])].filter((m) => !p.includes(m));
     if (!p.length) await db.prepare("DELETE FROM exercise_muscles WHERE user_id = ?1 AND name = ?2").bind(user.id, name).run();
-    else await db.prepare("INSERT OR REPLACE INTO exercise_muscles (user_id, name, primary_m, secondary_m) VALUES (?1, ?2, ?3, ?4)").bind(user.id, name, p.join(","), s.join(",")).run();
+    else await db.prepare("INSERT OR REPLACE INTO exercise_muscles (user_id, name, primary_m, secondary_m, compound) VALUES (?1, ?2, ?3, ?4, ?5)")
+      .bind(user.id, name, p.join(","), s.join(","), typeof b.c === "boolean" ? (b.c ? 1 : 0) : null).run();
     return json({ ok: true });
   }
 

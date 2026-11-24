@@ -79,7 +79,32 @@ const V7 = [
   `INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '7')`,
 ];
 
-export const SCHEMA_VERSION = 7;
+// Version 8: AI help. Cost log per call (for the monthly caps), a shared cache of
+// AI muscle suggestions, and the compound flag on the user's own muscle choice.
+const V8 = [
+  `CREATE TABLE IF NOT EXISTS ai_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    at TEXT NOT NULL,
+    feature TEXT NOT NULL,
+    model TEXT NOT NULL,
+    in_tok INTEGER NOT NULL,
+    out_tok INTEGER NOT NULL,
+    cost_sek REAL NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS ai_usage_at ON ai_usage (at)`,
+  `CREATE TABLE IF NOT EXISTS ai_muscle_cache (
+    name TEXT PRIMARY KEY,
+    p TEXT NOT NULL,
+    s TEXT NOT NULL,
+    c INTEGER NOT NULL,
+    at TEXT NOT NULL
+  )`,
+  `ALTER TABLE exercise_muscles ADD COLUMN compound INTEGER`,
+  `INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '8')`,
+];
+
+export const SCHEMA_VERSION = 8;
 
 let ready = null;
 export function ensureSchema(db) {
@@ -101,6 +126,7 @@ async function migrate(db) {
   if (v < 5) await db.batch(V5.map((s) => db.prepare(s)));
   if (v < 6) await db.batch(V6.map((s) => db.prepare(s)));
   if (v < 7) await db.batch(V7.map((s) => db.prepare(s)));
+  if (v < 8) await db.batch(V8.map((s) => db.prepare(s)));
 }
 
 // Create the admin account on first start (from the ADMIN_EMAIL and

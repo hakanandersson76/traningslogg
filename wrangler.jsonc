@@ -21,6 +21,14 @@
     "ADMIN_EMAIL": "hakan.andersson@gmail.com",
     "ADMIN_FIRST_NAME": "Håkan",
     "ADMIN_LAST_NAME": "Andersson",
-    "ADMIN_PASSWORD_HASH": "pbkdf2$100000$Pb62qVj1qedQsC6sFgTIOQ==$JdsqPxAB87IOV6MJ3FZJK3kTVZLs3eas+E3R09v7y0I="
+    "ADMIN_PASSWORD_HASH": "pbkdf2$100000$Pb62qVj1qedQsC6sFgTIOQ==$JdsqPxAB87IOV6MJ3FZJK3kTVZLs3eas+E3R09v7y0I=",
+    // AI help (optional). The API key is a secret: Cloudflare dashboard → Worker → Settings →
+    // Variables and Secrets → ANTHROPIC_API_KEY. Caps are in kronor per calendar month.
+    "AI_MODEL": "claude-haiku-5-5",
+    "AI_PRICE_IN_USD": "0.10",
+    "AI_PRICE_OUT_USD": "0.50",
+    "USD_SEK": "11",
+    "AI_USER_CAP_SEK": "20",
+    "AI_TOTAL_CAP_SEK": "100"
   }
 }
