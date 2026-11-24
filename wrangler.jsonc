@@ -15,6 +15,9 @@
     }
   ],
   "observability": { "enabled": true },
+  // Keep variables and secrets set in the Cloudflare dashboard (e.g. ANTHROPIC_API_KEY)
+  // when GitHub pushes deploy a new version.
+  "keep_vars": true,
   // Admin account created on first start if there are no users yet.
   // Only the PBKDF2 hash of the first password is stored here; change the password in the app.
   "vars": {
