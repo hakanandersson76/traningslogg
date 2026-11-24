@@ -79,6 +79,7 @@ label{font-size:14px;color:var(--soft);display:block;margin-bottom:4px}
 .x{padding:0;min-height:44px;width:44px;font-size:20px}
 .rirl{display:inline-flex;align-items:center;gap:6px;margin:0 12px 4px 0;font-size:14px;color:var(--soft)}
 .rirl select{width:auto;min-height:36px;padding:4px 8px}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;padding:0;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);cursor:pointer}.iconbtn:hover{background:var(--panel)}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}.seg button{border:0;border-radius:0;background:transparent;padding:6px 14px;font-size:14px}.seg button.on{background:var(--ink);color:var(--bg)}
 .edtext{width:100%;min-height:320px;font:15px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);box-sizing:border-box}
 .copybox{margin:0 0 14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}.copybox textarea{width:100%;min-height:160px;margin:6px 0;font:14px/1.5 ui-monospace,Menlo,monospace;box-sizing:border-box}
@@ -385,6 +386,8 @@ const sameSession=(p)=>sessions.some(s=>s.date===p.date&&(s.ex||[]).map(e=>e.n+"
 // A session as Notes text: "261124 NK (note)" and one line per exercise "Name sets".
 // useGoal: an exercise without sets gets its coach target, to overwrite with the result.
 const sessionText=(s,useGoal=false)=>`${s.date.slice(2).replace(/-/g,"")}${s.tag?" "+tagShort(s.tag):""}${s.note?` (${s.note})`:""}\n`+(s.ex||[]).filter(e=>e.n).map(e=>{const sets=e.s||(useGoal?e.goal||"":"");return `${e.n}${sets?" "+sets:""}${e.r!==null&&e.r!==undefined?" RIR "+e.r:""}`}).join("\n");
+// The usual copy-to-clipboard icon (two overlapping sheets); the label is for screen readers and hover.
+const copyBtn=()=>`<button class="iconbtn" data-act="ccopy" title="${_("Kopiera som text")}" aria-label="${_("Kopiera som text")}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>`;
 const coachText=r=>sessionText({date:r.next.date,tag:r.next.tag,note:"",ex:r.plan.map(p=>({n:p.n,s:p.target}))});
 async function copyText(t,msg){try{await navigator.clipboard.writeText(t);flash={k:"ok",t:msg};copyBox=null}catch(e){copyBox=t}render();if(copyBox)setTimeout(()=>{const x=$("copybox");if(x){x.focus();x.select()}},0)}
 // Editor text mode: the editor's content as Notes text, and back.
@@ -440,7 +443,7 @@ function renderCoach(){
   let h=`<div class="row" style="margin-bottom:12px"><span class="muted">${_("Ditt mål:")}</span><b>${_(G.label)}</b><span class="muted">· ${_("{a} reps i basövningar, {b} i isolationsövningar, {r} reps kvar",{a:`${G.comp[0]}–${G.comp[1]}`,b:`${G.iso[0]}–${G.iso[1]}`,r:G.rir})}</span><a href="#settings" class="linkbtn" style="font-size:15px">${_("Ändra")}</a></div>
   <section class="hero"><div><span class="muted">${_("Nästa pass, {when}",{when})}</span><h2>${chip(n.tag)} ${tagName(n.tag)}</h2><p style="margin:0 0 6px">${esc(n.why)}</p>
   ${n.restWhy?`<div class="warnbox">${esc(n.restWhy)}</div>`:""}${srcHTML(n.src)}
-  <div class="row" style="margin-top:12px"><button class="pri" data-act="cstart">${_("Starta passet")}</button><button data-act="cplan">${hasPlan?_("Ersätt planen"):_("Lägg i planen")}</button><button class="linkbtn" data-act="ccopy">${_("Kopiera som text")}</button></div></div>
+  <div class="row" style="margin-top:12px"><button class="pri" data-act="cstart">${_("Starta passet")}</button><button data-act="cplan">${hasPlan?_("Ersätt planen"):_("Lägg i planen")}</button>${copyBtn()}</div></div>
   <div><ul class="pl">${r.plan.map(p=>`<li><span>${esc(p.n)}<span class="k ${p.kind}">${p.focus?_("Fokus"):p.added?_("Tillagd"):kindTxt[p.kind]||""}</span>${swapSel(p)}</span><b>${esc(p.target)||"–"}</b><small>${esc(p.why)}${p.last?` ${_("Senast {d}",{d:nice(p.last.date)})}: ${esc(p.last.s)}${rirTxt(p.last.rir)}.`:""}</small>${srcHTML(p.src)}</li>`).join("")||`<li><span class="muted">${_("Inga tidigare {t}-pass att utgå från.",{t:tagShort(n.tag)})}</span></li>`}</ul>${r.plan.length?`<p class="muted" style="margin:8px 0 0;font-size:14px">${_("Cirka {m} min av dina {t} min, {n} arbetsset (x3 = tre likadana set), uppvärmning ej inräknad.",{m:r.plan.minutes,t:r.minutes,n:r.plan.reduce((a,p)=>a+(p.sets||0),0)})}${r.plan.dropped?.length?" "+_("Fick inte plats: {list}.",{list:r.plan.dropped.map(esc).join(", ")}):""} <a href="#settings">${_("Ändra passlängd")}</a></p>${srcHTML(["rule"])}`:""}</div></section>`;
   if(aiOn)h+=`<p class="muted" style="margin:0 0 12px">${_("Veckans AI-insikt finns på <a href=\"#home\">Hem</a>.")}${focusNow().length?" "+_("Fokus från insikten används i förslaget."):""}</p>`;
   if(r.notes.length)h+=`<h3 style="font-size:24px;margin-bottom:4px">${_("Att tänka på")}</h3><ul class="notes">${r.notes.map(x=>`<li class="${x.k}">${esc(x.t)}${srcHTML(x.src)}</li>`).join("")}</ul>`;
@@ -499,7 +502,7 @@ function renderHome(){
       <p class="muted">${_("Veckor med minst ett pass. Ditt rekord: {n}.",{n:s.streak.best})}</p></section>
     <section class="card next"><span class="muted">${_("Nästa pass, {when}",{when})}</span><div class="big">${chip(n.tag)} ${tagName(n.tag)}</div>
       <p class="muted">${_("{e} övningar · cirka {m} min",{e:r.plan.length,m:r.plan.minutes})}</p>
-      <div class="row"><button class="pri" data-act="cstart">${_("Starta passet")}</button><button data-act="cplan">${_("Lägg i planen")}</button><button class="linkbtn" data-act="ccopy">${_("Kopiera som text")}</button></div>
+      <div class="row"><button class="pri" data-act="cstart">${_("Starta passet")}</button><button data-act="cplan">${_("Lägg i planen")}</button>${copyBtn()}</div>
       ${!planned&&!w.met?`<p class="muted" style="margin:8px 0 0;font-size:14px">${_("Inget pass planerat resten av veckan.")} <a href="#plan">${_("Planera")}</a></p>`:""}</section>
   </div>
   ${insightHTML()}
