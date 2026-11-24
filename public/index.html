@@ -79,10 +79,8 @@ label{font-size:14px;color:var(--soft);display:block;margin-bottom:4px}
 .x{padding:0;min-height:44px;width:44px;font-size:20px}
 .rirl{display:inline-flex;align-items:center;gap:6px;margin:0 12px 4px 0;font-size:14px;color:var(--soft)}
 .rirl select{width:auto;min-height:36px;padding:4px 8px}
-.why{grid-column:1/-1;margin-top:2px}
-.why summary{cursor:pointer;color:var(--blue);font-size:14px;width:max-content}
-.why ul{margin:6px 0 2px;padding-left:18px;font-size:14px;color:var(--soft)}
-.why a{color:var(--blue)}
+.src{grid-column:1/-1;font-size:12px;color:var(--soft);opacity:.85;margin-top:1px}
+.src a{color:inherit;text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 40%,transparent)}
 .goalopt{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;align-items:start;padding:10px 0;border-top:1px solid var(--line);cursor:pointer}
 .goalopt:first-of-type{border-top:0}
 .goalopt input{width:22px;height:22px;min-height:0;margin:2px 0 0}
@@ -203,7 +201,7 @@ td .row{gap:6px}
 <main id="main"></main>
 <script type="module">
 import { parseSets, parseSessionText } from "./parse.js";
-import { coachReport, nextTarget, history as exHistory, SOURCES, GOALS, effectiveTag } from "./coach.js";
+import { coachReport, nextTarget, history as exHistory, SOURCES, GOALS, effectiveTag, allocSets, withSets } from "./coach.js";
 import { t as _, tn as _n, setLang, getLang, detectLang, LANGS, weekdays, months, fmtNum, tagShort, tagName } from "./i18n.js";
 {
 // Colours per session type; labels come from i18n (tagShort/tagName).
@@ -235,7 +233,7 @@ function exIndex(){const m=new Map();for(const s of [...sessions].sort((a,b)=>a.
 function lastFor(n,before){const l=exIndex().get(n)||[];for(let i=l.length-1;i>=0;i--)if(!before||l[i].date<before)return l[i];return null}
 const goalNow=()=>me?.goal||"muscle";
 function coachTarget(n,date){const ents=exHistory(sessions.filter(s=>s.date<date)).get(n);return ents?nextTarget(ents,date,goalNow(),n).target:""}
-function fromTag(tag,date){const last=[...sessions].filter(s=>effectiveTag(s)===tag&&s.date<date).sort((a,b)=>a.date<b.date?1:-1)[0];return last?(last.ex||[]).map(e=>({n:e.n,s:coachTarget(e.n,date)})):[]}
+function fromTag(tag,date){const last=[...sessions].filter(s=>effectiveTag(s)===tag&&s.date<date).sort((a,b)=>a.date<b.date?1:-1)[0];if(!last)return [];const ex=(last.ex||[]).filter(e=>e.n);const n=allocSets(ex.map(e=>e.n),goalNow());return ex.map((e,i)=>({n:e.n,s:withSets(coachTarget(e.n,date),n[i])}))}
 
 const cacheKey=()=>me?"gymlog-cache-"+me.id:null;
 function save(){try{if(cacheKey())localStorage.setItem(cacheKey(),JSON.stringify({s:sessions,p:plans}))}catch(e){}}
@@ -346,7 +344,7 @@ function renderPlan(){
   return h;
 }
 const srcHTML=ids=>{ids=[...new Set(ids||[])].filter(i=>SOURCES[i]);if(!ids.length)return "";
-  return `<details class="why"><summary>${_("Varför?")}</summary><ul>${ids.map(i=>`<li>${esc(_(SOURCES[i].t))}${SOURCES[i].u?` <a href="${SOURCES[i].u}" target="_blank" rel="noopener">${_("Läs mer")}</a>`:""}</li>`).join("")}</ul></details>`};
+  return `<div class="src">${ids.map(i=>SOURCES[i].u?`<a href="${SOURCES[i].u}" target="_blank" rel="noopener" title="${esc(_(SOURCES[i].t))}">${esc(_(SOURCES[i].s))}</a>`:`<span title="${esc(_(SOURCES[i].t))}">${esc(_(SOURCES[i].s))}</span>`).join(" · ")}</div>`};
 function renderCoach(){
   if(!sessions.length)return `<p class="empty">${_("Inga pass än. Importera eller logga ett pass först.")}</p>`;
   const r=coachReport(sessions,TODAY,goalNow());const n=r.next,G=r.G;
@@ -357,7 +355,7 @@ function renderCoach(){
   <section class="hero"><div><span class="muted">${_("Nästa pass, {when}",{when})}</span><h2>${chip(n.tag)} ${tagName(n.tag)}</h2><p style="margin:0 0 6px">${esc(n.why)}</p>
   ${n.restWhy?`<div class="warnbox">${esc(n.restWhy)}</div>`:""}${srcHTML(n.src)}
   <div class="row" style="margin-top:12px"><button class="pri" data-act="cstart">${_("Starta passet")}</button><button data-act="cplan">${hasPlan?_("Ersätt planen"):_("Lägg i planen")}</button></div></div>
-  <ul class="pl">${r.plan.map(p=>`<li><span>${esc(p.n)}<span class="k ${p.kind}">${kindTxt[p.kind]||""}</span></span><b>${esc(p.target)||"–"}</b><small>${esc(p.why)}${p.last?` ${_("Senast {d}",{d:nice(p.last.date)})}: ${esc(p.last.s)}${rirTxt(p.last.rir)}.`:""}</small>${srcHTML(p.src)}</li>`).join("")||`<li><span class="muted">${_("Inga tidigare {t}-pass att utgå från.",{t:tagShort(n.tag)})}</span></li>`}</ul></section>`;
+  <div><ul class="pl">${r.plan.map(p=>`<li><span>${esc(p.n)}<span class="k ${p.kind}">${kindTxt[p.kind]||""}</span></span><b>${esc(p.target)||"–"}</b><small>${esc(p.why)}${p.last?` ${_("Senast {d}",{d:nice(p.last.date)})}: ${esc(p.last.s)}${rirTxt(p.last.rir)}.`:""}</small>${srcHTML(p.src)}</li>`).join("")||`<li><span class="muted">${_("Inga tidigare {t}-pass att utgå från.",{t:tagShort(n.tag)})}</span></li>`}</ul>${r.plan.length?`<p class="muted" style="margin:8px 0 0;font-size:14px">${_("{n} arbetsset i passet (x3 = tre likadana set). Uppvärmning räknas inte.",{n:r.plan.reduce((a,p)=>a+(p.sets||0),0)})}</p>`:""}</div></section>`;
   if(r.notes.length)h+=`<h3 style="font-size:24px;margin-bottom:4px">${_("Att tänka på")}</h3><ul class="notes">${r.notes.map(x=>`<li class="${x.k}">${esc(x.t)}${srcHTML(x.src)}</li>`).join("")}</ul>`;
   const mx=Math.max(3,...r.weeks.map(w=>w.total));
   const B=G.band,SC=Math.max(25,B[1]+5);

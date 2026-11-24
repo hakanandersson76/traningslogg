@@ -153,6 +153,8 @@ export default {
   "Lägg i planen": "Add to plan",
   "Ersätt planen": "Replace the plan",
   "Varför?": "Why?",
+  "{n} arbetsset i passet (x3 = tre likadana set). Uppvärmning räknas inte.": "{n} working sets in the workout (x3 = three identical sets). Warm-ups not counted.",
+  "Tumregel": "Rule of thumb",
   "Läs mer": "Read more",
   "Källor": "Sources",
   "Öka vikt": "More weight",

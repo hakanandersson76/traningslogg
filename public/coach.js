@@ -8,15 +8,15 @@ import { parseSets } from "./parse.js";
 import { t as tx, fmtNum } from "./i18n.js";
 
 export const SOURCES = {
-  plotkin2022: { t: "Plotkin m.fl. 2022 (PeerJ): att öka vikten eller öka antalet reps gav liknande ökning av styrka och muskler hos tränade.", u: "https://peerj.com/articles/14142" },
-  ralston2017: { t: "Ralston m.fl. 2017 (Sports Med): fler set per vecka ger mer styrka – ett dos–respons-samband.", u: "https://pubmed.ncbi.nlm.nih.gov/28755103/" },
-  pelland2024: { t: "Pelland m.fl. 2024 (preprint, SportRχiv): volym och frekvens har var sitt dos–respons-samband med muskeltillväxt och styrka.", u: "https://sportrxiv.org/index.php/server/preprint/download/460/967/908" },
-  schoenfeld2016: { t: "Schoenfeld m.fl. 2016 (Sports Med): med samma volym gav två pass per muskelgrupp och vecka mer muskeltillväxt än ett.", u: "https://pubmed.ncbi.nlm.nih.gov/27102172/" },
-  schoenfeld2019: { t: "Schoenfeld m.fl. 2019 (J Sports Sci): med samma volym spelar frekvensen liten roll – fler pass är främst ett sätt att få in mer volym.", u: "https://www.pubmed.gov/30558493/" },
-  robinson2024: { t: "Robinson m.fl. 2024 (Sports Med): att stoppa närmare failure ger mer muskeltillväxt, men spelar mindre roll för styrka.", u: "https://rke.abertay.ac.uk/en/publications/exploring-the-dose-response-relationship-between-estimated-resist/" },
-  refalo2024: { t: "Refalo m.fl. 2024 (J Sports Sci): set som avslutas med 1–2 reps kvar gav lika mycket muskeltillväxt som set till failure.", u: "https://pubmed.ncbi.nlm.nih.gov/38393985/" },
-  currier2023: { t: "Currier m.fl. 2023 (BJSM): stor jämförelse av belastning, set och frekvens – tyngre belastning gynnar styrka, muskeltillväxt fås med många upplägg.", u: "https://pmc.ncbi.nlm.nih.gov/articles/PMC10579494/" },
-  rule: { t: "Tumregel – praktisk erfarenhet, inte en siffra hämtad direkt ur en studie.", u: null },
+  plotkin2022: { s: "Plotkin 2022", t: "Plotkin m.fl. 2022 (PeerJ): att öka vikten eller öka antalet reps gav liknande ökning av styrka och muskler hos tränade.", u: "https://peerj.com/articles/14142" },
+  ralston2017: { s: "Ralston 2017", t: "Ralston m.fl. 2017 (Sports Med): fler set per vecka ger mer styrka – ett dos–respons-samband.", u: "https://pubmed.ncbi.nlm.nih.gov/28755103/" },
+  pelland2024: { s: "Pelland 2024", t: "Pelland m.fl. 2024 (preprint, SportRχiv): volym och frekvens har var sitt dos–respons-samband med muskeltillväxt och styrka.", u: "https://sportrxiv.org/index.php/server/preprint/download/460/967/908" },
+  schoenfeld2016: { s: "Schoenfeld 2016", t: "Schoenfeld m.fl. 2016 (Sports Med): med samma volym gav två pass per muskelgrupp och vecka mer muskeltillväxt än ett.", u: "https://pubmed.ncbi.nlm.nih.gov/27102172/" },
+  schoenfeld2019: { s: "Schoenfeld 2019", t: "Schoenfeld m.fl. 2019 (J Sports Sci): med samma volym spelar frekvensen liten roll – fler pass är främst ett sätt att få in mer volym.", u: "https://www.pubmed.gov/30558493/" },
+  robinson2024: { s: "Robinson 2024", t: "Robinson m.fl. 2024 (Sports Med): att stoppa närmare failure ger mer muskeltillväxt, men spelar mindre roll för styrka.", u: "https://rke.abertay.ac.uk/en/publications/exploring-the-dose-response-relationship-between-estimated-resist/" },
+  refalo2024: { s: "Refalo 2024", t: "Refalo m.fl. 2024 (J Sports Sci): set som avslutas med 1–2 reps kvar gav lika mycket muskeltillväxt som set till failure.", u: "https://pubmed.ncbi.nlm.nih.gov/38393985/" },
+  currier2023: { s: "Currier 2023", t: "Currier m.fl. 2023 (BJSM): stor jämförelse av belastning, set och frekvens – tyngre belastning gynnar styrka, muskeltillväxt fås med många upplägg.", u: "https://pmc.ncbi.nlm.nih.gov/articles/PMC10579494/" },
+  rule: { s: "Tumregel", t: "Tumregel – praktisk erfarenhet, inte en siffra hämtad direkt ur en studie.", u: null },
 };
 
 // Training goal decides rep ranges, how close to failure to go and the volume band.
@@ -27,6 +27,7 @@ export const GOALS = {
 };
 const goalOf = (g) => GOALS[g] || GOALS.muscle;
 const FREQ_TARGET = 2; // times per muscle group and week
+const MAX_SETS = 24; // working sets in one session, so it stays about an hour
 const INTERVAL = 7 / FREQ_TARGET;
 
 // ---- dates ----
@@ -136,7 +137,7 @@ export function nextTarget(entries, today, goal = "muscle", name = "") {
     const sameTop = entries.slice(-3).filter((e) => e.top && e.top.w === t.w && e.top.r <= t.r).length === 3;
     if (tr && tr.status === "flat" && sameTop && entries.length >= 4 && !(rir !== null && rir >= 3)) {
       const w = roundTo(t.w * 0.9, stepFor(t.w));
-      return { target: `3×${hi}@${fmt(w)}`, why: tx("Stått still på {set} tre pass. Ge musklerna ett nytt stimulus: fler reps på ~90 % ett pass, eller byt variant.", { set: `${t.r}@${fmt(t.w)}` }), kind: "plateau", src: ["plotkin2022", "rule"] };
+      return { target: `${hi}@${fmt(w)}`, why: tx("Stått still på {set} tre pass. Ge musklerna ett nytt stimulus: fler reps på ~90 % ett pass, eller byt variant.", { set: `${t.r}@${fmt(t.w)}` }), kind: "plateau", src: ["plotkin2022", "rule"] };
     }
     const easy = rir !== null && rir >= 3, failed = rir === 0;
     if (t.r >= hi || (easy && t.r >= hi - 2)) {
@@ -206,6 +207,31 @@ export function nextType(sessions, today, goal = "muscle") {
   return { tag, date, why, rest, restWhy, gu, gl, fu, fl, n7, src: rest ? [...src, "rule"] : src };
 }
 
+// How many working sets (warm-ups not counted) each exercise gets in one session.
+// Each muscle group should get about band/2 hard sets per session (two sessions a
+// week reach the weekly band), spread over that group's exercises: 2–4 sets each.
+export function allocSets(names, goal = "muscle") {
+  const G = goalOf(goal);
+  const perSession = Math.ceil(G.band[0] / FREQ_TARGET);
+  const lo = 2, hi = goal === "health" ? 3 : 4;
+  const byGroup = new Map();
+  for (const n of names) { const g = groupOf(n) || "?"; byGroup.set(g, (byGroup.get(g) || 0) + 1); }
+  const sets = names.map((n) => {
+    const g = groupOf(n) || "?";
+    const want = g === "core" || g === "?" ? (goal === "health" ? 2 : 3) : Math.ceil(perSession / byGroup.get(g));
+    return Math.max(lo, Math.min(hi, want));
+  });
+  // Keep the session a sensible length: trim the biggest counts first.
+  while (sets.reduce((a, b) => a + b, 0) > MAX_SETS) {
+    const i = sets.indexOf(Math.max(...sets));
+    if (sets[i] <= lo) break;
+    sets[i]--;
+  }
+  return sets;
+}
+// "9@25" + 3 sets → "9@25 x3" (Håkan's own notation for identical sets).
+export const withSets = (target, n) => (target && n > 1 ? `${target} x${n}` : target);
+
 // A concrete session of the given type: the exercises he usually does, with targets.
 export function proposeSession(sessions, tag, date, goal = "muscle") {
   const hist = history(sessions);
@@ -222,7 +248,11 @@ export function proposeSession(sessions, tag, date, goal = "muscle") {
   const sizes = pool.map((s) => (s.ex || []).length).sort((a, b) => a - b);
   const size = Math.max(3, Math.min(8, sizes[Math.floor(sizes.length / 2)]));
   const chosen = [...score.values()].sort((a, b) => b.w - a.w).slice(0, size).sort((a, b) => a.pos / a.k - b.pos / b.k);
-  return chosen.map((c) => ({ n: c.n, ...nextTarget(hist.get(c.n), date, goal, c.n), last: hist.get(c.n)?.at(-1) }));
+  const sets = allocSets(chosen.map((c) => c.n), goal);
+  return chosen.map((c, i) => {
+    const nt = nextTarget(hist.get(c.n), date, goal, c.n);
+    return { n: c.n, ...nt, sets: sets[i], target: withSets(nt.target, sets[i]), one: nt.target, last: hist.get(c.n)?.at(-1) };
+  });
 }
 
 // Weekly hard sets per muscle group over the last 4 weeks. Working sets are those

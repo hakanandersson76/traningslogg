@@ -5,9 +5,10 @@
 const num = (s) => parseFloat(String(s).replace(",", "."));
 
 // "kg" after the weight is optional and case-insensitive: 22,5 = 22,5kg = 22,5 kg = 22,5KG
-const SET_RE = /(\d+(?:[,.]\d+)?(?:\/\d+)?|x)\s*[@x]\s*(-?\d+(?:[,.]\d+)?(?:\+\d+(?:[,.]\d+)?)?)\s*(?:kg|k)?(?:\s+x(\d+)\b)?/gi;
-const TIME_RE = /\b(\d+):(\d\d)\b/g;
-const BARE_RE = /(?<![\d@,.])\b(\d+)\b(?![@\d.:x]|,\d)/g;
+// " x3" after a set (with a space) = three identical sets; "10x65" (no space) = reps×weight.
+const SET_RE = /(?<![\d:,.])(\d+(?:[,.]\d+)?(?:\/\d+)?|x)(?:\s*@\s*|x\s*)(-?\d+(?:[,.]\d+)?(?:\+\d+(?:[,.]\d+)?)?)(?:\s*(?:kg|k)\b)?(?:\s+x(\d+)\b)?/gi;
+const TIME_RE = /\b(\d+):(\d\d)\b(?:\s+x(\d+)\b)?/g;
+const BARE_RE = /(?<![\d@,.])\b(\d+)\b(?![@\d.:x]|,\d)(?:\s+x(\d+)\b)?/g;
 
 // Effort marker in text: "RIR 2", "rir2", "2 kvar" (reps left in the tank).
 const RIR_RE = /\b(?:rir\s*(\d)|(\d)\s*kvar)\b/gi;
@@ -27,12 +28,12 @@ export function parseSets(txt) {
     for (let i = 0; i < (+mult || 1); i++) sets.push({ ...s });
     return " ";
   });
-  body = body.replace(TIME_RE, (m, a, b) => {
-    sets.push({ t: +a * 60 + +b });
+  body = body.replace(TIME_RE, (m, a, b, mult) => {
+    for (let i = 0; i < (+mult || 1); i++) sets.push({ t: +a * 60 + +b });
     return " ";
   });
   if (!sets.some((s) => s.w != null)) {
-    for (const m of body.matchAll(BARE_RE)) sets.push({ r: +m[1], w: null });
+    for (const m of body.matchAll(BARE_RE)) for (let i = 0; i < (+m[2] || 1); i++) sets.push({ r: +m[1], w: null });
   }
   return sets;
 }

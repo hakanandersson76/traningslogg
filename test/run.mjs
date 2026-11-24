@@ -9,7 +9,7 @@ import worker from "../src/worker.js";
 import { _resetForTests } from "../src/schema.js";
 import { hashPassword } from "../src/auth.js";
 import { parseSessionText, parseSets } from "../public/parse.js";
-import { coachReport, nextTarget, history, groupOf, effectiveTag, isCompound, SOURCES, weeklyVolume } from "../public/coach.js";
+import { coachReport, nextTarget, history, groupOf, effectiveTag, isCompound, SOURCES, weeklyVolume, allocSets } from "../public/coach.js";
 import { setLang, detectLang, t as tr, tn, fmtNum, LANGS, _dicts } from "../public/i18n.js";
 import { collectKeys } from "./i18n-keys.mjs";
 
@@ -275,6 +275,10 @@ const pr = parseSessionText("261124 ÖK\nBänkpress 8@20, 6@22,5 RIR 2\nPull-ups
 assert(pr.ex[0].r === 2 && pr.ex[0].s === "8@20, 6@22,5" && pr.ex[1].r === 1 && pr.ex[1].s === "6, 5", "paste: 'RIR 2' and '1 kvar' become reps-left");
 assert(groupOf("Leg curl") === "ben" && groupOf("Jefferson curls (skivstång)") === "ben" && groupOf("Preacher curl") === "armar", "coach: muscle groups");
 assert(effectiveTag({ tag: "", ex: [{ n: "Squats" }, { n: "Leg extensions" }] }) === "NK", "coach: untyped session inferred");
+assert(parseSets("9@25 x3").length === 3 && parseSets("6@36,25kg x2").length === 2 && parseSets("10x65kg")[0].w === 65, "sets: ' x3' = three identical sets, '10x65' = reps×weight");
+assert(JSON.stringify(parseSets("2:45 x3")) === JSON.stringify([{ t: 165 }, { t: 165 }, { t: 165 }]) && parseSets("10 x3").length === 3, "sets: x3 also for time and bodyweight");
+assert(rep.plan.every((p) => p.sets >= 2 && p.target.endsWith(" x" + p.sets)) && rep.plan.filter((p) => groupOf(p.n) === "ben").reduce((a, p) => a + p.sets, 0) >= 10, "coach: every exercise gets 2+ working sets; leg day reaches 10+ hard leg sets");
+assert(allocSets(["Bänkpress", "Kabelrodd", "Axelpress", "Bicepscurl", "Tricepspress", "Leg curl", "Squats", "Plankan", "Face pulls", "Rodd"], "muscle").reduce((a, b) => a + b, 0) <= 24, "coach: a session is capped at 24 working sets");
 
 // ---- 10. Languages ----
 globalThis.document ??= { documentElement: {} };

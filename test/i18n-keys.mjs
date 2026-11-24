@@ -99,6 +99,7 @@ export function collectKeys() {
   add([...script.matchAll(/\|\|"([^"]+)"/g)].map((m) => m[1])); // e.message||"…"
   add(after(coach, /\bt: /g)); // SOURCES
   add(after(coach, /\blabel: /g)); // GOALS
+  add(["Tumregel"]); // short source label; the others are author names + year
   add([...coach.matchAll(/GROUP_NAMES = \{([^}]*)\}/g)].flatMap((m) => [...m[1].matchAll(/: "([^"]+)"/g)].map((x) => x[1])));
   // Server messages shown to the user.
   add(after(server, /\bbad\(/g));
