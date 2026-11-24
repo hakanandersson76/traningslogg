@@ -12,6 +12,7 @@ import { parseSessionText, parseSets } from "../public/parse.js";
 import { coachReport, nextTarget, history, groupOf, effectiveTag, isCompound, SOURCES, weeklyVolume, allocSets, proposeSession, sessionMinutes } from "../public/coach.js";
 import { setLang, detectLang, t as tr, tn, fmtNum, LANGS, _dicts } from "../public/i18n.js";
 import { collectKeys } from "./i18n-keys.mjs";
+import { homeStats } from "../public/home.js";
 import { musclesOf as _mo } from "../public/muscles.js";
 const musclesOf0 = (n) => _mo(n).p[0];
 
@@ -391,6 +392,20 @@ assert(!legs35.dropped.length && legs35.filter((x) => groupOf(x.n) === "ben").le
   assert(!up.some((x) => x.focus), "coach: leg focus not added to an upper-body day");
   const upf = proposeSession(seedS, "ÖK", "2026-11-25", "muscle", 0, { focus: ["bakaxlar"] });
   assert(upf.some((x) => x.focus && musclesOf0(x.n) === "bakaxlar"), "coach: focus adds an exercise even when weekly volume isn't low");
+}
+{
+  const S = (date, ex = [{ n: "Bänkpress", s: "8@60" }]) => ({ date, tag: "ÖK", ex });
+  // Tue 2026-11-24: weeks of 2026-11-02, -09 and -16 trained, none yet this week.
+  let hs = homeStats([S("2026-11-03"), S("2026-11-05"), S("2026-11-10"), S("2026-11-17")], "2026-11-24");
+  assert(hs.week.done === 0 && hs.week.left === 2 && hs.week.daysLeft === 6, "home: weekly goal and days left (today included)");
+  assert(hs.streak.current === 3 && hs.streak.atRisk && hs.streak.best === 3, "home: streak counts weeks, still alive until the week is over");
+  hs = homeStats([S("2026-11-03"), S("2026-11-17"), S("2026-11-24"), S("2026-11-26")], "2026-11-27");
+  assert(hs.week.met && hs.streak.current === 2 && !hs.streak.atRisk && hs.streak.best === 2, "home: goal met this week; a gap week breaks the streak");
+  assert(homeStats([S("2026-11-02")], "2026-11-30").fresh === "week" && homeStats([S("2026-11-02")], "2026-12-01").fresh === "month", "home: fresh start on Mondays and the 1st");
+  hs = homeStats(seedS, "2026-11-24");
+  assert(hs.total === 88 && hs.milestone.next === 100 && hs.milestone.left === 12, "home: next milestone");
+  assert(hs.gains.every((g) => g.pct > 0) && hs.bestLifts.length === 3 && hs.yearKg > 0 && hs.recordsYear > 0, "home: only gains shown, best lifts as fallback, kilos and records counted");
+  assert(hs.weeks.length === 12 && hs.weeks[11].start === "2026-11-23", "home: 12-week strip ends with this week");
 }
 const legs20 = proposeSession(seedS, "NK", "2026-11-25", "muscle", 20);
 assert(legs20.minutes <= 20 && legs20.dropped[0] === "Plankan" && legs20.filter((x) => x.sets === 1).length >= legs20.length - 1, "coach: very short: one set each, core left out first");

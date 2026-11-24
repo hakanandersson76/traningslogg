@@ -37,6 +37,20 @@ In English the labels are UB / LB / FB (Upper / Lower / Full body); the stored t
 - If the proposal is too long: sets above 2 go first, then whole exercises (core/ungrouped first, then a second exercise for an already-covered muscle group, then isolation), keeping at least 3. Then sets are added back while they fit, and leftover time is used: a dropped exercise back with 2 sets if it fits, then a 3rd set on the most important exercises (not for the health goal). The coach card shows the estimate and what didn't fit. The editor's "fill with latest" uses the same rule.
 - `PUT /api/account/session-length {minutes}` (15–180).
 
+## Home (start page)
+- `#home` is the start page after login. `public/home.js` (pure, tested) computes the numbers; each element follows a behavioural-science idea (sources behind "Varför sidan ser ut så här"):
+  - weekly goal (2 workouts) as progress dots, "1 workout left – 4 days left" (goal gradient, Kivetz 2006);
+  - streak in weeks with at least one workout, alive until the week is over, plus best streak (habits, Lally 2010);
+  - one message at a time, chosen in order: welcome back after 10+ days (no shame), goal met, fresh start on Monday / 1st of month (Dai 2014), streak at risk, close to goal;
+  - next workout from the coach with Start / Add to plan / Copy as text, and a prompt when nothing is planned this week (implementation intentions, Gollwitzer 2006; Milkman 2021);
+  - 12-week strip with the goal line; strength **gains only** (declines stay on the Coach tab), else the year's best lifts; workouts, kilos and records this year; next milestone; records last 30 days; month so far (compared only when better).
+  - The weekly AI insight lives here (moved from Coach).
+- After saving a new workout the app goes to Home ("Passet är sparat. Bra jobbat!").
+
+## Text mode and copying
+- The coach suggestion can be copied as Notes text (Home and Coach: "Kopiera som text"): `261124 NK` then `Exercise target` per line, e.g. `Jefferson curls (skivstång) 9@25 x2`.
+- The editor (log and plan) has Formulär / Text; Formulär is the default. Text mode shows the same Notes format, with the coach's targets filled in for exercises without sets; overwrite them with the result. Switching back or saving parses the text with `parseSessionText` (same format as paste). Lines without sets aren't saved for a log.
+
 ## Muscles and variation
 - `public/muscles.js`: rules read the free-text exercise name (Swedish and English) and give primary muscles (a set counts 1), secondary muscles (counts 0,5, "fractional" sets as in Pelland 2024) and compound/isolation. 14 muscles; volume target applies to the 8 big ones (MAIN). Every exercise in the 2026 log is recognised.
 - The user can correct any exercise in Coach → Övningar och muskler (table `exercise_muscles`, `PUT /api/muscles {name, p, s}`, empty `p` = back to automatic). Own choices win over the rules.
