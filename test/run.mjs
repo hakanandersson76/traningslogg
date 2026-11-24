@@ -148,6 +148,12 @@ r = await put(anna, "/api/account/goal", { goal: "strength" });
 assert(r.status === 200 && r.body.user.goal === "strength" && (await anna("/api/me")).body.user.goal === "strength", "goal can be changed");
 assert((await put(anna, "/api/account/goal", { goal: "bulk" })).status === 400, "unknown goal refused");
 await anna("/api/sessions/2026-11-25-r", { method: "DELETE" });
+// own muscle choice per exercise
+r = await put(anna, "/api/muscles", { name: "Konstig maskin", p: ["rygg"], s: ["biceps"] });
+assert(r.status === 200 && JSON.stringify((await anna("/api/data")).body.muscles["Konstig maskin"]) === JSON.stringify({ p: ["rygg"], s: ["biceps"] }), "muscles: own choice saved and returned with data");
+assert((await put(anna, "/api/muscles", { name: "X", p: ["vingar"] })).status === 400, "muscles: unknown muscle refused");
+await put(anna, "/api/muscles", { name: "Konstig maskin", p: [] });
+assert(!("Konstig maskin" in (await anna("/api/data")).body.muscles), "muscles: back to automatic");
 // session length
 assert((await anna("/api/me")).body.user.sessionMin === 40, "new users: 40 min sessions");
 r = await put(anna, "/api/account/session-length", { minutes: 35 });
@@ -260,7 +266,9 @@ const seedS = JSON.parse(await readFile("data/sessions.json", "utf8")).sessions.
 const rep = coachReport(seedS, "2026-11-22");
 assert(rep.next.tag === "NK" && !rep.next.rest, `coach: legs due after ${rep.next.gl} days → NK`);
 assert(rep.plan.length >= 3 && rep.plan.every((p) => groupOf(p.n) === "ben" || groupOf(p.n) === "core"), "coach: proposed NK session uses leg/core exercises");
-assert(rep.plan.find((p) => p.n === "Vadpress (maskin)")?.kind === "plateau", "coach: calf press flagged as plateau");
+const calf = rep.plan.find((p) => p.from === "Vadpress (maskin)");
+assert(calf && calf.kind === "variant" && groupOf(calf.n) === "ben" && /Vadpress|Calf/.test(calf.n), "coach: stalled calf press swapped for his other calf exercise");
+assert(nextTarget(history(seedS).get("Vadpress (maskin)"), "2026-11-24", "muscle", "Vadpress (maskin)").kind === "plateau", "coach: calf press flagged as plateau");
 const H = (s, rir = null, date = "2026-01-01") => history([{ date, ex: [{ n: "Bänkpress", s, r: rir }] }]).get("Bänkpress");
 assert(isCompound("Bänkpress (incline)") && !isCompound("Tricepspress (kabelmaskin)") && !isCompound("Vadpress (maskin)") && !isCompound("Preacher curl"), "coach: compound vs isolation");
 assert(nextTarget(H("10@20"), "2026-01-05", "muscle", "Bänkpress").target === "6@22,5", "coach (muskler, 6–10): 10 reps → +2,5 kg and back to 6");
@@ -283,17 +291,40 @@ assert(groupOf("Leg curl") === "ben" && groupOf("Jefferson curls (skivstång)") 
 assert(effectiveTag({ tag: "", ex: [{ n: "Squats" }, { n: "Leg extensions" }] }) === "NK", "coach: untyped session inferred");
 assert(parseSets("9@25 x3").length === 3 && parseSets("6@36,25kg x2").length === 2 && parseSets("10x65kg")[0].w === 65, "sets: ' x3' = three identical sets, '10x65' = reps×weight");
 assert(JSON.stringify(parseSets("2:45 x3")) === JSON.stringify([{ t: 165 }, { t: 165 }, { t: 165 }]) && parseSets("10 x3").length === 3, "sets: x3 also for time and bodyweight");
-assert(rep.plan.every((p) => p.sets >= 2 && p.target.endsWith(" x" + p.sets)) && rep.plan.filter((p) => groupOf(p.n) === "ben").reduce((a, p) => a + p.sets, 0) >= 10, "coach: every exercise gets 2+ working sets; leg day reaches 10+ hard leg sets");
+assert(rep.plan.every((p) => p.sets >= 2 && p.target.endsWith(" x" + p.sets) && p.alts.length) && rep.plan.filter((p) => groupOf(p.n) === "ben").reduce((a, p) => a + p.sets, 0) >= 10, "coach: every exercise gets 2+ working sets; leg day reaches 10+ hard leg sets");
 for (const [tag, m] of [["NK", 35], ["ÖK", 35], ["HK", 35], ["NK", 25]]) {
   const p = proposeSession(seedS, tag, "2026-11-25", "muscle", m);
-  assert(p.minutes <= m && p.length >= 3 && p.every((x) => x.sets >= 2), `coach: ${tag} fits ${m} min (${p.minutes} min, ${p.length} exercises, dropped: ${p.dropped.join(", ") || "none"})`);
+  assert(p.minutes <= m && p.length >= 3 && p.every((x) => x.sets >= 1), `coach: ${tag} fits ${m} min (${p.minutes} min, ${p.length} exercises, dropped: ${p.dropped.join(", ") || "none"})`);
 }
 const legs35 = proposeSession(seedS, "NK", "2026-11-25", "muscle", 35);
-assert(legs35.dropped[0] === "Plankan" && legs35.filter((x) => groupOf(x.n) === "ben").length === 6, "coach: short leg day drops core before leg exercises");
+assert(!legs35.dropped.length && legs35.filter((x) => groupOf(x.n) === "ben").length >= 6, "coach: short leg day keeps all exercises with fewer sets");
+const legs20 = proposeSession(seedS, "NK", "2026-11-25", "muscle", 20);
+assert(legs20.minutes <= 20 && legs20.dropped[0] === "Plankan" && legs20.filter((x) => x.sets === 1).length >= legs20.length - 1, "coach: very short: one set each, core left out first");
+const sets35 = legs35.map((x) => x.sets);
+assert(Math.max(...sets35) - Math.min(...sets35) <= 1, "coach: sets spread evenly (everyone gets a 2nd set before anyone a 3rd)");
+assert(legs35.some((x) => x.added && groupOf(x.n) === "ben"), "coach: neglected leg muscle gets an exercise added");
 const up35 = proposeSession(seedS, "ÖK", "2026-11-25", "muscle", 35);
 assert(["bröst", "rygg", "axlar", "armar"].every((g) => up35.some((x) => groupOf(x.n) === g)), "coach: short upper day keeps every muscle group");
 assert(proposeSession(seedS, "ÖK", "2026-11-25", "muscle", 90).reduce((a, x) => a + x.sets, 0) > up35.reduce((a, x) => a + x.sets, 0), "coach: more time → more sets");
 assert(sessionMinutes([{ n: "Bänkpress", sets: 3, one: "8@60" }, { n: "Plankan", sets: 2, one: "1:00" }]) === 7.5 + 1 + 4 + 1, "coach: time estimate (no warm-up)");
+{
+  const { musclesOf, setMuscleOverrides } = await import("../public/muscles.js");
+  const m = (n) => musclesOf(n).p.join("+");
+  assert(m("Bicepscurl (över bänk)") === "biceps" && m("Tricepspress hantel (bänk liggande)") === "triceps" && m("Hip abductor (in)") === "höft" && m("Kabelrodd") === "rygg" && m("Glute drive") === "säte" && m("Leg extensions") === "framlår" && m("Shrugs") === "trapets" && m("Face pulls") === "bakaxlar" && m("Bulgarian split squat") === "framlår+säte" && m("Lat pulldown") === "rygg", "muscles: free-text names (sv/en) mapped");
+  assert(musclesOf("Kabelrodd").s.includes("biceps") && musclesOf("Incline bröst (smith rak)").c, "muscles: secondary muscles and compound flag");
+  const names = new Set(seedS.flatMap((s) => s.ex.map((e) => e.n)));
+  assert([...names].every((n) => musclesOf(n).known), "muscles: every exercise in the 2026 log is recognised");
+  assert(!musclesOf("Konstig maskin").known, "muscles: unknown name stays unknown");
+  setMuscleOverrides({ "Konstig maskin": { p: ["rygg"], s: [] }, "Kabelrodd": { p: ["bakaxlar"], s: [] } });
+  assert(musclesOf("konstig maskin").p[0] === "rygg" && musclesOf("Kabelrodd").p[0] === "bakaxlar" && musclesOf("Kabelrodd").own, "muscles: own choice overrides the rules");
+  setMuscleOverrides({});
+  const v = weeklyVolume([{ date: "2026-11-20", ex: [{ n: "Kabelrodd", s: "8@40, 8@40" }] }], "2026-11-24", 1);
+  assert(v.muscles.find((x) => x.g === "rygg").perWeek === 2 && v.muscles.find((x) => x.g === "biceps").perWeek === 1, "volume: secondary muscle counts half a set");
+  const sw = proposeSession(seedS, "ÖK", "2026-11-25", "muscle", 0, { swaps: { "Kabelrodd": "Pulldown (handtag)" } });
+  assert(sw.some((x) => x.n === "Pulldown (handtag)" && x.from === "Kabelrodd") && !sw.some((x) => x.n === "Kabelrodd"), "coach: user swap replaces the exercise");
+  const keep = proposeSession(seedS, "NK", "2026-11-25", "muscle", 0, { swaps: { "Vadpress (maskin)": "Vadpress (maskin)" } });
+  assert(keep.some((x) => x.n === "Vadpress (maskin)" && x.kind === "plateau"), "coach: choosing the original back stops the automatic variation");
+}
 assert(allocSets(["Bänkpress", "Kabelrodd", "Axelpress", "Bicepscurl", "Tricepspress", "Leg curl", "Squats", "Plankan", "Face pulls", "Rodd"], "muscle").reduce((a, b) => a + b, 0) <= 24, "coach: a session is capped at 24 working sets");
 
 // ---- 10. Languages ----

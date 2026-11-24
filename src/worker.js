@@ -33,6 +33,8 @@ const cleanRir = (r) => (r === null || r === undefined || r === "" || !Number.is
 const GOALS = new Set(["strength", "muscle", "health"]);
 // UI languages (must match LANGS in public/i18n.js). "" = follow the device.
 const LANGS = new Set(["sv", "en"]);
+// Muscle ids (must match MUSCLES in public/muscles.js).
+const MUSCLE_IDS = new Set(["bröst", "rygg", "trapets", "axlar", "bakaxlar", "biceps", "triceps", "underarmar", "framlår", "baklår", "säte", "höft", "vader", "bål"]);
 
 function cleanExercises(ex) {
   if (!Array.isArray(ex)) return null;
@@ -74,7 +76,7 @@ function sessionStatements(db, userId, id, s) {
 }
 
 async function getData(db, userId) {
-  const [sess, ex, plans, pex] = await db.batch([
+  const [sess, ex, plans, pex, mus] = await db.batch([
     db.prepare("SELECT id, date, tag, note FROM sessions WHERE user_id = ?1 ORDER BY date, id").bind(userId),
     db.prepare(
       `SELECT e.session_id, e.pos, e.name, e.sets_text, e.rir FROM exercises e JOIN sessions s ON s.id = e.session_id
@@ -82,7 +84,9 @@ async function getData(db, userId) {
     ).bind(userId),
     db.prepare("SELECT date, tag, note, done_session_id FROM plans WHERE user_id = ?1 ORDER BY date").bind(userId),
     db.prepare("SELECT plan_date, pos, name, target FROM plan_exercises WHERE user_id = ?1 ORDER BY plan_date, pos").bind(userId),
+    db.prepare("SELECT name, primary_m, secondary_m FROM exercise_muscles WHERE user_id = ?1").bind(userId),
   ]);
+  const split = (s) => String(s || "").split(",").filter(Boolean);
   const exBy = new Map();
   for (const r of ex.results) {
     if (!exBy.has(r.session_id)) exBy.set(r.session_id, []);
@@ -96,6 +100,7 @@ async function getData(db, userId) {
   return {
     sessions: sess.results.map((r) => ({ id: r.id, date: r.date, tag: r.tag, note: r.note, ex: exBy.get(r.id) || [] })),
     plans: plans.results.map((r) => ({ id: r.date, date: r.date, tag: r.tag, note: r.note, done: r.done_session_id, ex: pexBy.get(r.date) || [] })),
+    muscles: Object.fromEntries(mus.results.map((r) => [r.name, { p: split(r.primary_m), s: split(r.secondary_m) }])),
   };
 }
 
@@ -324,6 +329,18 @@ async function handleApi(request, env, url) {
   if (resource === "admin") return handleAdmin(request, env, url, db, user, parts.slice(1));
 
   if (resource === "data" && method === "GET") return json(await getData(db, user.id));
+
+  // The user's own muscle choice for an exercise. Empty primary list = back to automatic.
+  if (resource === "muscles" && method === "PUT") {
+    const b = (await readBody(request)) || {};
+    const name = String(b.name || "").trim().slice(0, 120);
+    const ok = (a) => Array.isArray(a) && a.every((m) => MUSCLE_IDS.has(m));
+    if (!name || !ok(b.p || []) || !ok(b.s || [])) return bad("Ogiltig begäran.");
+    const p = [...new Set(b.p || [])], s = [...new Set(b.s || [])].filter((m) => !p.includes(m));
+    if (!p.length) await db.prepare("DELETE FROM exercise_muscles WHERE user_id = ?1 AND name = ?2").bind(user.id, name).run();
+    else await db.prepare("INSERT OR REPLACE INTO exercise_muscles (user_id, name, primary_m, secondary_m) VALUES (?1, ?2, ?3, ?4)").bind(user.id, name, p.join(","), s.join(",")).run();
+    return json({ ok: true });
+  }
 
   if (resource === "sessions" && isId(key)) {
     const owner = await db.prepare("SELECT user_id FROM sessions WHERE id = ?1").bind(key).first();

@@ -37,6 +37,12 @@ In English the labels are UB / LB / FB (Upper / Lower / Full body); the stored t
 - If the proposal is too long: sets above 2 go first, then whole exercises (core/ungrouped first, then a second exercise for an already-covered muscle group, then isolation), keeping at least 3. Then sets are added back while they fit, and leftover time is used: a dropped exercise back with 2 sets if it fits, then a 3rd set on the most important exercises (not for the health goal). The coach card shows the estimate and what didn't fit. The editor's "fill with latest" uses the same rule.
 - `PUT /api/account/session-length {minutes}` (15–180).
 
+## Muscles and variation
+- `public/muscles.js`: rules read the free-text exercise name (Swedish and English) and give primary muscles (a set counts 1), secondary muscles (counts 0,5, "fractional" sets as in Pelland 2024) and compound/isolation. 14 muscles; volume target applies to the 8 big ones (MAIN). Every exercise in the 2026 log is recognised.
+- The user can correct any exercise in Coach → Övningar och muskler (table `exercise_muscles`, `PUT /api/muscles {name, p, s}`, empty `p` = back to automatic). Own choices win over the rules.
+- Proposals vary: a stalled exercise is swapped for the user's own other exercise for the same main muscle (same kind of lift first; Kassiano 2022: planned variation helps, too frequent switching may not). A big muscle of the session type with under the weekly band and no exercise in the proposal gets one added (max two). Every row has a "Byt" picker (own exercises first, then catalog suggestions); swaps last for the day.
+- Time fitting builds up instead of cutting down: 1 set per exercise first (core, then a second exercise for the same muscle, are left out only if even that doesn't fit), then sets are added one at a time to the exercise with the fewest, up to the planned count, then up to 3. Few sets on many exercises, because the first sets per muscle and session give the most (Remmert 2025).
+
 ## Languages
 - Swedish and English. Default: the iPhone/browser language if supported, else English. Override in Inställningar → Språk (saved per user in `users.lang`; `""` = follow the device). The login screen has Svenska/English links (remembered on the device).
 - Swedish is the source text and the key: code calls `_("Logga pass")` (index.html) or `tx(...)` (coach.js); `public/locales/<code>.js` maps Swedish → translation. `{placeholders}` are filled in; numbers use the language's decimal mark. Server messages stay Swedish and are translated in the app.
@@ -60,7 +66,7 @@ public/            static app (served by Workers Assets)
   manifest.webmanifest, icon-*.png   home-screen app on iPad
 src/worker.js      API: /api/auth/*, /api/account/*, /api/admin/*, /api/data, /api/sessions/:id, /api/plans/:date, /api/import
 src/auth.js        password hashing, login sessions, reset tokens, password rules
-src/schema.js      D1 schema + migrations (v2 = accounts, v3 = approval/status, no email, v4 = RIR + goal, v5 = language, v6 = session length), run automatically on first request
+src/schema.js      D1 schema + migrations (v2 = accounts, v3 = approval/status, no email, v4 = RIR + goal, v5 = language, v6 = session length, v7 = own muscle choices), run automatically on first request
 data/sessions.json export from v1 (seed for /api/import)
 test/run.mjs       local tests with a fake D1 (npm test)
 wrangler.jsonc     Worker + Assets + D1 binding

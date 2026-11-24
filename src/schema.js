@@ -67,7 +67,19 @@ const V6 = [
   `INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '6')`,
 ];
 
-export const SCHEMA_VERSION = 6;
+// Version 7: the user's own muscle choice per exercise (overrides the name rules).
+const V7 = [
+  `CREATE TABLE IF NOT EXISTS exercise_muscles (
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    primary_m TEXT NOT NULL,
+    secondary_m TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY (user_id, name)
+  )`,
+  `INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '7')`,
+];
+
+export const SCHEMA_VERSION = 7;
 
 let ready = null;
 export function ensureSchema(db) {
@@ -88,6 +100,7 @@ async function migrate(db) {
   if (v < 4) await db.batch(V4.map((s) => db.prepare(s)));
   if (v < 5) await db.batch(V5.map((s) => db.prepare(s)));
   if (v < 6) await db.batch(V6.map((s) => db.prepare(s)));
+  if (v < 7) await db.batch(V7.map((s) => db.prepare(s)));
 }
 
 // Create the admin account on first start (from the ADMIN_EMAIL and
