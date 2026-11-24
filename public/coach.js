@@ -1,9 +1,11 @@
 // Rule-based personal trainer. Pure functions over the session history, so
-// they run in the browser and in tests. Swedish text is produced for the UI.
+// they run in the browser and in tests. Texts go through t() (Swedish source,
+// translated per locale in i18n.js).
 // Every piece of advice carries `src`: ids into SOURCES, so the app can show
 // what it is based on. Rules that are practical judgement rather than research
 // point to "rule" and are shown as such.
 import { parseSets } from "./parse.js";
+import { t as tx, fmtNum } from "./i18n.js";
 
 export const SOURCES = {
   plotkin2022: { t: "Plotkin m.fl. 2022 (PeerJ): att öka vikten eller öka antalet reps gav liknande ökning av styrka och muskler hos tränade.", u: "https://peerj.com/articles/14142" },
@@ -91,12 +93,13 @@ export function history(sessions) {
   return m;
 }
 
-const fmt = (w) => String(Math.round(w * 100) / 100).replace(".", ",");
+const fmt = (w) => fmtNum(w);
 const fmt1 = (x) => fmt(Math.round(x * 10) / 10);
 const mmss = (t) => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
 const roundTo = (w, st) => Math.round(w / st) * st;
 const stepFor = (w) => (w >= 100 ? 5 : w >= 10 ? 2.5 : 1);
-const list = (a) => (a.length <= 1 ? a.join("") : a.slice(0, -1).join(", ") + " och " + a.at(-1));
+const list = (a) => (a.length <= 1 ? a.join("") : a.slice(0, -1).join(", ") + " " + tx("och") + " " + a.at(-1));
+const gname = (g) => tx(GROUP_NAMES[g]);
 
 // Trend of one exercise: compare best e1RM of the last 3 sessions with the 3 before.
 export function trendOf(entries, today) {
@@ -117,45 +120,45 @@ export function trendOf(entries, today) {
 export function nextTarget(entries, today, goal = "muscle", name = "") {
   const G = goalOf(goal);
   const [lo, hi] = repRange(name, goal);
-  const effort = `Sikta på ${G.rir} reps kvar i sista setet.`;
+  const effort = tx("Sikta på {rir} reps kvar i sista setet.", { rir: G.rir });
   const last = entries?.at(-1);
-  if (!last) return { target: "", why: `Ny övning: välj en vikt du klarar ${lo}–${hi} gånger med ${G.rir} reps kvar.`, kind: "new", src: [...G.src] };
+  if (!last) return { target: "", why: tx("Ny övning: välj en vikt du klarar {lo}–{hi} gånger med {rir} reps kvar.", { lo, hi, rir: G.rir }), kind: "new", src: [...G.src] };
   const gap = daysBetween(last.date, today);
   const t = last.top;
   const rir = last.rir;
   if (t && t.w > 0) {
-    const lbl = t.wl ? t.wl.replace(".", ",") : fmt(t.w);
+    const lbl = t.wl ? t.wl.replace(/[.,]/g, fmtNum(0.5).charAt(1)) : fmt(t.w);
     if (gap > 28) {
       const w = roundTo(t.w * 0.9, stepFor(t.w));
-      return { target: `${Math.min(Math.max(t.r, lo), hi)}@${fmt(w)}`, why: `${gap} dagar sedan sist. Börja på ~90 % och bygg upp igen. ${effort}`, kind: "comeback", src: ["rule"] };
+      return { target: `${Math.min(Math.max(t.r, lo), hi)}@${fmt(w)}`, why: tx("{gap} dagar sedan sist. Börja på ~90 % och bygg upp igen.", { gap }) + " " + effort, kind: "comeback", src: ["rule"] };
     }
     const tr = trendOf(entries, today);
     const sameTop = entries.slice(-3).filter((e) => e.top && e.top.w === t.w && e.top.r <= t.r).length === 3;
     if (tr && tr.status === "flat" && sameTop && entries.length >= 4 && !(rir !== null && rir >= 3)) {
       const w = roundTo(t.w * 0.9, stepFor(t.w));
-      return { target: `3×${hi}@${fmt(w)}`, why: `Stått still på ${t.r}@${fmt(t.w)} tre pass. Ge musklerna ett nytt stimulus: fler reps på ~90 % ett pass, eller byt variant.`, kind: "plateau", src: ["plotkin2022", "rule"] };
+      return { target: `3×${hi}@${fmt(w)}`, why: tx("Stått still på {set} tre pass. Ge musklerna ett nytt stimulus: fler reps på ~90 % ett pass, eller byt variant.", { set: `${t.r}@${fmt(t.w)}` }), kind: "plateau", src: ["plotkin2022", "rule"] };
     }
     const easy = rir !== null && rir >= 3, failed = rir === 0;
     if (t.r >= hi || (easy && t.r >= hi - 2)) {
       const w = t.w + stepFor(t.w);
-      return { target: `${lo}@${fmt(w)}`, why: `Klarade ${t.r} reps${easy ? ` med ${rir} kvar` : ""} – toppen av ditt intervall ${lo}–${hi}. Öka vikten och börja om på ${lo}. ${effort}`, kind: "weight", src: ["plotkin2022", ...G.src] };
+      return { target: `${lo}@${fmt(w)}`, why: (easy ? tx("Klarade {r} reps med {rir} kvar – toppen av ditt intervall {lo}–{hi}. Öka vikten och börja om på {lo}.", { r: t.r, rir, lo, hi }) : tx("Klarade {r} reps – toppen av ditt intervall {lo}–{hi}. Öka vikten och börja om på {lo}.", { r: t.r, lo, hi })) + " " + effort, kind: "weight", src: ["plotkin2022", ...G.src] };
     }
     if (t.r < lo) {
       if (failed) {
         const w = roundTo(t.w - stepFor(t.w), stepFor(t.w));
-        return { target: `${lo}@${fmt(w)}`, why: `Bara ${t.r} reps och inget kvar – under intervallet ${lo}–${hi}. Sänk lite och bygg upp igen. ${effort}`, kind: "lower", src: ["rule", ...G.src] };
+        return { target: `${lo}@${fmt(w)}`, why: tx("Bara {r} reps och inget kvar – under intervallet {lo}–{hi}. Sänk lite och bygg upp igen.", { r: t.r, lo, hi }) + " " + effort, kind: "lower", src: ["rule", ...G.src] };
       }
-      return { target: `${lo}@${lbl}`, why: `${t.r} reps är under ditt intervall ${lo}–${hi}. Sikta på ${lo} med samma vikt. ${effort}`, kind: "reps", src: ["plotkin2022", ...G.src] };
+      return { target: `${lo}@${lbl}`, why: tx("{r} reps är under ditt intervall {lo}–{hi}. Sikta på {lo} med samma vikt.", { r: t.r, lo, hi }) + " " + effort, kind: "reps", src: ["plotkin2022", ...G.src] };
     }
     const add = easy ? 2 : 1;
     return {
       target: `${Math.min(t.r + add, hi)}@${lbl}`,
-      why: `${easy ? `Kändes lätt förra gången (${rir} kvar) – två reps till.` : `En rep till än förra gången (${t.r}@${lbl}).`} Vid ${hi} reps ökar du vikten. ${effort}`,
+      why: (easy ? tx("Kändes lätt förra gången ({rir} kvar) – två reps till.", { rir }) : tx("En rep till än förra gången ({set}).", { set: `${t.r}@${lbl}` })) + " " + tx("Vid {hi} reps ökar du vikten.", { hi }) + " " + effort,
       kind: "reps", src: ["plotkin2022", ...G.src],
     };
   }
-  if (last.sec) return { target: mmss(last.sec + 15), why: `Förra gången ${mmss(last.sec)}. Sikta på 15 s längre.`, kind: "time", src: ["rule"] };
-  if (last.bw) return { target: `${last.bw + (rir !== null && rir >= 3 ? 2 : 1)}`, why: `Förra gången ${last.bw} reps${rir !== null ? ` (${rir} kvar)` : ""}. ${rir !== null && rir >= 3 ? "Två" : "En"} till.`, kind: "reps", src: ["plotkin2022"] };
+  if (last.sec) return { target: mmss(last.sec + 15), why: tx("Förra gången {t}. Sikta på 15 s längre.", { t: mmss(last.sec) }), kind: "time", src: ["rule"] };
+  if (last.bw) return { target: `${last.bw + (rir !== null && rir >= 3 ? 2 : 1)}`, why: (rir !== null ? tx("Förra gången {r} reps ({rir} kvar).", { r: last.bw, rir }) : tx("Förra gången {r} reps.", { r: last.bw })) + " " + (rir !== null && rir >= 3 ? tx("Två till.") : tx("En till.")), kind: "reps", src: ["plotkin2022"] };
   return { target: "", why: "", kind: "none", src: [] };
 }
 
@@ -175,7 +178,7 @@ export function groupFrequency(sessions, today, days = 28) {
 export function nextType(sessions, today, goal = "muscle") {
   const done = [...sessions].filter((s) => s.date <= today).sort((a, b) => (a.date < b.date ? 1 : -1));
   const src = ["schoenfeld2016", "schoenfeld2019", "pelland2024"];
-  if (!done.length) return { tag: "HK", date: today, why: "Inga pass än. Börja med ett helkroppspass.", rest: false, src };
+  if (!done.length) return { tag: "HK", date: today, why: tx("Inga pass än. Börja med ett helkroppspass."), rest: false, src };
   const lastFor = (r) => done.find((s) => regions(effectiveTag(s)).includes(r))?.date;
   const lu = lastFor("upper"), ll = lastFor("lower");
   const gu = lu ? daysBetween(lu, today) : 99, gl = ll ? daysBetween(ll, today) : 99;
@@ -187,19 +190,19 @@ export function nextType(sessions, today, goal = "muscle") {
   const from8 = done.filter((s) => daysBetween(s.date, today) < 56);
   const hkShare = from8.length ? from8.filter((s) => effectiveTag(s) === "HK").length / from8.length : 0;
   const ru = gu / INTERVAL, rl = gl / INTERVAL;
-  const dTxt = (g) => (g >= 99 ? "aldrig" : g === 0 ? "idag" : g === 1 ? "i går" : `för ${g} dagar sedan`);
+  const dTxt = (g) => (g >= 99 ? tx("aldrig") : g === 0 ? tx("idag") : g === 1 ? tx("i går") : tx("för {n} dagar sedan", { n: g }));
   let tag;
   if (ru >= 1 && rl >= 1) {
     const ratio = Math.max(ru, rl) / Math.min(ru, rl);
     tag = ratio >= 2 ? (rl > ru ? "NK" : "ÖK") : hkShare >= 0.2 ? "HK" : rl >= ru ? "NK" : "ÖK";
   } else tag = rl >= ru ? "NK" : "ÖK";
-  const why = `Benen tränades senast ${dTxt(gl)} (${fmt1(fl)} gånger/vecka senaste 4 veckorna), överkroppen ${dTxt(gu)} (${fmt1(fu)}/vecka). Målet är minst ${FREQ_TARGET} gånger per muskelgrupp och vecka.`;
+  const why = tx("Benen tränades senast {dl} ({fl} gånger/vecka senaste 4 veckorna), överkroppen {du} ({fu}/vecka). Målet är minst {n} gånger per muskelgrupp och vecka.", { dl: dTxt(gl), fl: fmt1(fl), du: dTxt(gu), fu: fmt1(fu), n: FREQ_TARGET });
   const rest = doneToday || n7 >= 5 || (ru < 0.57 && rl < 0.57);
   const date = doneToday ? addDays(today, 1) : today;
   let restWhy = "";
-  if (doneToday) restWhy = "Du har redan tränat idag. Förslaget gäller i morgon.";
-  else if (n7 >= 5) restWhy = `${n7} pass senaste 7 dagarna. En vilodag gör mer nytta än ett pass till.`;
-  else if (rest) restWhy = "Allt är tränat de senaste två dagarna. Vila idag eller kör ett lätt pass.";
+  if (doneToday) restWhy = tx("Du har redan tränat idag. Förslaget gäller i morgon.");
+  else if (n7 >= 5) restWhy = tx("{n} pass senaste 7 dagarna. En vilodag gör mer nytta än ett pass till.", { n: n7 });
+  else if (rest) restWhy = tx("Allt är tränat de senaste två dagarna. Vila idag eller kör ett lätt pass.");
   return { tag, date, why, rest, restWhy, gu, gl, fu, fl, n7, src: rest ? [...src, "rule"] : src };
 }
 
@@ -298,14 +301,14 @@ export function coachReport(sessions, today, goal = "muscle") {
   // Short list of the most useful observations, most important first.
   const notes = [];
   const lowF = freq.filter((f) => f.g !== "core" && f.perWeek < FREQ_TARGET - 0.25);
-  if (hasData && lowF.length) notes.push({ k: "warn", t: `${list(lowF.map((f) => f.name))} tränas under ${FREQ_TARGET} gånger i veckan (snitt senaste 4 veckorna). Forskningen talar för minst två gånger per muskelgrupp och vecka – det är också det enklaste sättet att få in tillräcklig volym.`, src: ["schoenfeld2016", "schoenfeld2019", "pelland2024"] });
+  if (hasData && lowF.length) notes.push({ k: "warn", t: tx("{groups} tränas under {n} gånger i veckan (snitt senaste 4 veckorna). Forskningen talar för minst två gånger per muskelgrupp och vecka – det är också det enklaste sättet att få in tillräcklig volym.", { groups: list(lowF.map((f) => gname(f.g))), n: FREQ_TARGET }), src: ["schoenfeld2016", "schoenfeld2019", "pelland2024"] });
   const lowV = volume.groups.filter((v) => v.g !== "core" && v.perWeek < G.band[0]);
-  if (hasData && lowV.length) notes.push({ k: "warn", t: `Låg volym för ${list(lowV.map((v) => v.name.toLowerCase()))}: under ${G.band[0]} tunga set i veckan. För målet ${G.label.toLowerCase()} ger ${G.band[0]}–${G.band[1]} set per muskelgrupp och vecka mer utveckling.`, src: goal === "health" ? ["rule"] : ["ralston2017", "pelland2024"] });
-  if (hasData && volume.exercises >= 5 && volume.rirShare < 0.3) notes.push({ k: "info", t: `Logga "reps kvar" (RIR) när du loggar pass. Då vet coachen vilka set som var tunga på riktigt och kan öka snabbare när det känns lätt. För ${G.label.toLowerCase()}: sikta på ${G.rir} reps kvar.`, src: ["robinson2024", "refalo2024"] });
-  if (last4 < prev4 - 0.4) notes.push({ k: "warn", t: `Färre pass: ${fmt1(last4)} per vecka senaste 4 veckorna mot ${fmt1(prev4)} veckorna innan.`, src: [] });
-  else if (last4 > prev4 + 0.4) notes.push({ k: "good", t: `Fler pass: ${fmt1(last4)} per vecka senaste 4 veckorna mot ${fmt1(prev4)} innan.`, src: [] });
-  if (down.length) notes.push({ k: "warn", t: `Tappat i ${list(down.slice(0, 3).map((d) => d.n))}. Kolla sömn och återhämtning, eller kör ett par pass lite lättare.`, src: ["rule"] });
-  if (flat.length >= 3) notes.push({ k: "info", t: `${flat.length} övningar står still. Variera reps (t.ex. fler reps på lägre vikt) eller byt variant under några veckor.`, src: ["plotkin2022", "rule"] });
-  if (prs.length) notes.push({ k: "good", t: `Nya rekord senaste månaden: ${list(prs.slice(0, 3).map((p) => p.n))}.`, src: [] });
+  if (hasData && lowV.length) notes.push({ k: "warn", t: tx("Låg volym för {groups}: under {lo} tunga set i veckan. För målet {goal} ger {lo}–{hi} set per muskelgrupp och vecka mer utveckling.", { groups: list(lowV.map((v) => gname(v.g).toLowerCase())), lo: G.band[0], hi: G.band[1], goal: tx(G.label).toLowerCase() }), src: goal === "health" ? ["rule"] : ["ralston2017", "pelland2024"] });
+  if (hasData && volume.exercises >= 5 && volume.rirShare < 0.3) notes.push({ k: "info", t: tx("Logga \"reps kvar\" (RIR) när du loggar pass. Då vet coachen vilka set som var tunga på riktigt och kan öka snabbare när det känns lätt. För {goal}: sikta på {rir} reps kvar.", { goal: tx(G.label).toLowerCase(), rir: G.rir }), src: ["robinson2024", "refalo2024"] });
+  if (last4 < prev4 - 0.4) notes.push({ k: "warn", t: tx("Färre pass: {a} per vecka senaste 4 veckorna mot {b} veckorna innan.", { a: fmt1(last4), b: fmt1(prev4) }), src: [] });
+  else if (last4 > prev4 + 0.4) notes.push({ k: "good", t: tx("Fler pass: {a} per vecka senaste 4 veckorna mot {b} innan.", { a: fmt1(last4), b: fmt1(prev4) }), src: [] });
+  if (down.length) notes.push({ k: "warn", t: tx("Tappat i {list}. Kolla sömn och återhämtning, eller kör ett par pass lite lättare.", { list: list(down.slice(0, 3).map((d) => d.n)) }), src: ["rule"] });
+  if (flat.length >= 3) notes.push({ k: "info", t: tx("{n} övningar står still. Variera reps (t.ex. fler reps på lägre vikt) eller byt variant under några veckor.", { n: flat.length }), src: ["plotkin2022", "rule"] });
+  if (prs.length) notes.push({ k: "good", t: tx("Nya rekord senaste månaden: {list}.", { list: list(prs.slice(0, 3).map((p) => p.n)) }), src: [] });
   return { goal, G, next, plan, up, flat, down, prs, neglected, weeks, last4, prev4, vol: volume.groups, rirShare: volume.rirShare, freq, notes };
 }

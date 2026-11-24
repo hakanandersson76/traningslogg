@@ -10,6 +10,8 @@ import { _resetForTests } from "../src/schema.js";
 import { hashPassword } from "../src/auth.js";
 import { parseSessionText, parseSets } from "../public/parse.js";
 import { coachReport, nextTarget, history, groupOf, effectiveTag, isCompound, SOURCES, weeklyVolume } from "../public/coach.js";
+import { setLang, detectLang, t as tr, tn, fmtNum, LANGS, _dicts } from "../public/i18n.js";
+import { collectKeys } from "./i18n-keys.mjs";
 
 class Stmt {
   constructor(db, sql, args = []) { this.db = db; this.sql = sql; this.args = args; }
@@ -146,6 +148,14 @@ r = await put(anna, "/api/account/goal", { goal: "strength" });
 assert(r.status === 200 && r.body.user.goal === "strength" && (await anna("/api/me")).body.user.goal === "strength", "goal can be changed");
 assert((await put(anna, "/api/account/goal", { goal: "bulk" })).status === 400, "unknown goal refused");
 await anna("/api/sessions/2026-11-25-r", { method: "DELETE" });
+// language
+assert((await anna("/api/me")).body.user.lang === "", "default language: follow the device");
+r = await put(anna, "/api/account/lang", { lang: "en" });
+assert(r.status === 200 && r.body.user.lang === "en" && (await anna("/api/me")).body.user.lang === "en", "language can be set");
+assert((await put(anna, "/api/account/lang", { lang: "xx" })).status === 400, "unsupported language refused");
+assert((await put(anna, "/api/account/lang", { lang: "" })).body.user.lang === "", "language back to automatic");
+await post(client(), "/api/auth/register", { email: "eve@example.com", password: "Blue-Horse-Runs-7", firstName: "Eve", lastName: "Lind", lang: "en" });
+assert(env.DB.db.prepare("SELECT lang FROM users WHERE email = 'eve@example.com'").get().lang === "en", "register stores the chosen language");
 
 // ---- 4. Settings: name and password ----
 r = await put(anna, "/api/account/name", { firstName: "Annie", lastName: "Berg-Lind" });
@@ -265,6 +275,25 @@ const pr = parseSessionText("261124 ÖK\nBänkpress 8@20, 6@22,5 RIR 2\nPull-ups
 assert(pr.ex[0].r === 2 && pr.ex[0].s === "8@20, 6@22,5" && pr.ex[1].r === 1 && pr.ex[1].s === "6, 5", "paste: 'RIR 2' and '1 kvar' become reps-left");
 assert(groupOf("Leg curl") === "ben" && groupOf("Jefferson curls (skivstång)") === "ben" && groupOf("Preacher curl") === "armar", "coach: muscle groups");
 assert(effectiveTag({ tag: "", ex: [{ n: "Squats" }, { n: "Leg extensions" }] }) === "NK", "coach: untyped session inferred");
+
+// ---- 10. Languages ----
+globalThis.document ??= { documentElement: {} };
+assert(detectLang(["sv-SE", "en-US"]) === "sv" && detectLang(["de-DE", "en-GB"]) === "en" && detectLang(["fr"]) === "en" && detectLang([]) === "en", "device language: sv/en picked, else English");
+for (const code of Object.keys(LANGS).filter((c) => c !== "sv")) {
+  const missing = collectKeys().filter((k) => !(k in _dicts[code]));
+  assert(!missing.length, `every text has a ${code} translation` + (missing.length ? `; missing: ${missing.slice(0, 5).join(" | ")}` : ""));
+  const bad = Object.entries(_dicts[code]).filter(([k, v]) => (k.match(/\{\w+\}/g) || []).sort().join() !== (v.match(/\{\w+\}/g) || []).sort().join());
+  assert(!bad.length, `${code}: placeholders match the Swedish text` + (bad.length ? `; ${bad[0][0]}` : ""));
+}
+setLang("en");
+assert(tr("Logga pass") === "Log workout" && tr("Användare ({n})", { n: 3 }) === "Users (3)" && fmtNum(22.5) === "22.5", "English texts and decimal point");
+assert(tn(1, "{n} konto som väntar på godkännande", "{n} konton som väntar på godkännande") === "1 account waiting for approval", "English plural");
+const repEn = coachReport(seedS, "2026-11-24", "muscle");
+assert(repEn.notes.every((n) => !/[åäö]/i.test(n.t.replace(/\b\S*[åäöÅÄÖ]\S*\b/g, (w) => (seedS.some((s) => s.ex.some((e) => e.n.includes(w))) ? "" : w)))) && /times a week/.test(repEn.notes[0].t), "coach notes in English");
+assert(nextTarget(H("10@20"), "2026-01-05", "muscle", "Bänkpress").target === "6@22.5", "English target uses decimal point");
+assert(parseSessionText("261124 UB\nBench press 8@20", "2026-11-24")[0].tag === "ÖK", "paste: English UB header → upper body");
+setLang("sv");
+assert(tr("Logga pass") === "Logga pass" && fmtNum(22.5) === "22,5", "Swedish stays the source");
 
 // ---- local server for browser tests ----
 const serveAt = process.argv.indexOf("--serve");

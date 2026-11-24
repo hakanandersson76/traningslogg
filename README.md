@@ -29,6 +29,14 @@ Personal gym planner and training log for Håkan. It replaces the first version,
 | HK | Helkropp (full) | yellow `#f2b705` |
 | "" | untyped (legacy) | grey |
 
+In English the labels are UB / LB / FB (Upper / Lower / Full body); the stored tag is always ÖK/NK/HK, and a pasted header may use either.
+
+## Languages
+- Swedish and English. Default: the iPhone/browser language if supported, else English. Override in Inställningar → Språk (saved per user in `users.lang`; `""` = follow the device). The login screen has Svenska/English links (remembered on the device).
+- Swedish is the source text and the key: code calls `_("Logga pass")` (index.html) or `tx(...)` (coach.js); `public/locales/<code>.js` maps Swedish → translation. `{placeholders}` are filled in; numbers use the language's decimal mark. Server messages stay Swedish and are translated in the app.
+- Add a language: copy `public/locales/en.js`, translate the values, register the code in `public/i18n.js` (LANGS, DICTS, DATE_NAMES, TAG_LABELS) and `src/worker.js` (LANGS). `node test/i18n-keys.mjs` lists missing keys; `npm test` fails if any are missing.
+- The set text stays in Håkan's format (decimal comma) whatever the UI language.
+
 ## Set format (keep exactly; this is how Håkan writes)
 - `8@22,5kg, 6@25kg`: reps@weight with a decimal comma; sets are separated by comma + space. `kg` is optional and case-insensitive (`22,5`, `22,5kg`, `22,5 kg`, `22,5KG`).
 - `10x65kg` is also reps×weight. `33,5+2kg` is stacked weight (total 35,5, keep the label).
@@ -40,12 +48,13 @@ Personal gym planner and training log for Håkan. It replaces the first version,
 ## How it is built
 ```
 public/            static app (served by Workers Assets)
-  index.html       the whole UI (Swedish), talks to /api
+  index.html       the whole UI (Swedish source text, translated via i18n.js), talks to /api
+  i18n.js, locales/en.js   language detection, t(), date names, tag labels; English dictionary
   parse.js         set-notation parser, shared with the Worker
   manifest.webmanifest, icon-*.png   home-screen app on iPad
 src/worker.js      API: /api/auth/*, /api/account/*, /api/admin/*, /api/data, /api/sessions/:id, /api/plans/:date, /api/import
 src/auth.js        password hashing, login sessions, reset tokens, password rules
-src/schema.js      D1 schema + migrations (v2 = accounts, v3 = approval/status, no email, v4 = RIR + goal), run automatically on first request
+src/schema.js      D1 schema + migrations (v2 = accounts, v3 = approval/status, no email, v4 = RIR + goal, v5 = language), run automatically on first request
 data/sessions.json export from v1 (seed for /api/import)
 test/run.mjs       local tests with a fake D1 (npm test)
 wrangler.jsonc     Worker + Assets + D1 binding

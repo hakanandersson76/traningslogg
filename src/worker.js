@@ -31,6 +31,8 @@ const normTag = (t) => {
 // Reps in reserve (how many more reps were left in the tank): 0–5, or unknown.
 const cleanRir = (r) => (r === null || r === undefined || r === "" || !Number.isFinite(+r) ? null : Math.max(0, Math.min(5, Math.round(+r))));
 const GOALS = new Set(["strength", "muscle", "health"]);
+// UI languages (must match LANGS in public/i18n.js). "" = follow the device.
+const LANGS = new Set(["sv", "en"]);
 
 function cleanExercises(ex) {
   if (!Array.isArray(ex)) return null;
@@ -132,8 +134,8 @@ async function handleAuth(request, env, url, db, action) {
     const existing = await db.prepare("SELECT id FROM users WHERE email = ?1").bind(email).first();
     if (existing) return json(done);
     await db
-      .prepare(`INSERT INTO users (id, email, first_name, last_name, pw_hash, status) VALUES (?1, ?2, ?3, ?4, ?5, 'pending')`)
-      .bind(crypto.randomUUID(), email, firstName, lastName, await hashPassword(b.password))
+      .prepare(`INSERT INTO users (id, email, first_name, last_name, pw_hash, status, lang) VALUES (?1, ?2, ?3, ?4, ?5, 'pending', ?6)`)
+      .bind(crypto.randomUUID(), email, firstName, lastName, await hashPassword(b.password), LANGS.has(b.lang) ? b.lang : "")
       .run();
     return json(done);
   }
@@ -194,6 +196,13 @@ async function handleAccount(request, env, url, db, user, action) {
     if (!f || !l) return bad("Ange förnamn och efternamn.");
     await db.prepare("UPDATE users SET first_name = ?2, last_name = ?3 WHERE id = ?1").bind(user.id, f, l).run();
     return json({ ok: true, user: await meOut(db, { ...user, first_name: f, last_name: l }) });
+  }
+  if (action === "lang" && request.method === "PUT") {
+    const b = (await readBody(request)) || {};
+    const lang = b.lang ?? "";
+    if (lang !== "" && !LANGS.has(lang)) return bad("Språket stöds inte.");
+    await db.prepare("UPDATE users SET lang = ?2 WHERE id = ?1").bind(user.id, lang).run();
+    return json({ ok: true, user: await meOut(db, { ...user, lang }) });
   }
   if (action === "goal" && request.method === "PUT") {
     const b = (await readBody(request)) || {};

@@ -60,7 +60,7 @@ export const validEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e) && e.le
 export const cleanName = (s) => String(s || "").replace(/\s+/g, " ").trim().slice(0, 60);
 
 export function userOut(u) {
-  return { id: u.id, email: u.email, firstName: u.first_name, lastName: u.last_name, role: u.role, status: u.status, goal: u.goal || "muscle" };
+  return { id: u.id, email: u.email, firstName: u.first_name, lastName: u.last_name, role: u.role, status: u.status, goal: u.goal || "muscle", lang: u.lang || "" };
 }
 
 // ---- login sessions ----

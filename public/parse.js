@@ -56,7 +56,7 @@ export const NAME_MAP = {
   "Pulldown (v-handtag)": "Pulldown (v-shape)",
   "Bänkpress incline (hantel)": "Bänkpress (incline hantel)",
 };
-const TAG_MAP = { "ÖK": "ÖK", "NK": "NK", "HK": "HK", "UK": "NK", "FK": "HK" };
+const TAG_MAP = { "ÖK": "ÖK", "NK": "NK", "HK": "HK", "UK": "NK", "FK": "HK", "UB": "ÖK", "LB": "NK", "FB": "HK" }; // UB/LB/FB = English labels
 
 // Split "Kabelrodd (smal) 8@33,5kg, 6@35kg" into name and sets text: the sets
 // start at the first digit outside parentheses that does not follow a letter
@@ -94,7 +94,7 @@ function parseHeader(line, today) {
   // A header has at most a session type and a note after the date, never sets.
   if (/\d@|\dx\d/i.test(rest)) return null;
   let tag = "";
-  const t = rest.match(/^(ök|nk|hk|uk|fk)(?![\p{L}])\s*(.*)$/iu);
+  const t = rest.match(/^(ök|nk|hk|uk|fk|ub|lb|fb)(?![\p{L}])\s*(.*)$/iu);
   if (t) { tag = TAG_MAP[t[1].toUpperCase()] || ""; rest = t[2]; }
   return { date, tag, note: rest.replace(/^\(|\)$/g, "").trim() };
 }

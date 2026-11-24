@@ -184,36 +184,36 @@ td .row{gap:6px}
 <body>
 <header class="band">
   <div class="top">
-    <div><h1>Träningslogg</h1><p>Planera veckan, logga passet, se vikterna stiga.</p></div>
+    <div><h1 data-i18n="Träningslogg">Träningslogg</h1><p data-i18n="Planera veckan, logga passet, se vikterna stiga.">Planera veckan, logga passet, se vikterna stiga.</p></div>
     <div class="stats" id="stats"></div>
   </div>
   <div class="gridwrap" id="gw"></div>
   <div class="legend" id="legend"></div>
 </header>
 <nav><div id="tabs">
-  <a href="#plan" data-v="plan">Plan</a>
-  <a href="#coach" data-v="coach">Coach</a>
-  <a href="#log" data-v="log">Logga pass</a>
-  <a href="#history" data-v="history">Historik</a>
-  <a href="#progress" data-v="progress">Utveckling</a>
-  <a href="#admin" data-v="admin" id="admintab" hidden>Admin <span class="badge" id="adminbadge" hidden></span></a>
-  <span id="sync">Laddar…</span>
+  <a href="#plan" data-v="plan"><span data-i18n="Plan">Plan</span></a>
+  <a href="#coach" data-v="coach"><span data-i18n="Coach">Coach</span></a>
+  <a href="#log" data-v="log"><span data-i18n="Logga pass">Logga pass</span></a>
+  <a href="#history" data-v="history"><span data-i18n="Historik">Historik</span></a>
+  <a href="#progress" data-v="progress"><span data-i18n="Utveckling">Utveckling</span></a>
+  <a href="#admin" data-v="admin" id="admintab" hidden><span data-i18n="Admin">Admin</span> <span class="badge" id="adminbadge" hidden></span></a>
+  <span id="sync"></span>
   <a href="#settings" data-v="settings" id="usertab" class="usertab">Inställningar</a>
 </div></nav>
 <main id="main"></main>
 <script type="module">
 import { parseSets, parseSessionText } from "./parse.js";
-import { coachReport, nextTarget, history, SOURCES, GOALS, effectiveTag } from "./coach.js";
+import { coachReport, nextTarget, history as exHistory, SOURCES, GOALS, effectiveTag } from "./coach.js";
+import { t as _, tn as _n, setLang, getLang, detectLang, LANGS, weekdays, months, fmtNum, tagShort, tagName } from "./i18n.js";
 {
-const TAGS={"ÖK":["Överkropp","red"],"NK":["Nederkropp","blue"],"HK":["Helkropp","yellow"],"":["Pass","grey"]};
+// Colours per session type; labels come from i18n (tagShort/tagName).
+const TAGS={"ÖK":[null,"red"],"NK":[null,"blue"],"HK":[null,"yellow"],"":[null,"grey"]};
 const MERGE={"UK":"NK","FK":"HK"};const normTag=t=>MERGE[t]||t||"";
-const WD=["Mån","Tis","Ons","Tor","Fre","Lör","Sön"];
-const MO=["jan","feb","mar","apr","maj","jun","jul","aug","sep","okt","nov","dec"];
 let me=null,authMode="login",authMsg=null,resetToken=null,adminData=null,flash=null,sessions=[],plans=[],db=null,view="plan",weekOff=0,ed=null,filt={tag:"*",q:""},progEx=null,armed=null;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const num=s=>parseFloat(String(s).replace(",","."));
-const fmt=w=>String(Math.round(w*100)/100).replace(".",",");
+const fmt=fmtNum;
 const pad=n=>String(n).padStart(2,"0");
 const ds=d=>`${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}`;
 const pd=s=>{const[a,b,c]=s.split("-").map(Number);return new Date(Date.UTC(a,b-1,c))};
@@ -222,8 +222,10 @@ const addD=(s,n)=>{const d=pd(s);d.setUTCDate(d.getUTCDate()+n);return ds(d)};
 const dow=s=>(pd(s).getUTCDay()+6)%7;
 const monday=s=>addD(s,-dow(s));
 const isoWeek=s=>{const d=pd(s);d.setUTCDate(d.getUTCDate()+3-dow(s));const y=new Date(Date.UTC(d.getUTCFullYear(),0,4));return 1+Math.round(((d-y)/864e5-3+((y.getUTCDay()+6)%7))/7)};
-const nice=s=>{const d=pd(s);return `${WD[dow(s)]} ${d.getUTCDate()} ${MO[d.getUTCMonth()]}`};
-const chip=t=>{const k=TAGS[t]?t:"";return `<span class="chip ${TAGS[k][1]==="yellow"?"y":""}" style="background:var(--${TAGS[k][1]})">${esc(t||"Pass")}</span>`};
+const nice=s=>{const d=pd(s);return getLang()==="en"?`${weekdays()[dow(s)]} ${months()[d.getUTCMonth()]} ${d.getUTCDate()}`:`${weekdays()[dow(s)]} ${d.getUTCDate()} ${months()[d.getUTCMonth()]}`};
+const chip=t=>{const k=TAGS[t]?t:"";return `<span class="chip ${TAGS[k][1]==="yellow"?"y":""}" style="background:var(--${TAGS[k][1]})">${esc(tagShort(k))}</span>`};
+// Static texts in the page markup carry data-i18n with the Swedish source text.
+function applyStatic(){document.querySelectorAll("[data-i18n]").forEach(el=>{el.textContent=_(el.dataset.i18n)});document.title=_("Träningslogg")}
 const mmss=t=>`${Math.floor(t/60)}:${pad(t%60)}`;
 
 const topSet=sets=>{const ws=sets.filter(s=>s.w!=null&&s.r);return ws.length?ws.reduce((a,b)=>b.w>a.w||(b.w===a.w&&b.r>a.r)?b:a):null};
@@ -232,13 +234,13 @@ const e1rm=s=>s&&s.w>0?s.w*(1+Math.min(s.r,12)/30):null;
 function exIndex(){const m=new Map();for(const s of [...sessions].sort((a,b)=>a.date<b.date?-1:1))for(const e of s.ex||[]){if(!e.n)continue;if(!m.has(e.n))m.set(e.n,[]);m.get(e.n).push({date:s.date,s:e.s||"",sid:s.id})}return m}
 function lastFor(n,before){const l=exIndex().get(n)||[];for(let i=l.length-1;i>=0;i--)if(!before||l[i].date<before)return l[i];return null}
 const goalNow=()=>me?.goal||"muscle";
-function coachTarget(n,date){const ents=history(sessions.filter(s=>s.date<date)).get(n);return ents?nextTarget(ents,date,goalNow(),n).target:""}
+function coachTarget(n,date){const ents=exHistory(sessions.filter(s=>s.date<date)).get(n);return ents?nextTarget(ents,date,goalNow(),n).target:""}
 function fromTag(tag,date){const last=[...sessions].filter(s=>effectiveTag(s)===tag&&s.date<date).sort((a,b)=>a.date<b.date?1:-1)[0];return last?(last.ex||[]).map(e=>({n:e.n,s:coachTarget(e.n,date)})):[]}
 
 const cacheKey=()=>me?"gymlog-cache-"+me.id:null;
 function save(){try{if(cacheKey())localStorage.setItem(cacheKey(),JSON.stringify({s:sessions,p:plans}))}catch(e){}}
 function restoreCache(){try{localStorage.removeItem("gymlog-cache");const c=JSON.parse(localStorage.getItem(cacheKey())||"null");if(c){sessions=(c.s||[]).map(x=>({...x,tag:normTag(x.tag)}));plans=(c.p||[]).map(x=>({...x,tag:normTag(x.tag)}))}}catch(e){}}
-const setSync=t=>{$("sync").textContent=t};
+let syncKey="";const setSync=t=>{syncKey=t||"";$("sync").textContent=t?_(t):""};
 
 function renderTop(){
   const y=sessions.filter(s=>s.date.startsWith(TODAY.slice(0,4)));
@@ -246,7 +248,7 @@ function renderTop(){
   const from=addD(TODAY,-56);const w8=sessions.filter(s=>s.date>from&&s.date<=TODAY).length/8;
   const last=[...sessions].sort((a,b)=>a.date<b.date?1:-1)[0];
   const since=last?Math.round((pd(TODAY)-pd(last.date))/864e5):null;
-  $("stats").innerHTML=[[y.length,`pass ${TODAY.slice(0,4)}`],[m.length,`pass i ${MO[pd(TODAY).getUTCMonth()]}`],[fmt(Math.round(w8*10)/10),"pass/vecka, 8 v"],[since==null?"–":since===0?"Idag":`${since} d`,"sedan senaste"]].map(([b,s])=>`<div class="stat"><b>${b}</b><span>${s}</span></div>`).join("");
+  $("stats").innerHTML=[[y.length,_("pass {year}",{year:TODAY.slice(0,4)})],[m.length,_("pass i {month}",{month:months()[pd(TODAY).getUTCMonth()]})],[fmt(Math.round(w8*10)/10),_("pass/vecka, 8 v")],[since==null?"–":since===0?_("Idag"):_("{n} d",{n:since}),_("sedan senaste")]].map(([b,s])=>`<div class="stat"><b>${b}</b><span>${s}</span></div>`).join("");
   const first=sessions.length?[...sessions].map(s=>s.date).sort()[0]:TODAY;
   const start=monday(first<`${TODAY.slice(0,4)}-01-01`?first:`${TODAY.slice(0,4)}-01-01`);
   const end=addD(monday(TODAY),20);
@@ -255,59 +257,59 @@ function renderTop(){
   const C=15,G=3,L=34,T=20;const weeks=Math.round((pd(end)-pd(start))/864e5/7)+1;
   let out="",lastM=-1;
   for(let w=0;w<weeks;w++){const ws=addD(start,w*7);const x=L+w*(C+G);const mo=pd(addD(ws,6)).getUTCMonth();
-    if(mo!==lastM){out+=`<text x="${x}" y="13">${MO[mo]}</text>`;lastM=mo}
+    if(mo!==lastM){out+=`<text x="${x}" y="13">${months()[mo]}</text>`;lastM=mo}
     for(let d=0;d<7;d++){const day=addD(ws,d);const y0=T+d*(C+G);const s=byD[day];
-      if(s){const k=TAGS[s[0].tag]?s[0].tag:"";out+=`<rect x="${x}" y="${y0}" width="${C}" height="${C}" rx="3" fill="var(--${TAGS[k][1]})" data-go="${day}"><title>${nice(day)}: ${esc(s.map(z=>z.tag||"Pass").join(", "))}</title></rect>`}
-      else if(pl[day]){const k=TAGS[pl[day].tag]?pl[day].tag:"";out+=`<rect x="${x+1}" y="${y0+1}" width="${C-2}" height="${C-2}" rx="3" fill="none" stroke="var(--${TAGS[k][1]})" stroke-width="2" data-go="${day}"><title>Planerat ${nice(day)}</title></rect>`}
+      if(s){const k=TAGS[s[0].tag]?s[0].tag:"";out+=`<rect x="${x}" y="${y0}" width="${C}" height="${C}" rx="3" fill="var(--${TAGS[k][1]})" data-go="${day}"><title>${nice(day)}: ${esc(s.map(z=>tagName(z.tag)).join(", "))}</title></rect>`}
+      else if(pl[day]){const k=TAGS[pl[day].tag]?pl[day].tag:"";out+=`<rect x="${x+1}" y="${y0+1}" width="${C-2}" height="${C-2}" rx="3" fill="none" stroke="var(--${TAGS[k][1]})" stroke-width="2" data-go="${day}"><title>${_("Planerat")} ${nice(day)}</title></rect>`}
       else out+=`<rect x="${x}" y="${y0}" width="${C}" height="${C}" rx="3" fill="${day>TODAY?"#1f2023":"var(--rub2)"}" data-go="${day}"/>`;
       if(day===TODAY)out+=`<rect x="${x-1.5}" y="${y0-1.5}" width="${C+3}" height="${C+3}" rx="4" fill="none" stroke="#fff" stroke-width="1.5"/>`;
     }}
-  for(const d of [0,2,4,6])out+=`<text x="0" y="${T+d*(C+G)+12}">${WD[d]}</text>`;
+  for(const d of [0,2,4,6])out+=`<text x="0" y="${T+d*(C+G)+12}">${weekdays()[d]}</text>`;
   const W=L+weeks*(C+G),H=T+7*(C+G);
-  $("gw").innerHTML=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Träningsdagar i år">${out}</svg>`;
+  $("gw").innerHTML=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${_("Träningsdagar i år")}">${out}</svg>`;
   $("gw").scrollLeft=$("gw").scrollWidth;
-  $("legend").innerHTML=["ÖK","NK","HK"].map(t=>`<span><i style="background:var(--${TAGS[t][1]})"></i>${t} ${TAGS[t][0]}</span>`).join("")+`<span><i style="border:2px solid #b9bcc2"></i>Planerat</span>`;
+  $("legend").innerHTML=["ÖK","NK","HK"].map(t=>`<span><i style="background:var(--${TAGS[t][1]})"></i>${tagShort(t)} ${tagName(t)}</span>`).join("")+`<span><i style="border:2px solid #b9bcc2"></i>${_("Planerat")}</span>`;
 }
 
-const rirTxt=r=>r===null||r===undefined?"":` · ${r===5?"5+":r} kvar`;
+const rirTxt=r=>r===null||r===undefined?"":` · ${_("{n} kvar",{n:r===5?"5+":r})}`;
 const exList=ex=>`<div class="ex">${(ex||[]).map(e=>`<div>${esc(e.n)}</div><div>${esc(e.s)||"–"}${rirTxt(e.r)}</div>`).join("")}</div>`;
 function editorHTML(){
-  if(!ed)return "";const names=[...exIndex().keys()].sort((a,b)=>a.localeCompare(b,"sv"));
+  if(!ed)return "";const names=[...exIndex().keys()].sort((a,b)=>a.localeCompare(b,getLang()));
   const isPlan=ed.kind==="plan";
-  return `<section class="ed" id="edbox"><h2>${isPlan?"Planera pass":ed.id?"Ändra pass":"Logga pass"}</h2>
-  <div class="f3"><div><label for="e-date">Datum</label><input type="date" id="e-date" value="${ed.date}"></div>
-  <div><label for="e-tag">Typ</label><select id="e-tag">${Object.keys(TAGS).filter(Boolean).map(t=>`<option value="${t}" ${t===ed.tag?"selected":""}>${t} ${TAGS[t][0]}</option>`).join("")}</select></div>
-  <div><label for="e-note">Anteckning</label><input id="e-note" value="${esc(ed.note)}" placeholder="t.ex. Kyrkbyn"></div></div>
-  <div class="row" style="margin-bottom:6px"><button class="sm ${ed.paste?"on":""}" data-act="pastetoggle">Klistra in från Anteckningar</button><span class="muted">eller fyll med senaste:</span>${["ÖK","NK","HK"].map(t=>`<button class="sm" data-act="fill" data-t="${t}">${t}</button>`).join("")}</div>
+  return `<section class="ed" id="edbox"><h2>${isPlan?_("Planera pass"):ed.id?_("Ändra pass"):_("Logga pass")}</h2>
+  <div class="f3"><div><label for="e-date">${_("Datum")}</label><input type="date" id="e-date" value="${ed.date}"></div>
+  <div><label for="e-tag">${_("Typ")}</label><select id="e-tag">${Object.keys(TAGS).filter(Boolean).map(t=>`<option value="${t}" ${t===ed.tag?"selected":""}>${tagShort(t)} ${tagName(t)}</option>`).join("")}</select></div>
+  <div><label for="e-note">${_("Anteckning")}</label><input id="e-note" value="${esc(ed.note)}" placeholder="${_("t.ex. Kyrkbyn")}"></div></div>
+  <div class="row" style="margin-bottom:6px"><button class="sm ${ed.paste?"on":""}" data-act="pastetoggle">${_("Klistra in från Anteckningar")}</button><span class="muted">${_("eller fyll med senaste:")}</span>${["ÖK","NK","HK"].map(t=>`<button class="sm" data-act="fill" data-t="${t}">${tagShort(t)}</button>`).join("")}</div>
   ${ed.paste?pasteHTML():""}
   <datalist id="exnames">${names.map(n=>`<option value="${esc(n)}">`).join("")}</datalist>
   <div id="rows">${ed.ex.map((e,i)=>rowHTML(e,i,isPlan)).join("")}</div>
-  <div class="row" style="margin-top:12px"><button data-act="addrow">+ Övning</button><span class="sp"></span>
-  ${ed.id?`<button class="dan" data-act="del">${armed==="del"?"Tryck igen för att radera":"Radera"}</button>`:""}
-  <button data-act="cancel">Avbryt</button><button class="pri" data-act="save">${isPlan?"Spara plan":"Spara pass"}</button></div>
-  <p class="muted" style="margin:10px 0 0">Set skrivs som i anteckningen: <b>8@22,5, 6@25</b> (kg valfritt) · kroppsvikt <b>10, 8</b> · tid <b>2:30</b> · anteckning i (parentes).</p></section>`;
+  <div class="row" style="margin-top:12px"><button data-act="addrow">${_("+ Övning")}</button><span class="sp"></span>
+  ${ed.id?`<button class="dan" data-act="del">${armed==="del"?_("Tryck igen för att radera"):_("Radera")}</button>`:""}
+  <button data-act="cancel">${_("Avbryt")}</button><button class="pri" data-act="save">${isPlan?_("Spara plan"):_("Spara pass")}</button></div>
+  <p class="muted" style="margin:10px 0 0">${_("Set skrivs som i anteckningen: <b>{ex}</b> (kg valfritt) · kroppsvikt <b>10, 8</b> · tid <b>2:30</b> · anteckning i (parentes).",{ex:getLang()==="sv"?"8@22,5, 6@25":"8@22.5, 6@25"})}</p></section>`;
 }
 function pasteHTML(){
   const found=ed.pasteFound||[];const many=found.length>1;
-  return `<div class="paste"><label for="pastetxt">Klistra in ett eller flera pass. Första raden kan vara datum och typ, t.ex. <b>261122 ÖK</b>.</label>
-  <textarea id="pastetxt" placeholder="261122 ÖK\nBänkpress (incline) 4@15, 6@22,5kg\nKabelrodd 6@33,5, 6@33,5\nPlankan 2:30">${esc(ed.pasteText||"")}</textarea>
-  <div class="row" style="margin-top:8px"><button class="sm" data-act="clip">Hämta från urklipp</button><span class="sp"></span><button class="sm pri" data-act="pastefill">Fyll i</button></div>
+  return `<div class="paste"><label for="pastetxt">${_("Klistra in ett eller flera pass. Första raden kan vara datum och typ, t.ex. <b>{ex}</b>.",{ex:"261122 "+tagShort("ÖK")})}</label>
+  <textarea id="pastetxt" placeholder="${esc(_("261122 ÖK\nBänkpress (incline) 4@15, 6@22,5kg RIR 2\nKabelrodd 6@33,5, 6@33,5\nPlankan 2:30"))}">${esc(ed.pasteText||"")}</textarea>
+  <div class="row" style="margin-top:8px"><button class="sm" data-act="clip">${_("Hämta från urklipp")}</button><span class="sp"></span><button class="sm pri" data-act="pastefill">${_("Fyll i")}</button></div>
   ${ed.pasteMsg?`<p class="muted" style="margin:8px 0 0">${ed.pasteMsg}</p>`:""}
   ${many?pasteSummary(found):""}
-  ${many&&ed.kind==="log"?`<div class="row" style="margin-top:8px"><button class="sm pri" data-act="pastesaveall">Spara alla ${found.filter(x=>x.date&&!x.dup).length} nya pass direkt</button></div>`:""}</div>`;
+  ${many&&ed.kind==="log"?`<div class="row" style="margin-top:8px"><button class="sm pri" data-act="pastesaveall">${_("Spara alla {n} nya pass direkt",{n:found.filter(x=>x.date&&!x.dup).length})}</button></div>`:""}</div>`;
 }
 function pasteSummary(found){
   const dated=found.filter(x=>x.date),dates=dated.map(x=>x.date).sort();
   const yc={};for(const d of dates)yc[d.slice(0,4)]=(yc[d.slice(0,4)]||0)+1;
   const main=Object.entries(yc).sort((a,b)=>b[1]-a[1])[0]?.[0];
   const odd=dated.filter(x=>x.date.slice(0,4)!==main||x.date>TODAY);
-  const tags=dated.reduce((a,x)=>(a[x.tag||"utan typ"]=(a[x.tag||"utan typ"]||0)+1,a),{});
+  const tags=dated.reduce((a,x)=>{const k=x.tag?tagShort(x.tag):_("utan typ");a[k]=(a[k]||0)+1;return a},{});
   const seen=new Set(),dupDates=dates.filter(d=>seen.has(d)||!seen.add(d));
-  return `<div class="note" style="margin-top:10px"><b>${dated.length} pass</b> ${dates.length?`från ${nice(dates[0])} ${dates[0].slice(0,4)} till ${nice(dates.at(-1))} ${dates.at(-1).slice(0,4)}`:""} · ${Object.entries(tags).map(([t,n])=>`${t} ${n}`).join(" · ")}
-  ${found.length>dated.length?`<br>${found.length-dated.length} pass utan datum hoppas över.`:""}
-  ${found.some(x=>x.dup)?`<br>${found.filter(x=>x.dup).length} finns redan och hoppas över.`:""}
-  ${dupDates.length?`<br>Flera pass samma dag: ${[...new Set(dupDates)].map(d=>d).join(", ")}.`:""}
-  ${odd.length?`<br><b>Kontrollera datum</b> (annat år än ${main} eller i framtiden): ${odd.map(x=>x.date).join(", ")}. Rätta i texten och tryck Fyll i igen.`:""}</div>`;
+  return `<div class="note" style="margin-top:10px"><b>${_n(dated.length,"{n} pass","{n} pass")}</b> ${dates.length?_("från {a} till {b}",{a:`${nice(dates[0])} ${dates[0].slice(0,4)}`,b:`${nice(dates.at(-1))} ${dates.at(-1).slice(0,4)}`}):""} · ${Object.entries(tags).map(([t,n])=>`${t} ${n}`).join(" · ")}
+  ${found.length>dated.length?`<br>${_("{n} pass utan datum hoppas över.",{n:found.length-dated.length})}`:""}
+  ${found.some(x=>x.dup)?`<br>${_("{n} finns redan och hoppas över.",{n:found.filter(x=>x.dup).length})}`:""}
+  ${dupDates.length?`<br>${_("Flera pass samma dag: {d}.",{d:[...new Set(dupDates)].join(", ")})}`:""}
+  ${odd.length?`<br>${_("<b>Kontrollera datum</b> (annat år än {y} eller i framtiden): {d}. Rätta i texten och tryck Fyll i igen.",{y:main,d:odd.map(x=>x.date).join(", ")})}`:""}</div>`;
 }
 const canon=n=>{const k=n.toLowerCase();for(const x of exIndex().keys())if(x.toLowerCase()===k)return x;return n};
 const sameSession=(p)=>sessions.some(s=>s.date===p.date&&(s.ex||[]).map(e=>e.n+"|"+e.s).join("~")===p.ex.map(e=>e.n+"|"+e.s).join("~"));
@@ -318,145 +320,154 @@ function applyPaste(p){
 function rowHTML(e,i,isPlan){
   const l=e.n?lastFor(e.n,ed.date):null;const sg=e.n&&!isPlan?coachTarget(e.n,ed.date):"";
   const rv=e.r===null||e.r===undefined?"":String(e.r);
-  const rirSel=isPlan?"":`<label class="rirl" for="rir-${i}">Reps kvar <select id="rir-${i}" data-f="r" aria-label="Reps kvar i sista setet"><option value="">–</option>${[0,1,2,3,4,5].map(v=>`<option value="${v}" ${rv===String(v)?"selected":""}>${v===5?"5+":v}</option>`).join("")}</select></label>`;
-  return `<div class="er" data-i="${i}"><input list="exnames" data-f="n" value="${esc(e.n)}" placeholder="Övning" aria-label="Övning">
-  <input class="sets" data-f="s" value="${esc(e.s)}" placeholder="${isPlan?"Mål, t.ex. 8@22,5":"8@20, 6@22,5"}" aria-label="Set">
-  <button class="x" data-act="rmrow" aria-label="Ta bort">×</button>
-  <div class="hint">${rirSel}${e.goal?`Mål <b>${esc(e.goal)}</b><button class="sm" data-act="use" data-sg="${esc(e.goal)}">Använd</button> · `:""}${l?`Senast ${nice(l.date)}: ${esc(l.s)}${sg&&!e.goal?` · Försök <b>${esc(sg)}</b><button class="sm" data-act="use" data-sg="${esc(sg)}">Använd</button>`:""}`:e.n?"Ny övning":""}</div></div>`;
+  const rirSel=isPlan?"":`<label class="rirl" for="rir-${i}">${_("Reps kvar")} <select id="rir-${i}" data-f="r" aria-label="${_("Reps kvar i sista setet")}"><option value="">–</option>${[0,1,2,3,4,5].map(v=>`<option value="${v}" ${rv===String(v)?"selected":""}>${v===5?"5+":v}</option>`).join("")}</select></label>`;
+  return `<div class="er" data-i="${i}"><input list="exnames" data-f="n" value="${esc(e.n)}" placeholder="${_("Övning")}" aria-label="${_("Övning")}">
+  <input class="sets" data-f="s" value="${esc(e.s)}" placeholder="${isPlan?_("Mål, t.ex. {ex}",{ex:fmt(22.5)}):`8@20, 6@${fmt(22.5)}`}" aria-label="${_("Set")}">
+  <button class="x" data-act="rmrow" aria-label="${_("Ta bort")}">×</button>
+  <div class="hint">${rirSel}${e.goal?`${_("Mål")} <b>${esc(e.goal)}</b><button class="sm" data-act="use" data-sg="${esc(e.goal)}">${_("Använd")}</button> · `:""}${l?`${_("Senast {d}",{d:nice(l.date)})}: ${esc(l.s)}${sg&&!e.goal?` · ${_("Försök")} <b>${esc(sg)}</b><button class="sm" data-act="use" data-sg="${esc(sg)}">${_("Använd")}</button>`:""}`:e.n?_("Ny övning"):""}</div></div>`;
 }
 
 function renderPlan(){
   const ws=addD(monday(TODAY),weekOff*7);
-  let h=`<div class="row week" style="margin-bottom:8px"><button data-act="wk" data-d="-1" aria-label="Förra veckan">‹</button><h2>Vecka ${isoWeek(ws)}</h2><button data-act="wk" data-d="1" aria-label="Nästa vecka">›</button>${weekOff?`<button class="sm" data-act="wk" data-d="0">Denna vecka</button>`:""}<span class="sp"></span><span class="muted">${nice(ws)} – ${nice(addD(ws,6))}</span></div>`;
+  let h=`<div class="row week" style="margin-bottom:8px"><button data-act="wk" data-d="-1" aria-label="${_("Förra veckan")}">‹</button><h2>${_("Vecka {n}",{n:isoWeek(ws)})}</h2><button data-act="wk" data-d="1" aria-label="${_("Nästa vecka")}">›</button>${weekOff?`<button class="sm" data-act="wk" data-d="0">${_("Denna vecka")}</button>`:""}<span class="sp"></span><span class="muted">${nice(ws)} – ${nice(addD(ws,6))}</span></div>`;
   h+=taskBar();
   if(!weekOff&&sessions.length&&!plans.some(p=>p.date===TODAY)&&!sessions.some(s=>s.date===TODAY)){const n=coachReport(sessions,TODAY,goalNow()).next;
-    h+=`<div class="coachbar"><span>Coachen föreslår <b>${n.date===TODAY?"idag":"i morgon"}</b>:</span>${chip(n.tag)}<span>${TAGS[n.tag]?.[0]||""}</span><span class="sp"></span><a class="btn sm" href="#coach" style="display:inline-flex;align-items:center;text-decoration:none">Visa förslag</a></div>`}
-  if(loaded&&!sessions.length&&me.role!=="admin")h+=`<div class="ed"><h2>Välkommen${me.firstName?", "+esc(me.firstName):""}!</h2><p>Logga ditt första pass under <b>Logga pass</b>, eller klistra in pass du skrivit i Anteckningar. Coachen börjar ge förslag när du har några pass.</p></div>`;
-  if(loaded&&!sessions.length&&me.role==="admin")h+=`<div class="ed"><h2>Databasen är tom</h2><p>Importera dina 88 pass från v1 (januari–november 2026). Det körs en gång och bara mot en tom databas.</p><button class="pri" data-act="import">Importera pass</button></div>`;
+    h+=`<div class="coachbar"><span>${n.date===TODAY?_("Coachen föreslår <b>idag</b>:"):_("Coachen föreslår <b>i morgon</b>:")}</span>${chip(n.tag)}<span>${tagName(n.tag)}</span><span class="sp"></span><a class="btn sm" href="#coach" style="display:inline-flex;align-items:center;text-decoration:none">${_("Visa förslag")}</a></div>`}
+  if(loaded&&!sessions.length&&me.role!=="admin")h+=`<div class="ed"><h2>${me.firstName?_("Välkommen, {name}!",{name:esc(me.firstName)}):_("Välkommen!")}</h2><p>${_("Logga ditt första pass under <b>Logga pass</b>, eller klistra in pass du skrivit i Anteckningar. Coachen börjar ge förslag när du har några pass.")}</p></div>`;
+  if(loaded&&!sessions.length&&me.role==="admin")h+=`<div class="ed"><h2>${_("Databasen är tom")}</h2><p>${_("Importera dina 88 pass från v1 (januari–november 2026). Det körs en gång och bara mot en tom databas.")}</p><button class="pri" data-act="import">${_("Importera pass")}</button></div>`;
   h+=editorHTML();
   for(let d=0;d<7;d++){const day=addD(ws,d);const ss=sessions.filter(s=>s.date===day);const p=plans.find(x=>x.date===day);
-    h+=`<div class="day ${day===TODAY?"today":""}"><div class="dn"><b>${WD[d]}</b><span>${pd(day).getUTCDate()} ${MO[pd(day).getUTCMonth()]}</span></div><div>`;
-    for(const s of ss)h+=`<div class="card"><h3>${chip(s.tag)} Genomfört ${s.note?`<span class="muted">${esc(s.note)}</span>`:""}<span class="sp"></span><button class="sm" data-act="edit" data-id="${s.id}">Ändra</button></h3>${exList(s.ex)}</div>`;
-    if(p&&!p.done)h+=`<div class="card plan"><h3>${chip(p.tag)} Planerat<span class="sp"></span><button class="sm" data-act="eplan" data-d="${day}">Ändra</button><button class="sm pri" data-act="start" data-d="${day}">Starta</button></h3>${exList(p.ex)}</div>`;
-    if(!ss.length&&!p)h+=day>=TODAY?`<button class="sm" data-act="newplan" data-d="${day}">+ Planera pass</button>`:`<span class="muted">Vila</span>`;
-    else if(!p&&day>=TODAY)h+=`<button class="sm" data-act="newplan" data-d="${day}">+ Planera</button>`;
+    h+=`<div class="day ${day===TODAY?"today":""}"><div class="dn"><b>${weekdays()[d]}</b><span>${getLang()==="en"?`${months()[pd(day).getUTCMonth()]} ${pd(day).getUTCDate()}`:`${pd(day).getUTCDate()} ${months()[pd(day).getUTCMonth()]}`}</span></div><div>`;
+    for(const s of ss)h+=`<div class="card"><h3>${chip(s.tag)} ${_("Genomfört")} ${s.note?`<span class="muted">${esc(s.note)}</span>`:""}<span class="sp"></span><button class="sm" data-act="edit" data-id="${s.id}">${_("Ändra")}</button></h3>${exList(s.ex)}</div>`;
+    if(p&&!p.done)h+=`<div class="card plan"><h3>${chip(p.tag)} ${_("Planerat")}<span class="sp"></span><button class="sm" data-act="eplan" data-d="${day}">${_("Ändra")}</button><button class="sm pri" data-act="start" data-d="${day}">${_("Starta")}</button></h3>${exList(p.ex)}</div>`;
+    if(!ss.length&&!p)h+=day>=TODAY?`<button class="sm" data-act="newplan" data-d="${day}">${_("+ Planera pass")}</button>`:`<span class="muted">${_("Vila")}</span>`;
+    else if(!p&&day>=TODAY)h+=`<button class="sm" data-act="newplan" data-d="${day}">${_("+ Planera")}</button>`;
     h+=`</div></div>`;}
-  h+=`<div class="note"><b>Nästa steg: Garmin.</b> När en Cloudflare Worker hämtar dina aktiviteter visas de här bredvid planen.</div>`;
   return h;
 }
 const srcHTML=ids=>{ids=[...new Set(ids||[])].filter(i=>SOURCES[i]);if(!ids.length)return "";
-  return `<details class="why"><summary>Varför?</summary><ul>${ids.map(i=>`<li>${esc(SOURCES[i].t)}${SOURCES[i].u?` <a href="${SOURCES[i].u}" target="_blank" rel="noopener">Läs mer</a>`:""}</li>`).join("")}</ul></details>`};
+  return `<details class="why"><summary>${_("Varför?")}</summary><ul>${ids.map(i=>`<li>${esc(_(SOURCES[i].t))}${SOURCES[i].u?` <a href="${SOURCES[i].u}" target="_blank" rel="noopener">${_("Läs mer")}</a>`:""}</li>`).join("")}</ul></details>`};
 function renderCoach(){
-  if(!sessions.length)return `<p class="empty">Inga pass än. Importera eller logga ett pass först.</p>`;
+  if(!sessions.length)return `<p class="empty">${_("Inga pass än. Importera eller logga ett pass först.")}</p>`;
   const r=coachReport(sessions,TODAY,goalNow());const n=r.next,G=r.G;
-  const when=n.date===TODAY?"idag":n.date===addD(TODAY,1)?"i morgon":nice(n.date);
+  const when=n.date===TODAY?_("idag"):n.date===addD(TODAY,1)?_("i morgon"):nice(n.date);
   const hasPlan=plans.find(p=>p.date===n.date&&!p.done);
-  const kindTxt={weight:"Öka vikt",reps:"Fler reps",lower:"Sänk",time:"Längre",plateau:"Platå",comeback:"Comeback",new:"Ny"};
-  let h=`<div class="row" style="margin-bottom:12px"><span class="muted">Ditt mål:</span><b>${G.label}</b><span class="muted">· ${G.comp[0]}–${G.comp[1]} reps i basövningar, ${G.iso[0]}–${G.iso[1]} i isolationsövningar, ${G.rir} reps kvar</span><a href="#settings" class="linkbtn" style="font-size:15px">Ändra</a></div>
-  <section class="hero"><div><span class="muted">Nästa pass, ${when}</span><h2>${chip(n.tag)} ${TAGS[n.tag]?.[0]||"Pass"}</h2><p style="margin:0 0 6px">${esc(n.why)}</p>
+  const kindTxt={weight:_("Öka vikt"),reps:_("Fler reps"),lower:_("Sänk"),time:_("Längre"),plateau:_("Platå"),comeback:_("Comeback"),new:_("Ny")};
+  let h=`<div class="row" style="margin-bottom:12px"><span class="muted">${_("Ditt mål:")}</span><b>${_(G.label)}</b><span class="muted">· ${_("{a} reps i basövningar, {b} i isolationsövningar, {r} reps kvar",{a:`${G.comp[0]}–${G.comp[1]}`,b:`${G.iso[0]}–${G.iso[1]}`,r:G.rir})}</span><a href="#settings" class="linkbtn" style="font-size:15px">${_("Ändra")}</a></div>
+  <section class="hero"><div><span class="muted">${_("Nästa pass, {when}",{when})}</span><h2>${chip(n.tag)} ${tagName(n.tag)}</h2><p style="margin:0 0 6px">${esc(n.why)}</p>
   ${n.restWhy?`<div class="warnbox">${esc(n.restWhy)}</div>`:""}${srcHTML(n.src)}
-  <div class="row" style="margin-top:12px"><button class="pri" data-act="cstart">Starta passet</button><button data-act="cplan">${hasPlan?"Ersätt planen":"Lägg i planen"}</button></div></div>
-  <ul class="pl">${r.plan.map(p=>`<li><span>${esc(p.n)}<span class="k ${p.kind}">${kindTxt[p.kind]||""}</span></span><b>${esc(p.target)||"–"}</b><small>${esc(p.why)}${p.last?` Senast ${nice(p.last.date)}: ${esc(p.last.s)}${rirTxt(p.last.rir)}.`:""}</small>${srcHTML(p.src)}</li>`).join("")||`<li><span class="muted">Inga tidigare ${n.tag}-pass att utgå från.</span></li>`}</ul></section>`;
-  if(r.notes.length)h+=`<h3 style="font-size:24px;margin-bottom:4px">Att tänka på</h3><ul class="notes">${r.notes.map(x=>`<li class="${x.k}">${esc(x.t)}${srcHTML(x.src)}</li>`).join("")}</ul>`;
+  <div class="row" style="margin-top:12px"><button class="pri" data-act="cstart">${_("Starta passet")}</button><button data-act="cplan">${hasPlan?_("Ersätt planen"):_("Lägg i planen")}</button></div></div>
+  <ul class="pl">${r.plan.map(p=>`<li><span>${esc(p.n)}<span class="k ${p.kind}">${kindTxt[p.kind]||""}</span></span><b>${esc(p.target)||"–"}</b><small>${esc(p.why)}${p.last?` ${_("Senast {d}",{d:nice(p.last.date)})}: ${esc(p.last.s)}${rirTxt(p.last.rir)}.`:""}</small>${srcHTML(p.src)}</li>`).join("")||`<li><span class="muted">${_("Inga tidigare {t}-pass att utgå från.",{t:tagShort(n.tag)})}</span></li>`}</ul></section>`;
+  if(r.notes.length)h+=`<h3 style="font-size:24px;margin-bottom:4px">${_("Att tänka på")}</h3><ul class="notes">${r.notes.map(x=>`<li class="${x.k}">${esc(x.t)}${srcHTML(x.src)}</li>`).join("")}</ul>`;
   const mx=Math.max(3,...r.weeks.map(w=>w.total));
   const B=G.band,SC=Math.max(25,B[1]+5);
-  h+=`<div class="cols"><div><h3>Gånger per vecka och muskelgrupp</h3><p class="muted" style="margin:0 0 10px">Snitt senaste 4 veckorna. Streckad linje = målet 2 gånger.</p>
+  h+=`<div class="cols"><div><h3>${_("Gånger per vecka och muskelgrupp")}</h3><p class="muted" style="margin:0 0 10px">${_("Snitt senaste 4 veckorna. Streckad linje = målet 2 gånger.")}</p>
   <div class="freq">${r.freq.map(f=>`<span>${f.name}</span><span class="bar"><u style="left:${2/4*100}%"></u><i style="width:${Math.min(f.perWeek,4)/4*100}%;background:${f.g!=="core"&&f.perWeek<1.75?"var(--red)":"var(--ink)"}"></i></span><b>${fmt(Math.round(f.perWeek*10)/10)}</b>`).join("")}</div>${srcHTML(["schoenfeld2016","schoenfeld2019"])}</div>
-  <div><h3>Tunga set per vecka</h3><p class="muted" style="margin:0 0 10px">Snitt senaste 4 veckorna. Grönt band = ${B[0]}–${B[1]} set för målet ${G.label.toLowerCase()}. ${r.rirShare<0.3?"Utan loggade reps kvar räknas alla arbetsset som tunga.":"Set med 4+ reps kvar räknas som halva eller inget."}</p>
+  <div><h3>${_("Tunga set per vecka")}</h3><p class="muted" style="margin:0 0 10px">${_("Snitt senaste 4 veckorna. Grönt band = {a}–{b} set för målet {g}.",{a:B[0],b:B[1],g:_(G.label).toLowerCase()})} ${r.rirShare<0.3?_("Utan loggade reps kvar räknas alla arbetsset som tunga."):_("Set med 4+ reps kvar räknas som halva eller inget.")}</p>
   <div class="vol">${r.vol.map(v=>`<span>${v.name}</span><span class="bar"><u style="left:${B[0]/SC*100}%;right:${100-B[1]/SC*100}%"></u><i style="width:${Math.min(v.perWeek,SC)/SC*100}%"></i></span><b>${fmt(Math.round(v.perWeek*10)/10)}</b>`).join("")}</div>${srcHTML(goalNow()==="health"?["rule"]:["ralston2017","pelland2024"])}</div></div>
-  <div class="cols"><div><h3>Pass per vecka</h3><p class="muted" style="margin:0">Snitt ${fmt(Math.round(r.last4*10)/10)} senaste 4 veckorna (${fmt(Math.round(r.prev4*10)/10)} innan). Otaggade pass färgas efter övningarna.</p>
-  <div class="wk" style="margin-bottom:26px">${r.weeks.map(w=>`<div title="v${isoWeek(w.start)}: ${w.total} pass">${["ÖK","NK","HK",""].map(t=>w[t]?`<i style="height:${w[t]/mx*100}%;background:var(--${TAGS[t][1]})"></i>`:"").join("")}<span>${isoWeek(w.start)}</span></div>`).join("")}</div></div></div>`;
-  const li=(arr,f)=>arr.length?`<ul class="tl">${arr.map(f).join("")}</ul>`:`<p class="muted">Inget just nu.</p>`;
+  <div class="cols"><div><h3>${_("Pass per vecka")}</h3><p class="muted" style="margin:0">${_("Snitt {a} senaste 4 veckorna ({b} innan). Otaggade pass färgas efter övningarna.",{a:fmt(Math.round(r.last4*10)/10),b:fmt(Math.round(r.prev4*10)/10)})}</p>
+  <div class="wk" style="margin-bottom:26px">${r.weeks.map(w=>`<div title="${_("v{w}: {n} pass",{w:isoWeek(w.start),n:w.total})}">${["ÖK","NK","HK",""].map(t=>w[t]?`<i style="height:${w[t]/mx*100}%;background:var(--${TAGS[t][1]})"></i>`:"").join("")}<span>${isoWeek(w.start)}</span></div>`).join("")}</div></div></div>`;
+  const li=(arr,f)=>arr.length?`<ul class="tl">${arr.map(f).join("")}</ul>`:`<p class="muted">${_("Inget just nu.")}</p>`;
   const exl=n=>`<a href="#progress" data-ex="${esc(n)}">${esc(n)}</a>`;
   const dp=t=>`${t.delta>0?"+":"−"}${Math.abs(Math.round(t.delta*100))} %`;
-  h+=`<div class="cols"><div><h3>Framsteg</h3><p class="muted" style="margin:0 0 6px">Beräknat 1RM, senaste 3 passen mot de 3 innan.</p>${li(r.up.slice(0,8),t=>`<li>${exl(t.n)}<em>${dp(t)}</em></li>`)}</div>
-  <div><h3>Står still</h3><p class="muted" style="margin:0 0 6px">Ingen ökning senaste 4 passen. Byt repsintervall eller variant.</p>${li(r.flat.slice(0,8),t=>`<li>${exl(t.n)}<em>${t.lastTop.r}@${fmt(t.lastTop.w)}</em></li>`)}</div>
-  <div><h3>Tappat</h3><p class="muted" style="margin:0 0 6px">Kan vara medvetet (djupare, bättre teknik) – kolla anteckningarna.</p>${li(r.down.slice(0,8),t=>`<li>${exl(t.n)}<em>${dp(t)}</em></li>`)}</div></div>
-  <div class="cols"><div><h3>Nya rekord, 30 dagar</h3>${li(r.prs,p=>`<li>${exl(p.n)}<em>${p.top.r}@${fmt(p.top.w)} · ${nice(p.date)}</em></li>`)}</div>
-  <div><h3>Bortglömda övningar</h3><p class="muted" style="margin:0 0 6px">Gjorda ofta förut, inte senaste 45 dagarna.</p>${li(r.neglected,x=>`<li>${exl(x.n)}<em>${x.since} d sedan · ${x.count} pass</em></li>`)}</div></div>
-  <section class="panel"><h2>Så tänker coachen</h2>
-  <ul class="refs"><li><b>Ökning:</b> dubbel progression – fler reps inom ditt intervall, sedan mer vikt. Kändes det lätt (3+ reps kvar) ökar den snabbare.</li>
-  <li><b>Hur nära failure:</b> ${G.rir} reps kvar i sista setet för målet ${G.label.toLowerCase()}.</li>
-  <li><b>Frekvens:</b> varje muskelgrupp minst två gånger i veckan.</li>
-  <li><b>Volym:</b> ${B[0]}–${B[1]} tunga set per muskelgrupp och vecka.</li>
-  <li><b>Tumregler</b> (inte direkt från studier): 90 % efter mer än 4 veckors uppehåll, platå när toppsetet stått still tre pass, steg på 2,5 kg (5 kg från 100 kg, 1 kg under 10 kg).</li></ul>
-  <h3 style="font-size:20px;margin:12px 0 6px">Källor</h3><ul class="refs">${Object.entries(SOURCES).filter(([k])=>k!=="rule").map(([,s])=>`<li>${esc(s.t)} <a href="${s.u}" target="_blank" rel="noopener">Läs mer</a></li>`).join("")}</ul></section>`;
+  h+=`<div class="cols"><div><h3>${_("Framsteg")}</h3><p class="muted" style="margin:0 0 6px">${_("Beräknat 1RM, senaste 3 passen mot de 3 innan.")}</p>${li(r.up.slice(0,8),t=>`<li>${exl(t.n)}<em>${dp(t)}</em></li>`)}</div>
+  <div><h3>${_("Står still")}</h3><p class="muted" style="margin:0 0 6px">${_("Ingen ökning senaste 4 passen. Byt repsintervall eller variant.")}</p>${li(r.flat.slice(0,8),t=>`<li>${exl(t.n)}<em>${t.lastTop.r}@${fmt(t.lastTop.w)}</em></li>`)}</div>
+  <div><h3>${_("Tappat")}</h3><p class="muted" style="margin:0 0 6px">${_("Kan vara medvetet (djupare, bättre teknik) – kolla anteckningarna.")}</p>${li(r.down.slice(0,8),t=>`<li>${exl(t.n)}<em>${dp(t)}</em></li>`)}</div></div>
+  <div class="cols"><div><h3>${_("Nya rekord, 30 dagar")}</h3>${li(r.prs,p=>`<li>${exl(p.n)}<em>${p.top.r}@${fmt(p.top.w)} · ${nice(p.date)}</em></li>`)}</div>
+  <div><h3>${_("Bortglömda övningar")}</h3><p class="muted" style="margin:0 0 6px">${_("Gjorda ofta förut, inte senaste 45 dagarna.")}</p>${li(r.neglected,x=>`<li>${exl(x.n)}<em>${_("{d} d sedan · {n} pass",{d:x.since,n:x.count})}</em></li>`)}</div></div>
+  <section class="panel"><h2>${_("Så tänker coachen")}</h2>
+  <ul class="refs"><li>${_("<b>Ökning:</b> dubbel progression – fler reps inom ditt intervall, sedan mer vikt. Kändes det lätt (3+ reps kvar) ökar den snabbare.")}</li>
+  <li>${_("<b>Hur nära failure:</b> {r} reps kvar i sista setet för målet {g}.",{r:G.rir,g:_(G.label).toLowerCase()})}</li>
+  <li>${_("<b>Frekvens:</b> varje muskelgrupp minst två gånger i veckan.")}</li>
+  <li>${_("<b>Volym:</b> {a}–{b} tunga set per muskelgrupp och vecka.",{a:B[0],b:B[1]})}</li>
+  <li>${_("<b>Tumregler</b> (inte direkt från studier): 90 % efter mer än 4 veckors uppehåll, platå när toppsetet stått still tre pass, steg på 2,5 kg (5 kg från 100 kg, 1 kg under 10 kg).")}</li></ul>
+  <h3 style="font-size:20px;margin:12px 0 6px">${_("Källor")}</h3><ul class="refs">${Object.entries(SOURCES).filter(([k])=>k!=="rule").map(([,s])=>`<li>${esc(_(s.t))} <a href="${s.u}" target="_blank" rel="noopener">${_("Läs mer")}</a></li>`).join("")}</ul></section>`;
   return h;
 }
 // ---- accounts ----
 const PW_CLASSES=p=>[/[a-zåäö]/,/[A-ZÅÄÖ]/,/\d/,/[^A-Za-zÅÄÖåäö\d]/].filter(r=>r.test(p)).length;
 const PW_RULES=[["Minst 12 tecken",p=>p.length>=12],["Minst tre av: små bokstäver, stora bokstäver, siffror, specialtecken",p=>PW_CLASSES(p)>=3]];
-const rulesHTML=(p="")=>`<ul class="rules" id="pwrules">${PW_RULES.map(([t,f])=>`<li class="${f(p)?"ok":""}">${t}</li>`).join("")}</ul><p class="muted" style="margin:2px 0 0;font-size:13px">Inte ditt namn, din e-post eller vanliga ord. Tips: tre–fyra ord med bindestreck och en siffra, t.ex. <i>Sten-Bro-Båt-42</i>.</p>`;
-const msgBox=m=>m?`<div class="flash ${m.k}">${esc(m.t)}</div>`:"";
+const rulesHTML=(p="")=>`<ul class="rules" id="pwrules">${PW_RULES.map(([t,f])=>`<li class="${f(p)?"ok":""}">${_(t)}</li>`).join("")}</ul><p class="muted" style="margin:2px 0 0;font-size:13px">${_("Inte ditt namn, din e-post eller vanliga ord. Tips: tre–fyra ord med bindestreck och en siffra, t.ex. <i>Sten-Bro-Båt-42</i>.")}</p>`;
+// Messages (also from the server, which answers in Swedish) are translated when shown.
+const msgBox=m=>m?`<div class="flash ${m.k}">${esc(_(m.t))}</div>`:"";
 function renderAuth(){
   const m=msgBox(authMsg);
-  if(authMode==="register")return `<div class="authwrap"><h2>Skapa konto</h2>${m}<form data-form="register">
-    <div class="two"><div><label for="a-first">Förnamn</label><input id="a-first" name="firstName" autocomplete="given-name" required></div><div><label for="a-last">Efternamn</label><input id="a-last" name="lastName" autocomplete="family-name" required></div></div>
-    <div><label for="a-email">E-post</label><input id="a-email" name="email" type="email" autocomplete="email" required></div>
-    <div><label for="a-pw">Lösenord</label><input id="a-pw" name="password" type="password" autocomplete="new-password" data-rules required>${rulesHTML()}</div>
-    <div><label for="a-pw2">Upprepa lösenordet</label><input id="a-pw2" name="password2" type="password" autocomplete="new-password" required></div>
-    <button class="pri">Skapa konto</button></form>
-    <div class="links"><a href="#" data-auth="login">Har du redan ett konto? Logga in</a></div></div>`;
-  if(authMode==="forgot")return `<div class="authwrap"><h2>Glömt lösenord</h2>${m}<p class="muted">Ange din e-post så meddelas administratören. Du får sedan en personlig länk av hen för att välja ett nytt lösenord.</p><form data-form="forgot">
-    <div><label for="a-email">E-post</label><input id="a-email" name="email" type="email" autocomplete="email" required></div><button class="pri">Be om nytt lösenord</button></form>
-    <div class="links"><a href="#" data-auth="login">Tillbaka till inloggning</a></div></div>`;
-  if(authMode==="reset")return `<div class="authwrap"><h2>Välj nytt lösenord</h2>${m}<form data-form="reset">
-    <div><label for="a-pw">Nytt lösenord</label><input id="a-pw" name="password" type="password" autocomplete="new-password" data-rules required>${rulesHTML()}</div>
-    <div><label for="a-pw2">Upprepa lösenordet</label><input id="a-pw2" name="password2" type="password" autocomplete="new-password" required></div>
-    <button class="pri">Spara nytt lösenord</button></form><div class="links"><a href="#" data-auth="login">Till inloggning</a></div></div>`;
-  return `<div class="authwrap"><h2>Logga in</h2>${m}<form data-form="login">
-    <div><label for="a-email">E-post</label><input id="a-email" name="email" type="email" autocomplete="username" required></div>
-    <div><label for="a-pw">Lösenord</label><input id="a-pw" name="password" type="password" autocomplete="current-password" required></div>
-    <button class="pri">Logga in</button></form>
-    <div class="links"><a href="#" data-auth="register">Skapa konto</a><a href="#" data-auth="forgot">Glömt lösenord?</a></div></div>`;
+  const langPick=`<div class="links" style="margin-top:22px">${Object.entries(LANGS).map(([k,v])=>k===getLang()?`<b>${v}</b>`:`<a href="#" data-lang="${k}">${v}</a>`).join("")}</div>`;
+  if(authMode==="register")return `<div class="authwrap"><h2>${_("Skapa konto")}</h2>${m}<form data-form="register">
+    <div class="two"><div><label for="a-first">${_("Förnamn")}</label><input id="a-first" name="firstName" autocomplete="given-name" required></div><div><label for="a-last">${_("Efternamn")}</label><input id="a-last" name="lastName" autocomplete="family-name" required></div></div>
+    <div><label for="a-email">${_("E-post")}</label><input id="a-email" name="email" type="email" autocomplete="email" required></div>
+    <div><label for="a-pw">${_("Lösenord")}</label><input id="a-pw" name="password" type="password" autocomplete="new-password" data-rules required>${rulesHTML()}</div>
+    <div><label for="a-pw2">${_("Upprepa lösenordet")}</label><input id="a-pw2" name="password2" type="password" autocomplete="new-password" required></div>
+    <button class="pri">${_("Skapa konto")}</button></form>
+    <div class="links"><a href="#" data-auth="login">${_("Har du redan ett konto? Logga in")}</a></div>${langPick}</div>`;
+  if(authMode==="forgot")return `<div class="authwrap"><h2>${_("Glömt lösenord")}</h2>${m}<p class="muted">${_("Ange din e-post så meddelas administratören. Du får sedan en personlig länk av hen för att välja ett nytt lösenord.")}</p><form data-form="forgot">
+    <div><label for="a-email">${_("E-post")}</label><input id="a-email" name="email" type="email" autocomplete="email" required></div><button class="pri">${_("Be om nytt lösenord")}</button></form>
+    <div class="links"><a href="#" data-auth="login">${_("Tillbaka till inloggning")}</a></div>${langPick}</div>`;
+  if(authMode==="reset")return `<div class="authwrap"><h2>${_("Välj nytt lösenord")}</h2>${m}<form data-form="reset">
+    <div><label for="a-pw">${_("Nytt lösenord")}</label><input id="a-pw" name="password" type="password" autocomplete="new-password" data-rules required>${rulesHTML()}</div>
+    <div><label for="a-pw2">${_("Upprepa lösenordet")}</label><input id="a-pw2" name="password2" type="password" autocomplete="new-password" required></div>
+    <button class="pri">${_("Spara nytt lösenord")}</button></form><div class="links"><a href="#" data-auth="login">${_("Till inloggning")}</a></div>${langPick}</div>`;
+  return `<div class="authwrap"><h2>${_("Logga in")}</h2>${m}<form data-form="login">
+    <div><label for="a-email">${_("E-post")}</label><input id="a-email" name="email" type="email" autocomplete="username" required></div>
+    <div><label for="a-pw">${_("Lösenord")}</label><input id="a-pw" name="password" type="password" autocomplete="current-password" required></div>
+    <button class="pri">${_("Logga in")}</button></form>
+    <div class="links"><a href="#" data-auth="register">${_("Skapa konto")}</a><a href="#" data-auth="forgot">${_("Glömt lösenord?")}</a></div>${langPick}</div>`;
 }
 function renderSettings(){
   const g=goalNow();
-  return `<section class="panel"><h2>Träningsmål</h2><p class="muted" style="margin-top:0">Styr coachens repsintervall, hur nära failure den föreslår och hur mycket volym den siktar på.</p>
-    <form data-form="goal">${Object.entries(GOALS).map(([k,G])=>`<label class="goalopt"><input type="radio" name="goal" value="${k}" ${k===g?"checked":""}><b>${G.label}</b><span>${G.comp[0]}–${G.comp[1]} reps i basövningar, ${G.iso[0]}–${G.iso[1]} i isolationsövningar, ${G.rir} reps kvar, ${G.band[0]}–${G.band[1]} tunga set per muskelgrupp och vecka.${k==="health"?" Lugnare tempo, fokus på att träna regelbundet.":""}</span></label>`).join("")}
-    <div style="margin-top:10px"><button class="pri">Spara mål</button></div></form></section>
-  <section class="panel"><h2>Profil</h2><form data-form="name">
-    <div class="f3" style="margin:0"><div><label for="s-first">Förnamn</label><input id="s-first" name="firstName" value="${esc(me.firstName)}" autocomplete="given-name" required></div>
-    <div><label for="s-last">Efternamn</label><input id="s-last" name="lastName" value="${esc(me.lastName)}" autocomplete="family-name" required></div></div>
-    <div><label>E-post</label><div>${esc(me.email)}</div></div>
-    <div><button class="pri">Spara namn</button></div></form></section>
-  <section class="panel"><h2>Byt lösenord</h2><p class="muted" style="margin-top:0">Du behöver ditt nuvarande lösenord. När lösenordet är bytt loggas alla andra enheter ut, så en inloggning någon annan kommit åt slutar fungera.</p>
-    <form data-form="password"><div><label for="s-cur">Nuvarande lösenord</label><input id="s-cur" name="current" type="password" autocomplete="current-password" required></div>
-    <div><label for="s-new">Nytt lösenord</label><input id="s-new" name="password" type="password" autocomplete="new-password" data-rules required>${rulesHTML()}</div>
-    <div><label for="s-new2">Upprepa nytt lösenord</label><input id="s-new2" name="password2" type="password" autocomplete="new-password" required></div>
-    <div><button class="pri">Byt lösenord</button></div></form></section>
-  <section class="panel"><h2>Inloggning</h2><div class="row"><button data-act="logout">Logga ut</button><button data-act="logoutall">Logga ut på alla enheter</button></div></section>`;
+  const lp=me.lang||"";
+  return `<section class="panel"><h2>${_("Språk")}</h2><form data-form="lang">
+    <div style="max-width:320px"><label for="s-lang">${_("Språk i appen")}</label><select id="s-lang" name="lang"><option value="" ${lp===""?"selected":""}>${_("Automatiskt (enhetens språk: {l})",{l:LANGS[detectLang()]})}</option>${Object.entries(LANGS).map(([k,v])=>`<option value="${k}" ${lp===k?"selected":""}>${v}</option>`).join("")}</select></div>
+    <div><button class="pri">${_("Spara språk")}</button></div></form></section>
+  <section class="panel"><h2>${_("Träningsmål")}</h2><p class="muted" style="margin-top:0">${_("Styr coachens repsintervall, hur nära failure den föreslår och hur mycket volym den siktar på.")}</p>
+    <form data-form="goal">${Object.entries(GOALS).map(([k,G])=>`<label class="goalopt"><input type="radio" name="goal" value="${k}" ${k===g?"checked":""}><b>${_(G.label)}</b><span>${_("{a} reps i basövningar, {b} i isolationsövningar, {r} reps kvar, {v} tunga set per muskelgrupp och vecka.",{a:`${G.comp[0]}–${G.comp[1]}`,b:`${G.iso[0]}–${G.iso[1]}`,r:G.rir,v:`${G.band[0]}–${G.band[1]}`})}${k==="health"?" "+_("Lugnare tempo, fokus på att träna regelbundet."):""}</span></label>`).join("")}
+    <div style="margin-top:10px"><button class="pri">${_("Spara mål")}</button></div></form></section>
+  <section class="panel"><h2>${_("Profil")}</h2><form data-form="name">
+    <div class="f3" style="margin:0"><div><label for="s-first">${_("Förnamn")}</label><input id="s-first" name="firstName" value="${esc(me.firstName)}" autocomplete="given-name" required></div>
+    <div><label for="s-last">${_("Efternamn")}</label><input id="s-last" name="lastName" value="${esc(me.lastName)}" autocomplete="family-name" required></div></div>
+    <div><label>${_("E-post")}</label><div>${esc(me.email)}</div></div>
+    <div><button class="pri">${_("Spara namn")}</button></div></form></section>
+  <section class="panel"><h2>${_("Byt lösenord")}</h2><p class="muted" style="margin-top:0">${_("Du behöver ditt nuvarande lösenord. När lösenordet är bytt loggas alla andra enheter ut, så en inloggning någon annan kommit åt slutar fungera.")}</p>
+    <form data-form="password"><div><label for="s-cur">${_("Nuvarande lösenord")}</label><input id="s-cur" name="current" type="password" autocomplete="current-password" required></div>
+    <div><label for="s-new">${_("Nytt lösenord")}</label><input id="s-new" name="password" type="password" autocomplete="new-password" data-rules required>${rulesHTML()}</div>
+    <div><label for="s-new2">${_("Upprepa nytt lösenord")}</label><input id="s-new2" name="password2" type="password" autocomplete="new-password" required></div>
+    <div><button class="pri">${_("Byt lösenord")}</button></div></form></section>
+  <section class="panel"><h2>${_("Inloggning")}</h2><div class="row"><button data-act="logout">${_("Logga ut")}</button><button data-act="logoutall">${_("Logga ut på alla enheter")}</button></div></section>`;
 }
 let resetLink=null;
-const plural=(n,a,b)=>`${n} ${n===1?a:b}`;
-function taskText(t){const p=[];if(t.pending)p.push(plural(t.pending,"konto som väntar på godkännande","konton som väntar på godkännande"));if(t.resets)p.push(plural(t.resets,"begäran om nytt lösenord","begäranden om nytt lösenord"));return p.join(" och ")}
-function taskBar(){const t=me?.tasks;if(me?.role!=="admin"||!t?.total)return "";return `<div class="taskbar"><span><b>Att göra som admin:</b> ${esc(taskText(t))}.</span><span class="sp"></span><a class="btn sm" href="#admin" style="display:inline-flex;align-items:center;text-decoration:none">Öppna admin</a></div>`}
+function taskText(t){const p=[];if(t.pending)p.push(_n(t.pending,"{n} konto som väntar på godkännande","{n} konton som väntar på godkännande"));if(t.resets)p.push(_n(t.resets,"{n} begäran om nytt lösenord","{n} begäranden om nytt lösenord"));return p.join(_(" och "))}
+function taskBar(){const t=me?.tasks;if(me?.role!=="admin"||!t?.total)return "";return `<div class="taskbar"><span><b>${_("Att göra som admin:")}</b> ${esc(taskText(t))}.</span><span class="sp"></span><a class="btn sm" href="#admin" style="display:inline-flex;align-items:center;text-decoration:none">${_("Öppna admin")}</a></div>`}
 async function loadAdmin(){try{const u=await api("admin/users");adminData=u;if(me)me.tasks=u.tasks;if(view==="admin")render()}catch(e){adminData={error:e.message||"Kunde inte hämta"};if(view==="admin")render()}}
 const STATUS={pending:["Väntar","y"],active:["Aktiv","g"],frozen:["Fryst",""],banned:["Spärrad","r"]};
 function renderAdmin(){
-  if(!adminData)return `<p class="muted">Hämtar…</p>`;if(adminData.error)return `<p class="flash err">${esc(adminData.error)}</p>`;
+  if(!adminData)return `<p class="muted">${_("Hämtar…")}</p>`;if(adminData.error)return `<p class="flash err">${esc(_(adminData.error))}</p>`;
   const dt=s=>s?s.slice(0,16).replace("T"," "):"–";
   const u=adminData.users,t=adminData.tasks||{};
-  const btn=(act,x,label,cls="")=>{const key=act+":"+x.id;const danger=act==="ban"||act==="reject";return `<button class="sm ${cls}" data-act="admin" data-a="${act}" data-id="${x.id}"${act==="role"?` data-role="${x.role==="admin"?"user":"admin"}"`:""}>${danger&&armed===key?"Tryck igen":label}</button>`};
-  let h=resetLink?`<div class="linkbox"><span>Länk för nytt lösenord till <b>${esc(resetLink.name)}</b> (gäller ${resetLink.hours} timmar, kan användas en gång):</span><code>${esc(resetLink.link)}</code><button class="sm pri" data-act="copylink" data-link="${esc(resetLink.link)}">Kopiera</button></div><p class="muted" style="margin-top:-6px">Skicka länken direkt till personen, t.ex. via sms. Den ger tillgång till kontot.</p>`:"";
-  h+=`<section class="panel"><h2>Att göra</h2>${t.total?`<p style="margin:0">${esc(taskText(t))}. Markerade rader nedan.</p>`:`<p class="muted" style="margin:0">Inget att göra just nu.</p>`}</section>`;
-  h+=`<section class="panel"><h2>Användare (${u.length})</h2><div class="scroll"><table class="stack"><thead><tr><th>Namn</th><th>E-post</th><th>Status</th><th style="text-align:right">Pass</th><th>Senaste pass</th><th>Senast inloggad</th><th>Registrerad</th><th>Åtgärder</th></tr></thead><tbody>
+  const btn=(act,x,label,cls="")=>{const key=act+":"+x.id;const danger=act==="ban"||act==="reject";return `<button class="sm ${cls}" data-act="admin" data-a="${act}" data-id="${x.id}"${act==="role"?` data-role="${x.role==="admin"?"user":"admin"}"`:""}>${danger&&armed===key?_("Tryck igen"):_(label)}</button>`};
+  let h=resetLink?`<div class="linkbox"><span>${_("Länk för nytt lösenord till <b>{name}</b> (gäller {h} timmar, kan användas en gång):",{name:esc(resetLink.name),h:resetLink.hours})}</span><code>${esc(resetLink.link)}</code><button class="sm pri" data-act="copylink" data-link="${esc(resetLink.link)}">${_("Kopiera")}</button></div><p class="muted" style="margin-top:-6px">${_("Skicka länken direkt till personen, t.ex. via sms. Den ger tillgång till kontot.")}</p>`:"";
+  h+=`<section class="panel"><h2>${_("Att göra")}</h2>${t.total?`<p style="margin:0">${esc(taskText(t))}. ${_("Markerade rader nedan.")}</p>`:`<p class="muted" style="margin:0">${_("Inget att göra just nu.")}</p>`}</section>`;
+  h+=`<section class="panel"><h2>${_("Användare ({n})",{n:u.length})}</h2><div class="scroll"><table class="stack"><thead><tr><th>${_("Namn")}</th><th>${_("E-post")}</th><th>${_("Status")}</th><th style="text-align:right">${_("Pass")}</th><th>${_("Senaste pass")}</th><th>${_("Senast inloggad")}</th><th>${_("Registrerad")}</th><th>${_("Åtgärder")}</th></tr></thead><tbody>
   ${u.map(x=>{const s=STATUS[x.status]||[x.status,""];const task=x.status==="pending"||x.reset_requested_at;
     let acts="";
-    if(x.id===adminData.me)acts=`<span class="muted">Du</span>`;
+    if(x.id===adminData.me)acts=`<span class="muted">${_("Du")}</span>`;
     else if(x.status==="pending")acts=btn("approve",x,"Godkänn","pri")+btn("reject",x,"Avslå")+btn("ban",x,"Spärra","dan");
     else if(x.status==="active")acts=btn("reset-link",x,x.reset_requested_at?"Skapa lösenordslänk":"Lösenordslänk",x.reset_requested_at?"pri":"")+btn("freeze",x,"Frys")+btn("ban",x,"Spärra","dan")+btn("role",x,x.role==="admin"?"Ta bort admin":"Gör till admin");
     else if(x.status==="frozen")acts=btn("unfreeze",x,"Aktivera","pri")+btn("ban",x,"Spärra","dan");
     else if(x.status==="banned")acts=btn("unban",x,"Häv spärr");
     return `<tr class="${task?"hl":""}"><td>${esc(x.first_name+" "+x.last_name)}</td><td>${esc(x.email)}</td>
-    <td>${x.role==="admin"?`<span class="tag2 y">Admin</span> `:""}<span class="tag2 ${s[1]}">${s[0]}</span>${x.reset_requested_at?` <span class="tag2 r">Vill ha nytt lösenord</span>`:""}</td>
+    <td>${x.role==="admin"?`<span class="tag2 y">${_("Admin")}</span> `:""}<span class="tag2 ${s[1]}">${_(s[0])}</span>${x.reset_requested_at?` <span class="tag2 r">${_("Vill ha nytt lösenord")}</span>`:""}</td>
     <td class="n">${x.sessions}</td><td>${x.last_session?nice(x.last_session):"–"}</td><td>${dt(x.last_login_at)}</td><td>${dt(x.created_at)}</td>
     <td><div class="row">${acts}</div></td></tr>`}).join("")}
   </tbody></table></div>
-  <p class="muted"><b>Godkänn</b> ger kontot tillgång. <b>Avslå</b> tar bort en registrering som väntar. <b>Frys</b> stänger av inloggning tillfälligt; data sparas och kontot kan aktiveras igen. <b>Spärra</b> stänger av kontot och adressen kan inte registreras på nytt; spärren kan hävas.</p></section>`;
+  <p class="muted">${_("<b>Godkänn</b> ger kontot tillgång. <b>Avslå</b> tar bort en registrering som väntar. <b>Frys</b> stänger av inloggning tillfälligt; data sparas och kontot kan aktiveras igen. <b>Spärra</b> stänger av kontot och adressen kan inte registreras på nytt; spärren kan hävas.")}</p></section>`;
   return h;
 }
+// Language: the user's saved choice, else a choice made on this device before login,
+// else the iPhone/browser language (Swedish or English), else English.
+function chooseLang(){let l="";try{l=localStorage.getItem("lang")||""}catch(e){}if(me?.lang)l=me.lang;setLang(l||detectLang());applyStatic();if(syncKey)setSync(syncKey)}
+function rememberLang(l){try{if(l)localStorage.setItem("lang",l);else localStorage.removeItem("lang")}catch(e){}}
 async function boot(){
+  chooseLang();
   const q=new URLSearchParams(location.search);
   if(q.get("reset")){resetToken=q.get("reset");authMode="reset"}
   if(q.toString())history.replaceState(null,"",location.pathname+location.hash);
@@ -464,9 +475,10 @@ async function boot(){
     if(r.ok){me=(await r.json()).user}else me=null}
   catch(e){me=null;authMsg={k:"err",t:"Når inte servern. Kontrollera uppkopplingen."}}
   if(me&&resetToken){me=null}
+  chooseLang();
   if(me){restoreCache();route();load()}else{setSync("");render()}
 }
-async function afterLogin(u){me=u;authMsg=null;restoreCache();location.hash=location.hash||"#plan";route();await load()}
+async function afterLogin(u){me=u;authMsg=null;if(me.lang)rememberLang(me.lang);chooseLang();restoreCache();location.hash=location.hash||"#plan";route();await load()}
 document.addEventListener("submit",async ev=>{
   const f=ev.target.closest("form[data-form]");if(!f)return;ev.preventDefault();
   const k=f.dataset.form,v=Object.fromEntries(new FormData(f));const btn=f.querySelector("button.pri");if(btn)btn.disabled=true;
@@ -475,11 +487,12 @@ document.addEventListener("submit",async ev=>{
   try{
     if(k==="login"){const r=await api("auth/login",{method:"POST",body:JSON.stringify({email:v.email,password:v.password})});await afterLogin(r.user);return}
     if(k==="register"){if(v.password!==v.password2){setA("err","Lösenorden är inte lika.");return}
-      const r=await api("auth/register",{method:"POST",body:JSON.stringify(v)});authMode="login";setA("ok",r.message);return}
+      const r=await api("auth/register",{method:"POST",body:JSON.stringify({...v,lang:getLang()})});authMode="login";setA("ok",r.message);return}
     if(k==="forgot"){const r=await api("auth/forgot",{method:"POST",body:JSON.stringify({email:v.email})});authMode="login";setA("ok",r.message);return}
     if(k==="reset"){if(v.password!==v.password2){setA("err","Lösenorden är inte lika.");return}
       const r=await api("auth/reset",{method:"POST",body:JSON.stringify({token:resetToken,password:v.password})});resetToken=null;authMode="login";setA("ok",r.message);return}
-    if(k==="goal"){const r=await api("account/goal",{method:"PUT",body:JSON.stringify({goal:v.goal})});me=r.user;flash={k:"ok",t:`Målet är sparat: ${GOALS[me.goal].label}. Coachen räknar om sina förslag.`};render();return}
+    if(k==="lang"){const r=await api("account/lang",{method:"PUT",body:JSON.stringify({lang:v.lang})});me=r.user;rememberLang(me.lang);chooseLang();flash={k:"ok",t:"Språket är sparat."};render();return}
+    if(k==="goal"){const r=await api("account/goal",{method:"PUT",body:JSON.stringify({goal:v.goal})});me=r.user;flash={k:"ok",t:_("Målet är sparat: {g}. Coachen räknar om sina förslag.",{g:_(GOALS[me.goal].label)})};render();return}
     if(k==="name"){const r=await api("account/name",{method:"PUT",body:JSON.stringify(v)});me=r.user;flash={k:"ok",t:"Namnet är sparat."};render();return}
     if(k==="password"){if(v.password!==v.password2){flash={k:"err",t:"De nya lösenorden är inte lika."};render();return}
       const r=await api("account/password",{method:"POST",body:JSON.stringify({current:v.current,password:v.password})});flash={k:"ok",t:r.message};render();return}
@@ -491,43 +504,44 @@ document.addEventListener("submit",async ev=>{
 document.addEventListener("input",ev=>{if(ev.target.matches("input[data-rules]")){const p=ev.target.value;const ul=ev.target.parentElement.querySelector("#pwrules");if(ul)ul.outerHTML=rulesHTML(p).split("</ul>")[0]+"</ul>"}},true);
 document.addEventListener("click",async ev=>{
   const a=ev.target.closest("[data-auth]");if(a){ev.preventDefault();authMode=a.dataset.auth;authMsg=null;render();setTimeout(()=>$("a-email")?.focus(),0);return}
+  const lg=ev.target.closest("[data-lang]");if(lg){ev.preventDefault();rememberLang(lg.dataset.lang);chooseLang();render();return}
   const b=ev.target.closest("[data-act]");if(!b)return;const act=b.dataset.act;
   if(act==="logout"||act==="logoutall"){try{await api(act==="logout"?"auth/logout":"account/logout-all",{method:"POST",body:"{}"})}catch(e){}
-    try{localStorage.removeItem(cacheKey())}catch(e){}me=null;sessions=[];plans=[];loaded=false;authMode="login";authMsg={k:"ok",t:act==="logout"?"Du är utloggad.":"Du är utloggad på alla enheter."};history.replaceState(null,"",location.pathname);render();return}
+    try{localStorage.removeItem(cacheKey())}catch(e){}me=null;sessions=[];plans=[];loaded=false;authMode="login";authMsg={k:"ok",t:act==="logout"?"Du är utloggad.":"Du är utloggad på alla enheter."};chooseLang();history.replaceState(null,"",location.pathname);render();return}
   if(act==="admin"){const id=b.dataset.id,a=b.dataset.a,key=a+":"+id;
     if((a==="ban"||a==="reject")&&armed!==key){armed=key;render();return}armed=null;
     const x=adminData?.users?.find(u=>u.id===id);
     try{const r=await api(`admin/users/${id}/${a}`,{method:"POST",body:JSON.stringify(a==="role"?{role:b.dataset.role}:{})});
       if(a==="reset-link")resetLink={link:r.link,hours:r.hours,name:x?`${x.first_name} ${x.last_name}`:""};
       flash=null;await loadAdmin()}catch(e){flash={k:"err",t:e.message};render()}return}
-  if(act==="copylink"){try{await navigator.clipboard.writeText(b.dataset.link);b.textContent="Kopierad"}catch(e){prompt?.("Kopiera länken:",b.dataset.link)}return}
+  if(act==="copylink"){try{await navigator.clipboard.writeText(b.dataset.link);b.textContent=_("Kopierad")}catch(e){prompt?.(_("Kopiera länken:"),b.dataset.link)}return}
 });
 function renderLog(){
   if(!ed||ed.kind!=="log")ed={kind:"log",date:TODAY,tag:"ÖK",note:"",ex:fromTag("ÖK",TODAY).map(e=>({n:e.n,s:"",goal:e.s}))};
-  return editorHTML()+`<p class="muted">Tips: planerade pass startas från fliken Plan med målen ifyllda.</p>`;
+  return editorHTML()+`<p class="muted">${_("Tips: planerade pass startas från fliken Plan med målen ifyllda.")}</p>`;
 }
 function renderHistory(){
   const q=filt.q.toLowerCase();
   const list=[...sessions].sort((a,b)=>a.date<b.date?1:-1).filter(s=>(filt.tag==="*"||s.tag===filt.tag)&&(!q||(s.ex||[]).some(e=>e.n.toLowerCase().includes(q))));
-  let h=editorHTML()+`<div class="fil">${["*","ÖK","NK","HK",""].map(t=>`<button class="sm ${filt.tag===t?"on":""}" data-act="ft" data-t="${t}">${t==="*"?"Alla":t||"Utan typ"}</button>`).join("")}<input id="hq" value="${esc(filt.q)}" placeholder="Sök övning" style="max-width:16em" aria-label="Sök övning"><span class="sp"></span><button class="sm" data-act="copy">Kopiera som text</button></div>`;
-  h+=`<p class="muted">${list.length} pass</p>`;
-  h+=list.map(s=>`<div class="card"><h3>${chip(s.tag)} ${nice(s.date)} <span class="muted">v${isoWeek(s.date)}${s.note?" · "+esc(s.note):""}</span><span class="sp"></span><button class="sm" data-act="edit" data-id="${s.id}">Ändra</button></h3>${exList(q?(s.ex||[]).filter(e=>e.n.toLowerCase().includes(q)):s.ex)}</div>`).join("")||`<p class="empty">Inga pass matchar.</p>`;
+  let h=editorHTML()+`<div class="fil">${["*","ÖK","NK","HK",""].map(t=>`<button class="sm ${filt.tag===t?"on":""}" data-act="ft" data-t="${t}">${t==="*"?_("Alla"):t?tagShort(t):_("Utan typ")}</button>`).join("")}<input id="hq" value="${esc(filt.q)}" placeholder="${_("Sök övning")}" style="max-width:16em" aria-label="${_("Sök övning")}"><span class="sp"></span><button class="sm" data-act="copy">${_("Kopiera som text")}</button></div>`;
+  h+=`<p class="muted">${_n(list.length,"{n} pass","{n} pass")}</p>`;
+  h+=list.map(s=>`<div class="card"><h3>${chip(s.tag)} ${nice(s.date)} <span class="muted">${_("v{w}",{w:isoWeek(s.date)})}${s.note?" · "+esc(s.note):""}</span><span class="sp"></span><button class="sm" data-act="edit" data-id="${s.id}">${_("Ändra")}</button></h3>${exList(q?(s.ex||[]).filter(e=>e.n.toLowerCase().includes(q)):s.ex)}</div>`).join("")||`<p class="empty">${_("Inga pass matchar.")}</p>`;
   return h+`<div id="copyout"></div>`;
 }
 function renderProgress(){
   const idx=exIndex();const names=[...idx.entries()].sort((a,b)=>b[1].length-a[1].length).map(e=>e[0]);
-  if(!names.length)return `<p class="empty">Inga pass än.</p>`;
+  if(!names.length)return `<p class="empty">${_("Inga pass än.")}</p>`;
   if(!progEx||!idx.has(progEx))progEx=names.includes("Bänkpress (incline)")?"Bänkpress (incline)":names[0];
   const rows=idx.get(progEx).map(e=>{const s=parseSets(e.s);const t=topSet(s);return{...e,t,e1:e1rm(t),bw:s.filter(x=>x.r&&x.w==null).reduce((a,x)=>Math.max(a,x.r),0),tm:s.filter(x=>x.t).reduce((a,x)=>Math.max(a,x.t),0)}});
   const wt=rows.filter(r=>r.t);const first=wt[0],last=wt[wt.length-1];
   const best=wt.reduce((a,r)=>!a||r.t.w>a.t.w||(r.t.w===a.t.w&&r.t.r>a.t.r)?r:a,null);
-  let h=`<div class="row"><div style="flex:1 1 18em"><label for="pex">Övning</label><select id="pex">${names.map(n=>`<option ${n===progEx?"selected":""}>${esc(n)} (${idx.get(n).length})</option>`).join("")}</select></div></div>`;
+  let h=`<div class="row"><div style="flex:1 1 18em"><label for="pex">${_("Övning")}</label><select id="pex">${names.map(n=>`<option ${n===progEx?"selected":""}>${esc(n)} (${idx.get(n).length})</option>`).join("")}</select></div></div>`;
   if(wt.length){const ch=last.t.w-first.t.w;
-    h+=`<div class="prog"><div><b>${last.t.r}@${fmt(last.t.w)}</b><span class="muted">Senaste toppset, ${nice(last.date)}</span></div><div><b>${best.t.r}@${fmt(best.t.w)}</b><span class="muted">Bästa, ${nice(best.date)}</span></div><div><b>${ch>=0?"+":"−"}${fmt(Math.abs(ch))} kg</b><span class="muted">Sedan ${nice(first.date)}</span></div><div><b>${fmt(Math.round(last.e1*10)/10)} kg</b><span class="muted">Beräknat 1RM (Epley)</span></div></div>
-    <h3 style="font-size:22px">Toppset per pass${wt.length>1?(ch>0?": uppåt":ch<0?": nedåt":": stilla"):""}</h3><div class="fig" id="chart"><svg id="csvg"></svg></div>`;}
+    h+=`<div class="prog"><div><b>${last.t.r}@${fmt(last.t.w)}</b><span class="muted">${_("Senaste toppset, {d}",{d:nice(last.date)})}</span></div><div><b>${best.t.r}@${fmt(best.t.w)}</b><span class="muted">${_("Bästa, {d}",{d:nice(best.date)})}</span></div><div><b>${ch>=0?"+":"−"}${fmt(Math.abs(ch))} kg</b><span class="muted">${_("Sedan {d}",{d:nice(first.date)})}</span></div><div><b>${fmt(Math.round(last.e1*10)/10)} kg</b><span class="muted">${_("Beräknat 1RM (Epley)")}</span></div></div>
+    <h3 style="font-size:22px">${_("Toppset per pass")}${wt.length>1?(ch>0?_(": uppåt"):ch<0?_(": nedåt"):_(": stilla")):""}</h3><div class="fig" id="chart"><svg id="csvg"></svg></div>`;}
   else{const b=rows.reduce((a,r)=>Math.max(a,r.bw),0),t=rows.reduce((a,r)=>Math.max(a,r.tm),0);
-    h+=`<div class="prog"><div><b>${t?mmss(t):b}</b><span class="muted">Bästa ${t?"tid":"reps"}</span></div><div><b>${rows.length}</b><span class="muted">Pass</span></div></div>`;}
-  h+=`<div class="scroll"><table><thead><tr><th>Datum</th><th>Set</th><th style="text-align:right">Topp</th><th style="text-align:right">1RM</th></tr></thead><tbody>${[...rows].reverse().map(r=>`<tr><td style="white-space:nowrap">${nice(r.date)}</td><td>${esc(r.s)}</td><td class="n">${r.t?`${r.t.r}@${fmt(r.t.w)}`:r.tm?mmss(r.tm):r.bw||"–"}</td><td class="n">${r.e1?fmt(Math.round(r.e1)):"–"}</td></tr>`).join("")}</tbody></table></div>`;
+    h+=`<div class="prog"><div><b>${t?mmss(t):b}</b><span class="muted">${t?_("Bästa tid"):_("Bästa reps")}</span></div><div><b>${rows.length}</b><span class="muted">${_("Pass")}</span></div></div>`;}
+  h+=`<div class="scroll"><table><thead><tr><th>${_("Datum")}</th><th>${_("Set")}</th><th style="text-align:right">${_("Topp")}</th><th style="text-align:right">1RM</th></tr></thead><tbody>${[...rows].reverse().map(r=>`<tr><td style="white-space:nowrap">${nice(r.date)}</td><td>${esc(r.s)}</td><td class="n">${r.t?`${r.t.r}@${fmt(r.t.w)}`:r.tm?mmss(r.tm):r.bw||"–"}</td><td class="n">${r.e1?fmt(Math.round(r.e1)):"–"}</td></tr>`).join("")}</tbody></table></div>`;
   setTimeout(()=>drawChart(wt),0);return h;
 }
 let ro=null;
@@ -540,12 +554,12 @@ function drawChart(wt){
     const stp=[1,2.5,5,10,20,25,50].find(k=>(hi-lo)/k<=5)||100;let g="";
     for(let v=Math.ceil(lo/stp)*stp;v<=hi;v+=stp)g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${m.l-8}" y="${Y(v)+4}" text-anchor="end">${fmt(v)}</text>`;
     const d0=pd(wt[0].date);let mo=new Date(Date.UTC(d0.getUTCFullYear(),d0.getUTCMonth()+1,1)),k=0;
-    while(mo.getTime()<=t1){if(W>=520||k%2===0)g+=`<text x="${X(ds(mo))}" y="${H-8}" text-anchor="middle">${MO[mo.getUTCMonth()]}</text>`;mo=new Date(Date.UTC(mo.getUTCFullYear(),mo.getUTCMonth()+1,1));k++}
+    while(mo.getTime()<=t1){if(W>=520||k%2===0)g+=`<text x="${X(ds(mo))}" y="${H-8}" text-anchor="middle">${months()[mo.getUTCMonth()]}</text>`;mo=new Date(Date.UTC(mo.getUTCFullYear(),mo.getUTCMonth()+1,1));k++}
     const e=wt.filter(r=>r.e1);const ln=(a,f)=>a.map((r,i)=>`${i?"L":"M"}${X(r.date).toFixed(1)},${Y(f(r)).toFixed(1)}`).join("");
     g+=`<path d="${ln(e,r=>r.e1)}" fill="none" stroke="var(--soft)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
     g+=`<path d="${ln(wt,r=>r.t.w)}" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linejoin="round"/>`;
     g+=wt.map(r=>`<circle cx="${X(r.date)}" cy="${Y(r.t.w)}" r="4" fill="var(--red)"><title>${nice(r.date)}: ${r.t.r}@${fmt(r.t.w)}</title></circle>`).join("");
-    const L=wt[wt.length-1];g+=`<text x="${X(L.date)+8}" y="${Y(L.t.w)+4}" style="fill:var(--red);font-weight:600">Toppset</text>`;
+    const L=wt[wt.length-1];g+=`<text x="${X(L.date)+8}" y="${Y(L.t.w)+4}" style="fill:var(--red);font-weight:600">${_("Toppset")}</text>`;
     if(L.e1)g+=`<text x="${X(L.date)+8}" y="${Y(L.e1)+(Math.abs(Y(L.e1)-Y(L.t.w))<16?-12:4)}">1RM</text>`;
     s.innerHTML=g};
   if(ro)ro.disconnect();ro=new ResizeObserver(draw);ro.observe(s);draw();
@@ -556,11 +570,11 @@ function render(){
   if(!me){$("main").innerHTML=renderAuth();return}
   $("admintab").hidden=me.role!=="admin";
   const tn=me.tasks?.total||0;$("adminbadge").hidden=!tn;$("adminbadge").textContent=tn;
-  $("usertab").textContent=me.firstName||"Inställningar";
+  $("usertab").textContent=me.firstName||_("Inställningar");
   renderTop();
   for(const a of document.querySelectorAll("#tabs a"))a.classList.toggle("on",a.dataset.v===view);
   const f={plan:renderPlan,coach:renderCoach,log:renderLog,history:renderHistory,progress:renderProgress,settings:renderSettings,admin:renderAdmin}[view]||renderPlan;
-  $("main").innerHTML=(flash?`<div class="flash ${flash.k}">${esc(flash.t)}</div>`:"")+f();
+  $("main").innerHTML=(flash?`<div class="flash ${flash.k}">${esc(_(flash.t))}</div>`:"")+f();
 }
 function route(){const h=location.hash.slice(1);view=["plan","coach","log","history","progress","settings","admin"].includes(h)?h:"plan";if(view!=="admin")resetLink=null;if(view==="admin"&&me?.role!=="admin")view="plan";if(view!=="log")ed=null;armed=null;flash=null;if(view==="admin")loadAdmin();render();window.scrollTo(0,0)}
 
@@ -587,8 +601,8 @@ async function write(path,data,reload=true){
 }
 async function runImport(btn){
   btn.disabled=true;let next=0;
-  try{while(next!=null){const r=await api("import?offset="+next,{method:"POST"});btn.textContent=`Importerar… ${r.imported}/${r.total}`;next=r.next}await load();setSync("Import klar")}
-  catch(e){btn.disabled=false;btn.textContent="Försök igen";setSync(e.message||"Importen misslyckades")}
+  try{while(next!=null){const r=await api("import?offset="+next,{method:"POST"});btn.textContent=_("Importerar… {a}/{b}",{a:r.imported,b:r.total});next=r.next}await load();setSync("Import klar")}
+  catch(e){btn.disabled=false;btn.textContent=_("Försök igen");setSync(e.message||"Importen misslyckades")}
 }
 
 document.addEventListener("click",async ev=>{
@@ -601,16 +615,16 @@ document.addEventListener("click",async ev=>{
     if(a==="cstart"){ed={kind:"log",date:n.date,tag:n.tag,note:"",ex:ex.map(e=>({n:e.n,s:"",goal:e.s}))};location.hash="log";return}
     if(await write("plans/"+n.date,{date:n.date,tag:n.tag,note:"",ex,done:null})){weekOff=Math.round((pd(monday(n.date))-pd(monday(TODAY)))/864e5/7);location.hash="plan"}return}
   if(a==="pastetoggle"){ed.paste=!ed.paste;ed.pasteMsg="";render();if(ed.paste)setTimeout(()=>$("pastetxt")?.focus(),0);return}
-  if(a==="clip"){try{const t=await navigator.clipboard.readText();ed.pasteText=t;ed.pasteMsg="Hämtat från urklipp. Tryck Fyll i.";}catch(e){ed.pasteMsg="Kunde inte läsa urklipp. Håll fingret i rutan och välj Klistra in."}render();return}
+  if(a==="clip"){try{const t=await navigator.clipboard.readText();ed.pasteText=t;ed.pasteMsg=_("Hämtat från urklipp. Tryck Fyll i.");}catch(e){ed.pasteMsg=_("Kunde inte läsa urklipp. Håll fingret i rutan och välj Klistra in.")}render();return}
   if(a==="pastefill"){const found=parseSessionText(ed.pasteText||"",TODAY).map(p=>({...p,ex:p.ex.map(e=>({n:canon(e.n),s:e.s,r:e.r??null}))}));found.forEach(p=>p.dup=!!(p.date&&sameSession(p)));ed.pasteFound=found;
-    if(!found.length){ed.pasteMsg="Hittade inga övningar i texten.";render();return}
+    if(!found.length){ed.pasteMsg=_("Hittade inga övningar i texten.");render();return}
     applyPaste(found[0]);const nEx=found[0].ex.length,nSets=found[0].ex.reduce((a,e)=>a+parseSets(e.s).length,0);
-    ed.pasteMsg=found.length>1?`Hittade ${found.length} pass. Det första (${found[0].date?nice(found[0].date):"utan datum"}) är ifyllt nedan${found.some(x=>x.dup)?`; ${found.filter(x=>x.dup).length} finns redan och hoppas över`:""}.`:`Fyllde i ${nEx} övningar och ${nSets} set${found[0].date?"":" (inget datum i texten, behåller "+nice(ed.date)+")"}. Kontrollera och tryck Spara pass.`;
+    ed.pasteMsg=found.length>1?_("Hittade {n} pass. Det första ({d}) är ifyllt nedan.",{n:found.length,d:found[0].date?nice(found[0].date):_("utan datum")})+(found.some(x=>x.dup)?" "+_("{n} finns redan och hoppas över.",{n:found.filter(x=>x.dup).length}):""):(found[0].date?_("Fyllde i {e} övningar och {s} set. Kontrollera och tryck Spara pass.",{e:nEx,s:nSets}):_("Fyllde i {e} övningar och {s} set (inget datum i texten, behåller {d}). Kontrollera och tryck Spara pass.",{e:nEx,s:nSets,d:nice(ed.date)}));
     if(found.length===1){ed.paste=false;ed.pasteText="";setSync(ed.pasteMsg)}render();return}
   if(a==="pastesaveall"){const todo=(ed.pasteFound||[]).filter(x=>x.date&&!x.dup);b.disabled=true;let n=0;
-    for(const p of todo){b.textContent=`Sparar ${n+1}/${todo.length}…`;const id=`${p.date}-${Date.now().toString(36)}${n}`;
+    for(const p of todo){b.textContent=_("Sparar {a}/{b}…",{a:n+1,b:todo.length});const id=`${p.date}-${Date.now().toString(36)}${n}`;
       if(!await write("sessions/"+id,{date:p.date,tag:p.tag,note:p.note,ex:p.ex.filter(e=>e.s)},false))break;n++}
-    await load();setSync(`Sparade ${n} pass`);ed=null;location.hash="history";if(view==="history")render();return}
+    await load();setSync(_n(n,"Sparade {n} pass","Sparade {n} pass"));ed=null;location.hash="history";if(view==="history")render();return}
   if(a==="wk"){weekOff=b.dataset.d==="0"?0:weekOff+ +b.dataset.d;render()}
   else if(a==="newplan"){ed={kind:"plan",date:b.dataset.d,tag:"ÖK",note:"",ex:fromTag("ÖK",b.dataset.d)};render();$("edbox")?.scrollIntoView({block:"start"})}
   else if(a==="eplan"){const p=plans.find(x=>x.date===b.dataset.d);ed={kind:"plan",id:p.id,date:p.date,tag:p.tag,note:p.note||"",ex:JSON.parse(JSON.stringify(p.ex||[]))};render();$("edbox")?.scrollIntoView({block:"start"})}
@@ -631,8 +645,8 @@ document.addEventListener("click",async ev=>{
   else if(a==="del"){if(armed!=="del"){armed="del";render();return}armed=null;
     if(await write((ed.kind==="plan"?"plans/":"sessions/")+ed.id,null)){ed=null;render()}}
   else if(a==="ft"){filt.tag=b.dataset.t;render()}
-  else if(a==="copy"){const txt=[...sessions].sort((x,y)=>x.date<y.date?-1:1).map(s=>`${s.date.slice(2).replace(/-/g,"")}${s.tag?" "+s.tag:""}${s.note?` (${s.note})`:""}\n`+(s.ex||[]).map(e=>`${e.n} ${e.s}${e.r!==null&&e.r!==undefined?" RIR "+e.r:""}`).join("\n")).join("\n\n");
-    try{await navigator.clipboard.writeText(txt);setSync("Kopierat")}catch(e){$("copyout").innerHTML=`<label for="cpt">Markera och kopiera</label><textarea id="cpt">${esc(txt)}</textarea>`}}
+  else if(a==="copy"){const txt=[...sessions].sort((x,y)=>x.date<y.date?-1:1).map(s=>`${s.date.slice(2).replace(/-/g,"")}${s.tag?" "+tagShort(s.tag):""}${s.note?` (${s.note})`:""}\n`+(s.ex||[]).map(e=>`${e.n} ${e.s}${e.r!==null&&e.r!==undefined?" RIR "+e.r:""}`).join("\n")).join("\n\n");
+    try{await navigator.clipboard.writeText(txt);setSync("Kopierat")}catch(e){$("copyout").innerHTML=`<label for="cpt">${_("Markera och kopiera")}</label><textarea id="cpt">${esc(txt)}</textarea>`}}
 });
 document.addEventListener("input",ev=>{if(ev.target.id==="pastetxt"&&ed){ed.pasteText=ev.target.value;return}if(ev.target.id==="hq"){filt.q=ev.target.value;const p=ev.target.selectionStart;render();const i=$("hq");i.focus();i.setSelectionRange(p,p)}});
 document.addEventListener("change",ev=>{const t=ev.target;

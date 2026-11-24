@@ -53,7 +53,13 @@ const V4 = [
   `INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '4')`,
 ];
 
-export const SCHEMA_VERSION = 4;
+// Version 5: chosen UI language per user ('' = follow the device).
+const V5 = [
+  `ALTER TABLE users ADD COLUMN lang TEXT NOT NULL DEFAULT ''`,
+  `INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '5')`,
+];
+
+export const SCHEMA_VERSION = 5;
 
 let ready = null;
 export function ensureSchema(db) {
@@ -72,6 +78,7 @@ async function migrate(db) {
   if (v < 2) await db.batch(V2.map((s) => db.prepare(s)));
   if (v < 3) await db.batch(V3.map((s) => db.prepare(s)));
   if (v < 4) await db.batch(V4.map((s) => db.prepare(s)));
+  if (v < 5) await db.batch(V5.map((s) => db.prepare(s)));
 }
 
 // Create the admin account on first start (from the ADMIN_EMAIL and
