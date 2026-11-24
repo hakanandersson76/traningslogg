@@ -230,25 +230,15 @@ export function allocSets(names, goal = "muscle") {
   return sets;
 }
 // ---- session length ----
-// Rough minutes: each working set incl. rest (compound 2,5 min, isolation 1,75 min,
-// timed sets their duration + 1 min), 1 min to change station, 2 min of warm-up
-// sets before the first compound lift for each muscle group, and 5 min general
-// warm-up per session. A rule of thumb, shown as such in the app.
-export const WARMUP_MIN = 5;
+// Rough minutes of training: each working set incl. rest (compound 2,5 min,
+// isolation 1,75 min, timed sets their duration + 1 min) and 1 min to change
+// station. Warm-up is optional and not part of the session length.
+// A rule of thumb, shown as such in the app.
 const setMinutes = (name, one) => {
   const tm = String(one || "").match(/^(\d+):(\d\d)/);
   return tm ? (+tm[1] * 60 + +tm[2]) / 60 + 1 : isCompound(name) ? 2.5 : 1.75;
 };
-export function sessionMinutes(items) {
-  const warmed = new Set();
-  let m = WARMUP_MIN;
-  for (const x of items) {
-    m += x.sets * setMinutes(x.n, x.one ?? x.target) + 1;
-    const g = groupOf(x.n) || x.n;
-    if (isCompound(x.n) && !warmed.has(g)) { warmed.add(g); m += 2; }
-  }
-  return m;
-}
+export const sessionMinutes = (items) => items.reduce((m, x) => m + x.sets * setMinutes(x.n, x.one ?? x.target) + 1, 0);
 
 // Fit a proposal into the available time. items: priority order (most important
 // first), each {n, sets, one}. Trims in this order until it fits:
@@ -256,8 +246,10 @@ export function sessionMinutes(items) {
 // 2. a whole exercise, choosing (from the least important end) first core or
 //    ungrouped, then one whose muscle group is still covered by another exercise,
 //    then isolation, then anything, keeping at least 3 exercises;
-// then adds sets back (most important first, up to what was asked) while it fits.
-export function fitToTime(items, minutes) {
+// then adds sets back (most important first, up to what was asked) while it fits,
+// and uses time left over: a dropped exercise back with 2 sets, then a 3rd set
+// (up to `extra`) on the most important exercises.
+export function fitToTime(items, minutes, extra = 3) {
   const want = new Map(items.map((x) => [x.n, x.sets]));
   const list = items.map((x) => ({ ...x }));
   const dropped = [];
@@ -277,14 +269,26 @@ export function fitToTime(items, minutes) {
     dropped.push(list[at].n);
     list.splice(at, 1);
   }
-  for (let grew = true; grew && minutes; ) {
-    grew = false;
-    for (const x of list) {
-      if (x.sets >= want.get(x.n)) continue;
-      x.sets++;
-      if (fits()) { grew = true; break; }
-      x.sets--;
+  const grow = (cap) => {
+    for (let grew = true; grew && minutes; ) {
+      grew = false;
+      for (const x of list) {
+        if (x.sets >= cap(x)) continue;
+        x.sets++;
+        if (fits()) { grew = true; break; }
+        x.sets--;
+      }
     }
+  };
+  grow((x) => want.get(x.n));
+  if (minutes) {
+    for (const n of [...dropped]) {
+      const x = { ...items.find((y) => y.n === n), sets: 2 };
+      list.push(x);
+      if (fits()) dropped.splice(dropped.indexOf(n), 1);
+      else list.pop();
+    }
+    grow((x) => Math.max(want.get(x.n), extra));
   }
   return { items: list, dropped, minutes: Math.round(sessionMinutes(list)) };
 }
@@ -315,7 +319,7 @@ export function proposeSession(sessions, tag, date, goal = "muscle", minutes = 0
   });
   // Fit by priority (how often it was done recently), then show in the usual order.
   const byPrio = [...items].sort((a, b) => b.prio - a.prio);
-  const fit = fitToTime(byPrio, minutes);
+  const fit = fitToTime(byPrio, minutes, goal === "health" ? 2 : 3);
   const keep = new Map(fit.items.map((x) => [x.n, x.sets]));
   const plan = items.filter((x) => keep.has(x.n)).map((x) => ({ ...x, sets: keep.get(x.n), target: withSets(x.one, keep.get(x.n)) }));
   plan.dropped = fit.dropped;

@@ -293,7 +293,7 @@ assert(legs35.dropped[0] === "Plankan" && legs35.filter((x) => groupOf(x.n) === 
 const up35 = proposeSession(seedS, "ÖK", "2026-11-25", "muscle", 35);
 assert(["bröst", "rygg", "axlar", "armar"].every((g) => up35.some((x) => groupOf(x.n) === g)), "coach: short upper day keeps every muscle group");
 assert(proposeSession(seedS, "ÖK", "2026-11-25", "muscle", 90).reduce((a, x) => a + x.sets, 0) > up35.reduce((a, x) => a + x.sets, 0), "coach: more time → more sets");
-assert(sessionMinutes([{ n: "Bänkpress", sets: 3, one: "8@60" }]) === 5 + 7.5 + 1 + 2, "coach: time estimate");
+assert(sessionMinutes([{ n: "Bänkpress", sets: 3, one: "8@60" }, { n: "Plankan", sets: 2, one: "1:00" }]) === 7.5 + 1 + 4 + 1, "coach: time estimate (no warm-up)");
 assert(allocSets(["Bänkpress", "Kabelrodd", "Axelpress", "Bicepscurl", "Tricepspress", "Leg curl", "Squats", "Plankan", "Face pulls", "Rodd"], "muscle").reduce((a, b) => a + b, 0) <= 24, "coach: a session is capped at 24 working sets");
 
 // ---- 10. Languages ----

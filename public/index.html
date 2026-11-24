@@ -234,7 +234,7 @@ function lastFor(n,before){const l=exIndex().get(n)||[];for(let i=l.length-1;i>=
 const goalNow=()=>me?.goal||"muscle";
 const minNow=()=>me?.sessionMin||40;
 function coachTarget(n,date){const ents=exHistory(sessions.filter(s=>s.date<date)).get(n);return ents?nextTarget(ents,date,goalNow(),n).target:""}
-function fromTag(tag,date){const last=[...sessions].filter(s=>effectiveTag(s)===tag&&s.date<date).sort((a,b)=>a.date<b.date?1:-1)[0];if(!last)return [];const ex=(last.ex||[]).filter(e=>e.n);const n=allocSets(ex.map(e=>e.n),goalNow());const fit=fitToTime(ex.map((e,i)=>({n:e.n,sets:n[i],one:coachTarget(e.n,date)})),minNow());return fit.items.map(x=>({n:x.n,s:withSets(x.one,x.sets)}))}
+function fromTag(tag,date){const last=[...sessions].filter(s=>effectiveTag(s)===tag&&s.date<date).sort((a,b)=>a.date<b.date?1:-1)[0];if(!last)return [];const ex=(last.ex||[]).filter(e=>e.n);const n=allocSets(ex.map(e=>e.n),goalNow());const fit=fitToTime(ex.map((e,i)=>({n:e.n,sets:n[i],one:coachTarget(e.n,date)})),minNow(),goalNow()==="health"?2:3);return fit.items.map(x=>({n:x.n,s:withSets(x.one,x.sets)}))}
 
 const cacheKey=()=>me?"gymlog-cache-"+me.id:null;
 function save(){try{if(cacheKey())localStorage.setItem(cacheKey(),JSON.stringify({s:sessions,p:plans}))}catch(e){}}
@@ -356,7 +356,7 @@ function renderCoach(){
   <section class="hero"><div><span class="muted">${_("Nästa pass, {when}",{when})}</span><h2>${chip(n.tag)} ${tagName(n.tag)}</h2><p style="margin:0 0 6px">${esc(n.why)}</p>
   ${n.restWhy?`<div class="warnbox">${esc(n.restWhy)}</div>`:""}${srcHTML(n.src)}
   <div class="row" style="margin-top:12px"><button class="pri" data-act="cstart">${_("Starta passet")}</button><button data-act="cplan">${hasPlan?_("Ersätt planen"):_("Lägg i planen")}</button></div></div>
-  <div><ul class="pl">${r.plan.map(p=>`<li><span>${esc(p.n)}<span class="k ${p.kind}">${kindTxt[p.kind]||""}</span></span><b>${esc(p.target)||"–"}</b><small>${esc(p.why)}${p.last?` ${_("Senast {d}",{d:nice(p.last.date)})}: ${esc(p.last.s)}${rirTxt(p.last.rir)}.`:""}</small>${srcHTML(p.src)}</li>`).join("")||`<li><span class="muted">${_("Inga tidigare {t}-pass att utgå från.",{t:tagShort(n.tag)})}</span></li>`}</ul>${r.plan.length?`<p class="muted" style="margin:8px 0 0;font-size:14px">${_("Cirka {m} min av dina {t} min, {n} arbetsset (x3 = tre likadana set).",{m:r.plan.minutes,t:r.minutes,n:r.plan.reduce((a,p)=>a+(p.sets||0),0)})}${r.plan.dropped?.length?" "+_("Fick inte plats: {list}.",{list:r.plan.dropped.map(esc).join(", ")}):""} <a href="#settings">${_("Ändra passlängd")}</a></p>${srcHTML(["rule"])}`:""}</div></section>`;
+  <div><ul class="pl">${r.plan.map(p=>`<li><span>${esc(p.n)}<span class="k ${p.kind}">${kindTxt[p.kind]||""}</span></span><b>${esc(p.target)||"–"}</b><small>${esc(p.why)}${p.last?` ${_("Senast {d}",{d:nice(p.last.date)})}: ${esc(p.last.s)}${rirTxt(p.last.rir)}.`:""}</small>${srcHTML(p.src)}</li>`).join("")||`<li><span class="muted">${_("Inga tidigare {t}-pass att utgå från.",{t:tagShort(n.tag)})}</span></li>`}</ul>${r.plan.length?`<p class="muted" style="margin:8px 0 0;font-size:14px">${_("Cirka {m} min av dina {t} min, {n} arbetsset (x3 = tre likadana set), uppvärmning ej inräknad.",{m:r.plan.minutes,t:r.minutes,n:r.plan.reduce((a,p)=>a+(p.sets||0),0)})}${r.plan.dropped?.length?" "+_("Fick inte plats: {list}.",{list:r.plan.dropped.map(esc).join(", ")}):""} <a href="#settings">${_("Ändra passlängd")}</a></p>${srcHTML(["rule"])}`:""}</div></section>`;
   if(r.notes.length)h+=`<h3 style="font-size:24px;margin-bottom:4px">${_("Att tänka på")}</h3><ul class="notes">${r.notes.map(x=>`<li class="${x.k}">${esc(x.t)}${srcHTML(x.src)}</li>`).join("")}</ul>`;
   const mx=Math.max(3,...r.weeks.map(w=>w.total));
   const B=G.band,SC=Math.max(25,B[1]+5);
@@ -379,7 +379,7 @@ function renderCoach(){
   <li>${_("<b>Hur nära failure:</b> {r} reps kvar i sista setet för målet {g}.",{r:G.rir,g:_(G.label).toLowerCase()})}</li>
   <li>${_("<b>Frekvens:</b> varje muskelgrupp minst två gånger i veckan.")}</li>
   <li>${_("<b>Volym:</b> {a}–{b} tunga set per muskelgrupp och vecka.",{a:B[0],b:B[1]})}</li>
-  <li>${_("<b>Passlängd:</b> uppskattad tid per set inklusive vila (basövning 2,5 min, isolation 1,75 min) plus byten och uppvärmning. Blir passet för långt tas först set över två bort, sedan bål och en andra övning för samma muskelgrupp.")}</li><li>${_("<b>Tumregler</b> (inte direkt från studier): 90 % efter mer än 4 veckors uppehåll, platå när toppsetet stått still tre pass, steg på 2,5 kg (5 kg från 100 kg, 1 kg under 10 kg).")}</li></ul>
+  <li>${_("<b>Passlängd:</b> uppskattad tid per set inklusive vila (basövning 2,5 min, isolation 1,75 min) plus byten mellan övningar. Uppvärmning ingår inte. Blir passet för långt tas först set över två bort, sedan bål och en andra övning för samma muskelgrupp.")}</li><li>${_("<b>Tumregler</b> (inte direkt från studier): 90 % efter mer än 4 veckors uppehåll, platå när toppsetet stått still tre pass, steg på 2,5 kg (5 kg från 100 kg, 1 kg under 10 kg).")}</li></ul>
   <h3 style="font-size:20px;margin:12px 0 6px">${_("Källor")}</h3><ul class="refs">${Object.entries(SOURCES).filter(([k])=>k!=="rule").map(([,s])=>`<li>${esc(_(s.t))} <a href="${s.u}" target="_blank" rel="noopener">${_("Läs mer")}</a></li>`).join("")}</ul></section>`;
   return h;
 }
@@ -418,7 +418,7 @@ function renderSettings(){
   return `<section class="panel"><h2>${_("Språk")}</h2><form data-form="lang">
     <div style="max-width:320px"><label for="s-lang">${_("Språk i appen")}</label><select id="s-lang" name="lang"><option value="" ${lp===""?"selected":""}>${_("Automatiskt (enhetens språk: {l})",{l:LANGS[detectLang()]})}</option>${Object.entries(LANGS).map(([k,v])=>`<option value="${k}" ${lp===k?"selected":""}>${v}</option>`).join("")}</select></div>
     <div><button class="pri">${_("Spara språk")}</button></div></form></section>
-  <section class="panel"><h2>${_("Passlängd")}</h2><p class="muted" style="margin-top:0">${_("Hur lång tid ett vanligt pass får ta, uppvärmning inräknad. Coachen anpassar antal set och övningar efter det.")}</p>
+  <section class="panel"><h2>${_("Passlängd")}</h2><p class="muted" style="margin-top:0">${_("Hur lång tid ett vanligt pass får ta, uppvärmning inte medräknad. Coachen anpassar antal set och övningar efter det.")}</p>
     <form data-form="sessionlen" class="row" style="align-items:flex-end"><div style="max-width:160px"><label for="s-min">${_("Minuter")}</label><input id="s-min" name="minutes" type="number" inputmode="numeric" min="15" max="180" step="5" value="${minNow()}" required></div>
     <div><button class="pri">${_("Spara passlängd")}</button></div></form></section>
   <section class="panel"><h2>${_("Träningsmål")}</h2><p class="muted" style="margin-top:0">${_("Styr coachens repsintervall, hur nära failure den föreslår och hur mycket volym den siktar på.")}</p>
