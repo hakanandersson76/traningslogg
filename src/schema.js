@@ -59,7 +59,15 @@ const V5 = [
   `INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '5')`,
 ];
 
-export const SCHEMA_VERSION = 5;
+// Version 6: normal session length in minutes; the coach fits its proposals to it.
+// New users get 40. The admin (Håkan, the only admin at this point) asked for 35.
+const V6 = [
+  `ALTER TABLE users ADD COLUMN session_min INTEGER NOT NULL DEFAULT 40`,
+  `UPDATE users SET session_min = 35 WHERE role = 'admin'`,
+  `INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '6')`,
+];
+
+export const SCHEMA_VERSION = 6;
 
 let ready = null;
 export function ensureSchema(db) {
@@ -79,6 +87,7 @@ async function migrate(db) {
   if (v < 3) await db.batch(V3.map((s) => db.prepare(s)));
   if (v < 4) await db.batch(V4.map((s) => db.prepare(s)));
   if (v < 5) await db.batch(V5.map((s) => db.prepare(s)));
+  if (v < 6) await db.batch(V6.map((s) => db.prepare(s)));
 }
 
 // Create the admin account on first start (from the ADMIN_EMAIL and

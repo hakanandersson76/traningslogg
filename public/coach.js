@@ -229,11 +229,71 @@ export function allocSets(names, goal = "muscle") {
   }
   return sets;
 }
+// ---- session length ----
+// Rough minutes: each working set incl. rest (compound 2,5 min, isolation 1,75 min,
+// timed sets their duration + 1 min), 1 min to change station, 2 min of warm-up
+// sets before the first compound lift for each muscle group, and 5 min general
+// warm-up per session. A rule of thumb, shown as such in the app.
+export const WARMUP_MIN = 5;
+const setMinutes = (name, one) => {
+  const tm = String(one || "").match(/^(\d+):(\d\d)/);
+  return tm ? (+tm[1] * 60 + +tm[2]) / 60 + 1 : isCompound(name) ? 2.5 : 1.75;
+};
+export function sessionMinutes(items) {
+  const warmed = new Set();
+  let m = WARMUP_MIN;
+  for (const x of items) {
+    m += x.sets * setMinutes(x.n, x.one ?? x.target) + 1;
+    const g = groupOf(x.n) || x.n;
+    if (isCompound(x.n) && !warmed.has(g)) { warmed.add(g); m += 2; }
+  }
+  return m;
+}
+
+// Fit a proposal into the available time. items: priority order (most important
+// first), each {n, sets, one}. Trims in this order until it fits:
+// 1. sets above 2 (largest first);
+// 2. a whole exercise, choosing (from the least important end) first core or
+//    ungrouped, then one whose muscle group is still covered by another exercise,
+//    then isolation, then anything, keeping at least 3 exercises;
+// then adds sets back (most important first, up to what was asked) while it fits.
+export function fitToTime(items, minutes) {
+  const want = new Map(items.map((x) => [x.n, x.sets]));
+  const list = items.map((x) => ({ ...x }));
+  const dropped = [];
+  const fits = () => !minutes || sessionMinutes(list) <= minutes;
+  while (!fits()) {
+    const big = list.filter((x) => x.sets > 2);
+    if (big.length) { big.sort((a, b) => b.sets - a.sets || +isCompound(a.n) - +isCompound(b.n))[0].sets--; continue; }
+    if (list.length <= 3) break;
+    const g = (x) => groupOf(x.n);
+    const covered = (x) => g(x) && list.filter((y) => g(y) === g(x)).length > 1;
+    const tests = [(x) => g(x) === "core" || !g(x), covered, (x) => !isCompound(x.n), () => true];
+    let at = -1;
+    for (const test of tests) {
+      for (let i = list.length - 1; i >= 0 && at < 0; i--) if (test(list[i])) at = i;
+      if (at >= 0) break;
+    }
+    dropped.push(list[at].n);
+    list.splice(at, 1);
+  }
+  for (let grew = true; grew && minutes; ) {
+    grew = false;
+    for (const x of list) {
+      if (x.sets >= want.get(x.n)) continue;
+      x.sets++;
+      if (fits()) { grew = true; break; }
+      x.sets--;
+    }
+  }
+  return { items: list, dropped, minutes: Math.round(sessionMinutes(list)) };
+}
+
 // "9@25" + 3 sets → "9@25 x3" (Håkan's own notation for identical sets).
 export const withSets = (target, n) => (target && n > 1 ? `${target} x${n}` : target);
 
 // A concrete session of the given type: the exercises he usually does, with targets.
-export function proposeSession(sessions, tag, date, goal = "muscle") {
+export function proposeSession(sessions, tag, date, goal = "muscle", minutes = 0) {
   const hist = history(sessions);
   const same = [...sessions].filter((s) => effectiveTag(s) === tag && s.date < date).sort((a, b) => (a.date < b.date ? 1 : -1));
   const recent = same.filter((s) => daysBetween(s.date, date) <= 60);
@@ -249,10 +309,18 @@ export function proposeSession(sessions, tag, date, goal = "muscle") {
   const size = Math.max(3, Math.min(8, sizes[Math.floor(sizes.length / 2)]));
   const chosen = [...score.values()].sort((a, b) => b.w - a.w).slice(0, size).sort((a, b) => a.pos / a.k - b.pos / b.k);
   const sets = allocSets(chosen.map((c) => c.n), goal);
-  return chosen.map((c, i) => {
+  const items = chosen.map((c, i) => {
     const nt = nextTarget(hist.get(c.n), date, goal, c.n);
-    return { n: c.n, ...nt, sets: sets[i], target: withSets(nt.target, sets[i]), one: nt.target, last: hist.get(c.n)?.at(-1) };
+    return { n: c.n, ...nt, sets: sets[i], one: nt.target, last: hist.get(c.n)?.at(-1), prio: c.w };
   });
+  // Fit by priority (how often it was done recently), then show in the usual order.
+  const byPrio = [...items].sort((a, b) => b.prio - a.prio);
+  const fit = fitToTime(byPrio, minutes);
+  const keep = new Map(fit.items.map((x) => [x.n, x.sets]));
+  const plan = items.filter((x) => keep.has(x.n)).map((x) => ({ ...x, sets: keep.get(x.n), target: withSets(x.one, keep.get(x.n)) }));
+  plan.dropped = fit.dropped;
+  plan.minutes = fit.minutes;
+  return plan;
 }
 
 // Weekly hard sets per muscle group over the last 4 weeks. Working sets are those
@@ -293,11 +361,11 @@ export function weeklyCounts(sessions, today, n = 12) {
 }
 
 // Everything the coach view shows.
-export function coachReport(sessions, today, goal = "muscle") {
+export function coachReport(sessions, today, goal = "muscle", minutes = 0) {
   const G = goalOf(goal);
   const hist = history(sessions);
   const next = nextType(sessions, today, goal);
-  const plan = proposeSession(sessions, next.tag, next.date, goal);
+  const plan = proposeSession(sessions, next.tag, next.date, goal, minutes);
   const trends = [];
   for (const [n, entries] of hist) {
     const t = trendOf(entries, today);
@@ -340,5 +408,5 @@ export function coachReport(sessions, today, goal = "muscle") {
   if (down.length) notes.push({ k: "warn", t: tx("Tappat i {list}. Kolla sömn och återhämtning, eller kör ett par pass lite lättare.", { list: list(down.slice(0, 3).map((d) => d.n)) }), src: ["rule"] });
   if (flat.length >= 3) notes.push({ k: "info", t: tx("{n} övningar står still. Variera reps (t.ex. fler reps på lägre vikt) eller byt variant under några veckor.", { n: flat.length }), src: ["plotkin2022", "rule"] });
   if (prs.length) notes.push({ k: "good", t: tx("Nya rekord senaste månaden: {list}.", { list: list(prs.slice(0, 3).map((p) => p.n)) }), src: [] });
-  return { goal, G, next, plan, up, flat, down, prs, neglected, weeks, last4, prev4, vol: volume.groups, rirShare: volume.rirShare, freq, notes };
+  return { goal, G, minutes, next, plan, up, flat, down, prs, neglected, weeks, last4, prev4, vol: volume.groups, rirShare: volume.rirShare, freq, notes };
 }

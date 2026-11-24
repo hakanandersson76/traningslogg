@@ -197,6 +197,13 @@ async function handleAccount(request, env, url, db, user, action) {
     await db.prepare("UPDATE users SET first_name = ?2, last_name = ?3 WHERE id = ?1").bind(user.id, f, l).run();
     return json({ ok: true, user: await meOut(db, { ...user, first_name: f, last_name: l }) });
   }
+  if (action === "session-length" && request.method === "PUT") {
+    const b = (await readBody(request)) || {};
+    const m = Number(b.minutes);
+    if (!Number.isInteger(m) || m < 15 || m > 180) return bad("Ange en passlängd mellan 15 och 180 minuter.");
+    await db.prepare("UPDATE users SET session_min = ?2 WHERE id = ?1").bind(user.id, m).run();
+    return json({ ok: true, user: await meOut(db, { ...user, session_min: m }) });
+  }
   if (action === "lang" && request.method === "PUT") {
     const b = (await readBody(request)) || {};
     const lang = b.lang ?? "";

@@ -201,7 +201,7 @@ td .row{gap:6px}
 <main id="main"></main>
 <script type="module">
 import { parseSets, parseSessionText } from "./parse.js";
-import { coachReport, nextTarget, history as exHistory, SOURCES, GOALS, effectiveTag, allocSets, withSets } from "./coach.js";
+import { coachReport, nextTarget, history as exHistory, SOURCES, GOALS, effectiveTag, allocSets, withSets, fitToTime } from "./coach.js";
 import { t as _, tn as _n, setLang, getLang, detectLang, LANGS, weekdays, months, fmtNum, tagShort, tagName } from "./i18n.js";
 {
 // Colours per session type; labels come from i18n (tagShort/tagName).
@@ -232,8 +232,9 @@ const e1rm=s=>s&&s.w>0?s.w*(1+Math.min(s.r,12)/30):null;
 function exIndex(){const m=new Map();for(const s of [...sessions].sort((a,b)=>a.date<b.date?-1:1))for(const e of s.ex||[]){if(!e.n)continue;if(!m.has(e.n))m.set(e.n,[]);m.get(e.n).push({date:s.date,s:e.s||"",sid:s.id})}return m}
 function lastFor(n,before){const l=exIndex().get(n)||[];for(let i=l.length-1;i>=0;i--)if(!before||l[i].date<before)return l[i];return null}
 const goalNow=()=>me?.goal||"muscle";
+const minNow=()=>me?.sessionMin||40;
 function coachTarget(n,date){const ents=exHistory(sessions.filter(s=>s.date<date)).get(n);return ents?nextTarget(ents,date,goalNow(),n).target:""}
-function fromTag(tag,date){const last=[...sessions].filter(s=>effectiveTag(s)===tag&&s.date<date).sort((a,b)=>a.date<b.date?1:-1)[0];if(!last)return [];const ex=(last.ex||[]).filter(e=>e.n);const n=allocSets(ex.map(e=>e.n),goalNow());return ex.map((e,i)=>({n:e.n,s:withSets(coachTarget(e.n,date),n[i])}))}
+function fromTag(tag,date){const last=[...sessions].filter(s=>effectiveTag(s)===tag&&s.date<date).sort((a,b)=>a.date<b.date?1:-1)[0];if(!last)return [];const ex=(last.ex||[]).filter(e=>e.n);const n=allocSets(ex.map(e=>e.n),goalNow());const fit=fitToTime(ex.map((e,i)=>({n:e.n,sets:n[i],one:coachTarget(e.n,date)})),minNow());return fit.items.map(x=>({n:x.n,s:withSets(x.one,x.sets)}))}
 
 const cacheKey=()=>me?"gymlog-cache-"+me.id:null;
 function save(){try{if(cacheKey())localStorage.setItem(cacheKey(),JSON.stringify({s:sessions,p:plans}))}catch(e){}}
@@ -329,7 +330,7 @@ function renderPlan(){
   const ws=addD(monday(TODAY),weekOff*7);
   let h=`<div class="row week" style="margin-bottom:8px"><button data-act="wk" data-d="-1" aria-label="${_("Förra veckan")}">‹</button><h2>${_("Vecka {n}",{n:isoWeek(ws)})}</h2><button data-act="wk" data-d="1" aria-label="${_("Nästa vecka")}">›</button>${weekOff?`<button class="sm" data-act="wk" data-d="0">${_("Denna vecka")}</button>`:""}<span class="sp"></span><span class="muted">${nice(ws)} – ${nice(addD(ws,6))}</span></div>`;
   h+=taskBar();
-  if(!weekOff&&sessions.length&&!plans.some(p=>p.date===TODAY)&&!sessions.some(s=>s.date===TODAY)){const n=coachReport(sessions,TODAY,goalNow()).next;
+  if(!weekOff&&sessions.length&&!plans.some(p=>p.date===TODAY)&&!sessions.some(s=>s.date===TODAY)){const n=coachReport(sessions,TODAY,goalNow(),minNow()).next;
     h+=`<div class="coachbar"><span>${n.date===TODAY?_("Coachen föreslår <b>idag</b>:"):_("Coachen föreslår <b>i morgon</b>:")}</span>${chip(n.tag)}<span>${tagName(n.tag)}</span><span class="sp"></span><a class="btn sm" href="#coach" style="display:inline-flex;align-items:center;text-decoration:none">${_("Visa förslag")}</a></div>`}
   if(loaded&&!sessions.length&&me.role!=="admin")h+=`<div class="ed"><h2>${me.firstName?_("Välkommen, {name}!",{name:esc(me.firstName)}):_("Välkommen!")}</h2><p>${_("Logga ditt första pass under <b>Logga pass</b>, eller klistra in pass du skrivit i Anteckningar. Coachen börjar ge förslag när du har några pass.")}</p></div>`;
   if(loaded&&!sessions.length&&me.role==="admin")h+=`<div class="ed"><h2>${_("Databasen är tom")}</h2><p>${_("Importera dina 88 pass från v1 (januari–november 2026). Det körs en gång och bara mot en tom databas.")}</p><button class="pri" data-act="import">${_("Importera pass")}</button></div>`;
@@ -347,7 +348,7 @@ const srcHTML=ids=>{ids=[...new Set(ids||[])].filter(i=>SOURCES[i]);if(!ids.leng
   return `<div class="src">${ids.map(i=>SOURCES[i].u?`<a href="${SOURCES[i].u}" target="_blank" rel="noopener" title="${esc(_(SOURCES[i].t))}">${esc(_(SOURCES[i].s))}</a>`:`<span title="${esc(_(SOURCES[i].t))}">${esc(_(SOURCES[i].s))}</span>`).join(" · ")}</div>`};
 function renderCoach(){
   if(!sessions.length)return `<p class="empty">${_("Inga pass än. Importera eller logga ett pass först.")}</p>`;
-  const r=coachReport(sessions,TODAY,goalNow());const n=r.next,G=r.G;
+  const r=coachReport(sessions,TODAY,goalNow(),minNow());const n=r.next,G=r.G;
   const when=n.date===TODAY?_("idag"):n.date===addD(TODAY,1)?_("i morgon"):nice(n.date);
   const hasPlan=plans.find(p=>p.date===n.date&&!p.done);
   const kindTxt={weight:_("Öka vikt"),reps:_("Fler reps"),lower:_("Sänk"),time:_("Längre"),plateau:_("Platå"),comeback:_("Comeback"),new:_("Ny")};
@@ -355,7 +356,7 @@ function renderCoach(){
   <section class="hero"><div><span class="muted">${_("Nästa pass, {when}",{when})}</span><h2>${chip(n.tag)} ${tagName(n.tag)}</h2><p style="margin:0 0 6px">${esc(n.why)}</p>
   ${n.restWhy?`<div class="warnbox">${esc(n.restWhy)}</div>`:""}${srcHTML(n.src)}
   <div class="row" style="margin-top:12px"><button class="pri" data-act="cstart">${_("Starta passet")}</button><button data-act="cplan">${hasPlan?_("Ersätt planen"):_("Lägg i planen")}</button></div></div>
-  <div><ul class="pl">${r.plan.map(p=>`<li><span>${esc(p.n)}<span class="k ${p.kind}">${kindTxt[p.kind]||""}</span></span><b>${esc(p.target)||"–"}</b><small>${esc(p.why)}${p.last?` ${_("Senast {d}",{d:nice(p.last.date)})}: ${esc(p.last.s)}${rirTxt(p.last.rir)}.`:""}</small>${srcHTML(p.src)}</li>`).join("")||`<li><span class="muted">${_("Inga tidigare {t}-pass att utgå från.",{t:tagShort(n.tag)})}</span></li>`}</ul>${r.plan.length?`<p class="muted" style="margin:8px 0 0;font-size:14px">${_("{n} arbetsset i passet (x3 = tre likadana set). Uppvärmning räknas inte.",{n:r.plan.reduce((a,p)=>a+(p.sets||0),0)})}</p>`:""}</div></section>`;
+  <div><ul class="pl">${r.plan.map(p=>`<li><span>${esc(p.n)}<span class="k ${p.kind}">${kindTxt[p.kind]||""}</span></span><b>${esc(p.target)||"–"}</b><small>${esc(p.why)}${p.last?` ${_("Senast {d}",{d:nice(p.last.date)})}: ${esc(p.last.s)}${rirTxt(p.last.rir)}.`:""}</small>${srcHTML(p.src)}</li>`).join("")||`<li><span class="muted">${_("Inga tidigare {t}-pass att utgå från.",{t:tagShort(n.tag)})}</span></li>`}</ul>${r.plan.length?`<p class="muted" style="margin:8px 0 0;font-size:14px">${_("Cirka {m} min av dina {t} min, {n} arbetsset (x3 = tre likadana set).",{m:r.plan.minutes,t:r.minutes,n:r.plan.reduce((a,p)=>a+(p.sets||0),0)})}${r.plan.dropped?.length?" "+_("Fick inte plats: {list}.",{list:r.plan.dropped.map(esc).join(", ")}):""} <a href="#settings">${_("Ändra passlängd")}</a></p>${srcHTML(["rule"])}`:""}</div></section>`;
   if(r.notes.length)h+=`<h3 style="font-size:24px;margin-bottom:4px">${_("Att tänka på")}</h3><ul class="notes">${r.notes.map(x=>`<li class="${x.k}">${esc(x.t)}${srcHTML(x.src)}</li>`).join("")}</ul>`;
   const mx=Math.max(3,...r.weeks.map(w=>w.total));
   const B=G.band,SC=Math.max(25,B[1]+5);
@@ -378,7 +379,7 @@ function renderCoach(){
   <li>${_("<b>Hur nära failure:</b> {r} reps kvar i sista setet för målet {g}.",{r:G.rir,g:_(G.label).toLowerCase()})}</li>
   <li>${_("<b>Frekvens:</b> varje muskelgrupp minst två gånger i veckan.")}</li>
   <li>${_("<b>Volym:</b> {a}–{b} tunga set per muskelgrupp och vecka.",{a:B[0],b:B[1]})}</li>
-  <li>${_("<b>Tumregler</b> (inte direkt från studier): 90 % efter mer än 4 veckors uppehåll, platå när toppsetet stått still tre pass, steg på 2,5 kg (5 kg från 100 kg, 1 kg under 10 kg).")}</li></ul>
+  <li>${_("<b>Passlängd:</b> uppskattad tid per set inklusive vila (basövning 2,5 min, isolation 1,75 min) plus byten och uppvärmning. Blir passet för långt tas först set över två bort, sedan bål och en andra övning för samma muskelgrupp.")}</li><li>${_("<b>Tumregler</b> (inte direkt från studier): 90 % efter mer än 4 veckors uppehåll, platå när toppsetet stått still tre pass, steg på 2,5 kg (5 kg från 100 kg, 1 kg under 10 kg).")}</li></ul>
   <h3 style="font-size:20px;margin:12px 0 6px">${_("Källor")}</h3><ul class="refs">${Object.entries(SOURCES).filter(([k])=>k!=="rule").map(([,s])=>`<li>${esc(_(s.t))} <a href="${s.u}" target="_blank" rel="noopener">${_("Läs mer")}</a></li>`).join("")}</ul></section>`;
   return h;
 }
@@ -417,6 +418,9 @@ function renderSettings(){
   return `<section class="panel"><h2>${_("Språk")}</h2><form data-form="lang">
     <div style="max-width:320px"><label for="s-lang">${_("Språk i appen")}</label><select id="s-lang" name="lang"><option value="" ${lp===""?"selected":""}>${_("Automatiskt (enhetens språk: {l})",{l:LANGS[detectLang()]})}</option>${Object.entries(LANGS).map(([k,v])=>`<option value="${k}" ${lp===k?"selected":""}>${v}</option>`).join("")}</select></div>
     <div><button class="pri">${_("Spara språk")}</button></div></form></section>
+  <section class="panel"><h2>${_("Passlängd")}</h2><p class="muted" style="margin-top:0">${_("Hur lång tid ett vanligt pass får ta, uppvärmning inräknad. Coachen anpassar antal set och övningar efter det.")}</p>
+    <form data-form="sessionlen" class="row" style="align-items:flex-end"><div style="max-width:160px"><label for="s-min">${_("Minuter")}</label><input id="s-min" name="minutes" type="number" inputmode="numeric" min="15" max="180" step="5" value="${minNow()}" required></div>
+    <div><button class="pri">${_("Spara passlängd")}</button></div></form></section>
   <section class="panel"><h2>${_("Träningsmål")}</h2><p class="muted" style="margin-top:0">${_("Styr coachens repsintervall, hur nära failure den föreslår och hur mycket volym den siktar på.")}</p>
     <form data-form="goal">${Object.entries(GOALS).map(([k,G])=>`<label class="goalopt"><input type="radio" name="goal" value="${k}" ${k===g?"checked":""}><b>${_(G.label)}</b><span>${_("{a} reps i basövningar, {b} i isolationsövningar, {r} reps kvar, {v} tunga set per muskelgrupp och vecka.",{a:`${G.comp[0]}–${G.comp[1]}`,b:`${G.iso[0]}–${G.iso[1]}`,r:G.rir,v:`${G.band[0]}–${G.band[1]}`})}${k==="health"?" "+_("Lugnare tempo, fokus på att träna regelbundet."):""}</span></label>`).join("")}
     <div style="margin-top:10px"><button class="pri">${_("Spara mål")}</button></div></form></section>
@@ -490,6 +494,7 @@ document.addEventListener("submit",async ev=>{
     if(k==="reset"){if(v.password!==v.password2){setA("err","Lösenorden är inte lika.");return}
       const r=await api("auth/reset",{method:"POST",body:JSON.stringify({token:resetToken,password:v.password})});resetToken=null;authMode="login";setA("ok",r.message);return}
     if(k==="lang"){const r=await api("account/lang",{method:"PUT",body:JSON.stringify({lang:v.lang})});me=r.user;rememberLang(me.lang);chooseLang();flash={k:"ok",t:"Språket är sparat."};render();return}
+    if(k==="sessionlen"){const r=await api("account/session-length",{method:"PUT",body:JSON.stringify({minutes:+v.minutes})});me=r.user;flash={k:"ok",t:_("Passlängden är sparad: {n} min. Coachen anpassar sina förslag.",{n:me.sessionMin})};render();return}
     if(k==="goal"){const r=await api("account/goal",{method:"PUT",body:JSON.stringify({goal:v.goal})});me=r.user;flash={k:"ok",t:_("Målet är sparat: {g}. Coachen räknar om sina förslag.",{g:_(GOALS[me.goal].label)})};render();return}
     if(k==="name"){const r=await api("account/name",{method:"PUT",body:JSON.stringify(v)});me=r.user;flash={k:"ok",t:"Namnet är sparat."};render();return}
     if(k==="password"){if(v.password!==v.password2){flash={k:"err",t:"De nya lösenorden är inte lika."};render();return}
@@ -609,7 +614,7 @@ document.addEventListener("click",async ev=>{
   const b=ev.target.closest("[data-act]");if(!b)return;const a=b.dataset.act;syncEd();
   if(a!=="del"&&a!=="admin")armed=null;
   if(a==="import"){runImport(b);return}
-  if(a==="cstart"||a==="cplan"){const r=coachReport(sessions,TODAY,goalNow());const n=r.next;const ex=r.plan.map(p=>({n:p.n,s:p.target}));
+  if(a==="cstart"||a==="cplan"){const r=coachReport(sessions,TODAY,goalNow(),minNow());const n=r.next;const ex=r.plan.map(p=>({n:p.n,s:p.target}));
     if(a==="cstart"){ed={kind:"log",date:n.date,tag:n.tag,note:"",ex:ex.map(e=>({n:e.n,s:"",goal:e.s}))};location.hash="log";return}
     if(await write("plans/"+n.date,{date:n.date,tag:n.tag,note:"",ex,done:null})){weekOff=Math.round((pd(monday(n.date))-pd(monday(TODAY)))/864e5/7);location.hash="plan"}return}
   if(a==="pastetoggle"){ed.paste=!ed.paste;ed.pasteMsg="";render();if(ed.paste)setTimeout(()=>$("pastetxt")?.focus(),0);return}

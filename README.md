@@ -31,6 +31,12 @@ Personal gym planner and training log for Håkan. It replaces the first version,
 
 In English the labels are UB / LB / FB (Upper / Lower / Full body); the stored tag is always ÖK/NK/HK, and a pasted header may use either.
 
+## Session length
+- Each user sets a normal session length (Inställningar → Passlängd, warm-up included). New users: 40 min. Håkan: 35 min (schema v6 set the existing admin to 35).
+- The coach estimates time per exercise: working sets incl. rest (compound 2,5 min, isolation 1,75 min, timed sets their duration + 1 min), 1 min per station change, 2 min warm-up sets before the first compound lift per muscle group, plus 5 min general warm-up.
+- If the proposal is too long: sets above 2 go first, then whole exercises (core/ungrouped first, then a second exercise for an already-covered muscle group, then isolation), keeping at least 3. Then sets are added back while they fit. The coach card shows the estimate and what didn't fit. The editor's "fill with latest" uses the same rule.
+- `PUT /api/account/session-length {minutes}` (15–180).
+
 ## Languages
 - Swedish and English. Default: the iPhone/browser language if supported, else English. Override in Inställningar → Språk (saved per user in `users.lang`; `""` = follow the device). The login screen has Svenska/English links (remembered on the device).
 - Swedish is the source text and the key: code calls `_("Logga pass")` (index.html) or `tx(...)` (coach.js); `public/locales/<code>.js` maps Swedish → translation. `{placeholders}` are filled in; numbers use the language's decimal mark. Server messages stay Swedish and are translated in the app.
@@ -54,7 +60,7 @@ public/            static app (served by Workers Assets)
   manifest.webmanifest, icon-*.png   home-screen app on iPad
 src/worker.js      API: /api/auth/*, /api/account/*, /api/admin/*, /api/data, /api/sessions/:id, /api/plans/:date, /api/import
 src/auth.js        password hashing, login sessions, reset tokens, password rules
-src/schema.js      D1 schema + migrations (v2 = accounts, v3 = approval/status, no email, v4 = RIR + goal, v5 = language), run automatically on first request
+src/schema.js      D1 schema + migrations (v2 = accounts, v3 = approval/status, no email, v4 = RIR + goal, v5 = language, v6 = session length), run automatically on first request
 data/sessions.json export from v1 (seed for /api/import)
 test/run.mjs       local tests with a fake D1 (npm test)
 wrangler.jsonc     Worker + Assets + D1 binding

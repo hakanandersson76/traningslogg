@@ -9,7 +9,7 @@ import worker from "../src/worker.js";
 import { _resetForTests } from "../src/schema.js";
 import { hashPassword } from "../src/auth.js";
 import { parseSessionText, parseSets } from "../public/parse.js";
-import { coachReport, nextTarget, history, groupOf, effectiveTag, isCompound, SOURCES, weeklyVolume, allocSets } from "../public/coach.js";
+import { coachReport, nextTarget, history, groupOf, effectiveTag, isCompound, SOURCES, weeklyVolume, allocSets, proposeSession, sessionMinutes } from "../public/coach.js";
 import { setLang, detectLang, t as tr, tn, fmtNum, LANGS, _dicts } from "../public/i18n.js";
 import { collectKeys } from "./i18n-keys.mjs";
 
@@ -148,6 +148,11 @@ r = await put(anna, "/api/account/goal", { goal: "strength" });
 assert(r.status === 200 && r.body.user.goal === "strength" && (await anna("/api/me")).body.user.goal === "strength", "goal can be changed");
 assert((await put(anna, "/api/account/goal", { goal: "bulk" })).status === 400, "unknown goal refused");
 await anna("/api/sessions/2026-11-25-r", { method: "DELETE" });
+// session length
+assert((await anna("/api/me")).body.user.sessionMin === 40, "new users: 40 min sessions");
+r = await put(anna, "/api/account/session-length", { minutes: 35 });
+assert(r.status === 200 && r.body.user.sessionMin === 35 && (await anna("/api/me")).body.user.sessionMin === 35, "session length can be changed");
+assert((await put(anna, "/api/account/session-length", { minutes: 5 })).status === 400 && (await put(anna, "/api/account/session-length", { minutes: "x" })).status === 400, "unreasonable session length refused");
 // language
 assert((await anna("/api/me")).body.user.lang === "", "default language: follow the device");
 r = await put(anna, "/api/account/lang", { lang: "en" });
@@ -240,6 +245,7 @@ assert((await admin("/api/data")).status === 401, "logout ends the session");
   r = await post(boss, "/api/auth/login", { email: "boss@example.com", password: "Gammal-Admin-Kod-1" });
   const st = Object.fromEntries(db2.db.prepare("SELECT id, status FROM users").all().map((x) => [x.id, x.status]));
   assert(r.status === 200 && st.a === "active" && st.v === "active" && st.u === "pending" && st.d === "frozen", "v2→v3: verified→active, unverified→pending, disabled→frozen");
+  assert(r.body.user.sessionMin === 35 && db2.db.prepare("SELECT session_min FROM users WHERE id = 'v'").get().session_min === 40, "v6: existing admin gets 35 min, other users 40");
   assert(r.body.user.tasks.pending === 1 && (await boss("/api/data")).body.sessions.length === 1, "v2→v3: admin keeps data and sees the pending account as a task");
   env.DB = saved; _resetForTests();
 }
@@ -278,6 +284,16 @@ assert(effectiveTag({ tag: "", ex: [{ n: "Squats" }, { n: "Leg extensions" }] })
 assert(parseSets("9@25 x3").length === 3 && parseSets("6@36,25kg x2").length === 2 && parseSets("10x65kg")[0].w === 65, "sets: ' x3' = three identical sets, '10x65' = reps×weight");
 assert(JSON.stringify(parseSets("2:45 x3")) === JSON.stringify([{ t: 165 }, { t: 165 }, { t: 165 }]) && parseSets("10 x3").length === 3, "sets: x3 also for time and bodyweight");
 assert(rep.plan.every((p) => p.sets >= 2 && p.target.endsWith(" x" + p.sets)) && rep.plan.filter((p) => groupOf(p.n) === "ben").reduce((a, p) => a + p.sets, 0) >= 10, "coach: every exercise gets 2+ working sets; leg day reaches 10+ hard leg sets");
+for (const [tag, m] of [["NK", 35], ["ÖK", 35], ["HK", 35], ["NK", 25]]) {
+  const p = proposeSession(seedS, tag, "2026-11-25", "muscle", m);
+  assert(p.minutes <= m && p.length >= 3 && p.every((x) => x.sets >= 2), `coach: ${tag} fits ${m} min (${p.minutes} min, ${p.length} exercises, dropped: ${p.dropped.join(", ") || "none"})`);
+}
+const legs35 = proposeSession(seedS, "NK", "2026-11-25", "muscle", 35);
+assert(legs35.dropped[0] === "Plankan" && legs35.filter((x) => groupOf(x.n) === "ben").length === 6, "coach: short leg day drops core before leg exercises");
+const up35 = proposeSession(seedS, "ÖK", "2026-11-25", "muscle", 35);
+assert(["bröst", "rygg", "axlar", "armar"].every((g) => up35.some((x) => groupOf(x.n) === g)), "coach: short upper day keeps every muscle group");
+assert(proposeSession(seedS, "ÖK", "2026-11-25", "muscle", 90).reduce((a, x) => a + x.sets, 0) > up35.reduce((a, x) => a + x.sets, 0), "coach: more time → more sets");
+assert(sessionMinutes([{ n: "Bänkpress", sets: 3, one: "8@60" }]) === 5 + 7.5 + 1 + 2, "coach: time estimate");
 assert(allocSets(["Bänkpress", "Kabelrodd", "Axelpress", "Bicepscurl", "Tricepspress", "Leg curl", "Squats", "Plankan", "Face pulls", "Rodd"], "muscle").reduce((a, b) => a + b, 0) <= 24, "coach: a session is capped at 24 working sets");
 
 // ---- 10. Languages ----
