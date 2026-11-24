@@ -1,0 +1,6 @@
+# Always ask the server whether a file has changed (cheap: answered with 304 when
+# unchanged), so phones and home-screen apps pick up a new version right away.
+/*
+  Cache-Control: no-cache
+/icon-*
+  Cache-Control: public, max-age=604800
