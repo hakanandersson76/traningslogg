@@ -51,6 +51,12 @@ In English the labels are UB / LB / FB (Upper / Lower / Full body); the stored t
 - The coach suggestion can be copied as Notes text (Home and Coach: "Kopiera som text"): `261124 NK` then `Exercise target` per line, e.g. `Jefferson curls (skivstång) 9@25 x2`.
 - The editor (log and plan) has Formulär / Text; Formulär is the default. Text mode shows the same Notes format, with the coach's targets filled in for exercises without sets; overwrite them with the result. Switching back or saving parses the text with `parseSessionText` (same format as paste). Lines without sets aren't saved for a log.
 
+## Volume: personal target and trend
+- 10–20 hard sets per muscle and week is near-maximal growth, but out of reach with two short workouts (even Håkan's busiest month, 3,3 workouts/week, gave 3–8 per big muscle).
+- `volumeTarget` (coach.js): workouts/week (at least 2, or the actual average of the last 8 weeks if higher) × working sets per session (session length / 2,4 min) × 1,3 (secondary half-sets) / 8 big muscles, capped at the goal's lower band. 2 × 35 min → 5 sets; 2 × 60 → 8; health goal → 4.
+- Used for: the volume chart (black mark = personal target, light band = near-max, bars green when at target), the "under your target" note, the low-volume exercise fill in proposals, and the AI facts.
+- Trend: each muscle's change vs the 4 weeks before is shown after the bar; a note celebrates increases of 1+ set/week.
+
 ## Coach feedback after each workout
 - After saving a workout (new or edited) the app calls `POST /api/sessions/:id/feedback?lang=`. The result is stored in `session_feedback` (rules JSON + AI JSON) and returned with `/api/data` as `feedback[sessionId]`. Deleting the session deletes it.
 - **Rules part** (`sessionFeedback` in coach.js, same code on server and client): for each exercise, the target the coach *would have suggested that day* from the history before it (no plan needed), compared with the set in the rep range: `pr` record · `beat` · `hit` · `close` (≥95 % of the target's estimated 1RM) · `under` · `new` (first time). Plus next target, total sets, minutes, hard sets per muscle (secondary = half).

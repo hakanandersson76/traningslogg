@@ -9,7 +9,7 @@ import worker from "../src/worker.js";
 import { _resetForTests } from "../src/schema.js";
 import { hashPassword } from "../src/auth.js";
 import { parseSessionText, parseSets } from "../public/parse.js";
-import { coachReport, nextTarget, history, groupOf, effectiveTag, isCompound, SOURCES, weeklyVolume, allocSets, proposeSession, sessionMinutes, sessionFeedback } from "../public/coach.js";
+import { coachReport, nextTarget, history, groupOf, effectiveTag, isCompound, SOURCES, weeklyVolume, allocSets, proposeSession, sessionMinutes, sessionFeedback, volumeTarget } from "../public/coach.js";
 import { setLang, detectLang, t as tr, tn, fmtNum, LANGS, _dicts } from "../public/i18n.js";
 import { collectKeys } from "./i18n-keys.mjs";
 import { homeStats } from "../public/home.js";
@@ -455,6 +455,15 @@ assert(!legs35.dropped.length && legs35.filter((x) => groupOf(x.n) === "ben").le
   assert(it("Landmine press").status === "new" && it("Bänkpress (incline)").got === "8@20" && it("Bänkpress (incline)").next === "9@20", "feedback: compares the set in the rep range; new exercise noted; next target given");
   assert(["pr", "beat"].includes(it("Kabelrodd").status) && f.records >= 0 && f.totalSets === 5 && f.muscles.find((m) => m.m === "rygg").v === 2, "feedback: above target recognised; sets and muscles counted");
   assert(sessionFeedback(seedS, "nope") === null, "feedback: unknown session → null");
+}
+{
+  const vt = volumeTarget(seedS, "2026-11-24", "muscle", 35);
+  assert(vt.target === 5 && vt.freq === 2 && vt.perSession === 14, "volume target: 2 workouts × 35 min → about 5 hard sets per big muscle");
+  assert(volumeTarget(seedS, "2026-11-24", "muscle", 60).target === 8 && volumeTarget(seedS, "2026-11-24", "health", 35).target === 4 && volumeTarget(seedS, "2026-11-24", "muscle", 120).target === 10, "volume target: grows with time, capped at the goal's band");
+  const busy = [...Array(32)].map((_, i) => ({ id: "b" + i, date: new Date(Date.UTC(2026, 10, 24) - i * 1.75 * 864e5).toISOString().slice(0, 10), ex: [] }));
+  assert(volumeTarget(busy, "2026-11-24", "muscle", 35).freq === 4, "volume target: uses actual frequency when higher than 2");
+  const rep35 = coachReport(seedS, "2026-11-24", "muscle", 35);
+  assert(rep35.volTarget.target === 5 && rep35.vol.every((v) => typeof v.delta === "number") && rep35.notes.some((n) => /Under ditt mål på 5/.test(n.t)), "coach: volume judged against the personal target, with trend vs 4 weeks before");
 }
 const legs20 = proposeSession(seedS, "NK", "2026-11-25", "muscle", 20);
 assert(legs20.minutes <= 20 && legs20.dropped[0] === "Plankan" && legs20.filter((x) => x.sets === 1).length >= legs20.length - 1, "coach: very short: one set each, core left out first");

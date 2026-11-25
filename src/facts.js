@@ -21,6 +21,8 @@ export function insightFacts(data, user, today) {
     sessions_per_week: { last_4_weeks: r1(r.last4), previous_4_weeks: r1(r.prev4) },
     times_per_week_per_group_last_4_weeks: Object.fromEntries(r.freq.map((f) => [f.g, r1(f.perWeek)])),
     hard_sets_per_week_per_muscle_last_4_weeks: Object.fromEntries(r.vol.map((v) => [v.g, r1(v.perWeek)])),
+    change_vs_previous_4_weeks: Object.fromEntries(r.vol.map((v) => [v.g, r1(v.delta)])),
+    personal_weekly_hard_set_target_per_big_muscle: { target: r.volTarget.target, from: `${r.volTarget.freq} workouts × ${r.volTarget.minutes} min`, near_max_growth_band: r.volTarget.band.join("–"), note: "Judge volume against the personal target; the band needs much more time." },
     big_muscles: Object.keys(MUSCLES).filter((m) => r.vol.find((v) => v.g === m)?.main),
     share_of_exercises_with_reps_in_reserve_logged: r1(r.rirShare),
     trends_e1rm: {

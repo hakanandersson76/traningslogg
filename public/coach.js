@@ -295,6 +295,24 @@ export function fitToTime(items, minutes, extra = 3) {
   return { items: list, dropped, minutes: Math.round(sessionMinutes(list)) };
 }
 
+// ---- personal volume target ----
+// 10–20 hard sets per muscle and week is near maximal growth, but needs far more
+// time than two short sessions. The personal target is what the user's time allows:
+// workouts per week (at least 2, more if they actually train more) × sets that fit
+// in a session (about 2,4 min per working set incl. rest and changing station),
+// spread over the 8 big muscles, where each set counts ~1,3 (primary + half for
+// assisting muscles). Capped at the goal's lower band. A rule of thumb.
+export const SET_MIN = 2.4;
+export function volumeTarget(sessions, today, goal = "muscle", minutes = 40) {
+  const G = goalOf(goal);
+  const n8 = sessions.filter((s) => { const d = daysBetween(s.date, today); return d >= 0 && d < 56; }).length / 8;
+  const freq = Math.max(2, Math.round(n8 * 2) / 2);
+  const perSession = Math.max(1, Math.floor((minutes || 40) / SET_MIN));
+  const budget = freq * perSession;
+  const target = Math.max(Math.min(3, G.band[0]), Math.min(G.band[0], Math.round((budget * 1.3) / MAIN.length)));
+  return { target, freq, perSession, budget, minutes: minutes || 40, band: G.band };
+}
+
 // "9@25" + 3 sets → "9@25 x3" (Håkan's own notation for identical sets).
 export const withSets = (target, n) => (target && n > 1 ? `${target} x${n}` : target);
 
@@ -359,6 +377,7 @@ export function proposeSession(sessions, tag, date, goal = "muscle", minutes = 0
   // Fill gaps: main muscles of this session type with too little weekly volume
   // that no proposed exercise trains as a primary muscle.
   const vol = new Map(weeklyVolume(sessions, date, 4).muscles.map((v) => [v.g, v.perWeek]));
+  const vt = volumeTarget(sessions, date, goal, minutes || 40);
   const covered = new Set(items.flatMap((x) => musclesOf(x.n).p));
   let added = 0;
   // Focus muscles the user switched on from the weekly AI insight come first, when
@@ -367,14 +386,14 @@ export function proposeSession(sessions, tag, date, goal = "muscle", minutes = 0
   const focus = (opts.focus || []).filter((m) => MUSCLES[m] && regionOf(m).includes(tag));
   for (const m of [...focus, ...(REGION_MUSCLES[tag] || [])]) {
     const isFocus = focus.includes(m);
-    if (added >= 2 || covered.has(m) || (!isFocus && (vol.get(m) ?? 0) >= G.band[0])) continue;
+    if (added >= 2 || covered.has(m) || (!isFocus && (vol.get(m) ?? 0) >= vt.target)) continue;
     const pick = [...hist].filter(([n]) => musclesOf(n).p[0] === m && !items.some((x) => x.n === n)).sort((a, b) => b[1].length - a[1].length)[0]?.[0]
       || CATALOG.find((n) => musclesOf(n).p[0] === m);
     if (!pick) continue;
     const nt = nextTarget(hist.get(pick), date, goal, pick);
     items.push({ n: pick, ...nt, kind: hist.has(pick) ? nt.kind : "new", added: true,
       why: (isFocus ? tx("Tillagd för {muscle}: veckans fokus från AI-insikten.", { muscle: tx(MUSCLES[m].name).toLowerCase() })
-        : tx("Tillagd för {muscle}: {v} tunga set i veckan senaste 4 veckorna, målet är minst {lo}.", { muscle: tx(MUSCLES[m].name).toLowerCase(), v: fmt1(vol.get(m) ?? 0), lo: G.band[0] })) + " " + nt.why,
+        : tx("Tillagd för {muscle}: {v} tunga set i veckan senaste 4 veckorna, ditt mål är {t}.", { muscle: tx(MUSCLES[m].name).toLowerCase(), v: fmt1(vol.get(m) ?? 0), t: vt.target })) + " " + nt.why,
       src: isFocus ? nt.src : ["pelland2024", ...nt.src], focus: isFocus, prio: isFocus ? 1 : 0, pos: 99, last: hist.get(pick)?.at(-1) });
     covered.add(m); added++;
   }
@@ -480,15 +499,21 @@ export function coachReport(sessions, today, goal = "muscle", minutes = 0, opts 
   const notes = [];
   const lowF = freq.filter((f) => f.g !== "core" && f.perWeek < FREQ_TARGET - 0.25);
   if (hasData && lowF.length) notes.push({ k: "warn", t: tx("{groups} tränas under {n} gånger i veckan (snitt senaste 4 veckorna). Forskningen talar för minst två gånger per muskelgrupp och vecka – det är också det enklaste sättet att få in tillräcklig volym.", { groups: list(lowF.map((f) => gname(f.g))), n: FREQ_TARGET }), src: ["schoenfeld2016", "schoenfeld2019", "pelland2024"] });
-  const lowV = volume.muscles.filter((v) => v.main && v.perWeek < G.band[0]);
-  if (hasData && lowV.length) notes.push({ k: "warn", t: tx("Låg volym för {groups}: under {lo} tunga set i veckan. För målet {goal} ger {lo}–{hi} set per muskelgrupp och vecka mer utveckling.", { groups: list(lowV.map((v) => tx(v.name).toLowerCase())), lo: G.band[0], hi: G.band[1], goal: tx(G.label).toLowerCase() }), src: goal === "health" ? ["rule"] : ["ralston2017", "pelland2024"] });
+  // Personal target from the user's own time, and the trend against the 4 weeks before.
+  const vt = volumeTarget(sessions, today, goal, minutes || 40);
+  const prevVol = new Map(weeklyVolume(sessions, addDay(today, -28), 4).muscles.map((v) => [v.g, v.perWeek]));
+  for (const v of volume.muscles) { v.prev = prevVol.get(v.g) ?? 0; v.delta = v.perWeek - v.prev; }
+  const lowV = volume.muscles.filter((v) => v.main && v.perWeek < vt.target - 0.5);
+  if (hasData && lowV.length) notes.push({ k: "warn", t: tx("Under ditt mål på {t} tunga set i veckan: {groups}. Målet är vad {f} pass × {m} min räcker till; {lo}–{hi} set ger nära maximal tillväxt men kräver fler eller längre pass.", { groups: list(lowV.map((v) => tx(v.name).toLowerCase())), t: vt.target, f: fmt(vt.freq), m: vt.minutes, lo: G.band[0], hi: G.band[1] }), src: goal === "health" ? ["rule"] : ["ralston2017", "pelland2024"] });
   if (hasData && volume.exercises >= 5 && volume.rirShare < 0.3) notes.push({ k: "info", t: tx("Logga \"reps kvar\" (RIR) när du loggar pass. Då vet coachen vilka set som var tunga på riktigt och kan öka snabbare när det känns lätt. För {goal}: sikta på {rir} reps kvar.", { goal: tx(G.label).toLowerCase(), rir: G.rir }), src: ["robinson2024", "refalo2024"] });
   if (last4 < prev4 - 0.4) notes.push({ k: "warn", t: tx("Färre pass: {a} per vecka senaste 4 veckorna mot {b} veckorna innan.", { a: fmt1(last4), b: fmt1(prev4) }), src: [] });
   else if (last4 > prev4 + 0.4) notes.push({ k: "good", t: tx("Fler pass: {a} per vecka senaste 4 veckorna mot {b} innan.", { a: fmt1(last4), b: fmt1(prev4) }), src: [] });
   if (down.length) notes.push({ k: "warn", t: tx("Tappat i {list}. Kolla sömn och återhämtning, eller kör ett par pass lite lättare.", { list: list(down.slice(0, 3).map((d) => d.n)) }), src: ["rule"] });
   if (flat.length >= 3) notes.push({ k: "info", t: tx("{n} övningar står still. Variera reps (t.ex. fler reps på lägre vikt) eller byt variant under några veckor.", { n: flat.length }), src: ["plotkin2022", "rule"] });
+  const upV = volume.muscles.filter((v) => v.main && v.delta >= 1).sort((a, b) => b.delta - a.delta);
+  if (hasData && upV.length) notes.push({ k: "good", t: tx("Mer volym än de 4 veckorna innan: {list}.", { list: list(upV.slice(0, 3).map((v) => `${tx(v.name).toLowerCase()} +${fmt1(v.delta)}`)) }), src: [] });
   if (prs.length) notes.push({ k: "good", t: tx("Nya rekord senaste månaden: {list}.", { list: list(prs.slice(0, 3).map((p) => p.n)) }), src: [] });
-  return { goal, G, minutes, next, plan, up, flat, down, prs, neglected, weeks, last4, prev4, vol: volume.muscles.filter((v) => v.main || v.perWeek > 0), unknown: volume.unknown, rirShare: volume.rirShare, freq, notes };
+  return { goal, G, minutes, volTarget: vt, next, plan, up, flat, down, prs, neglected, weeks, last4, prev4, vol: volume.muscles.filter((v) => v.main || v.perWeek > 0), unknown: volume.unknown, rirShare: volume.rirShare, freq, notes };
 }
 
 // ---- feedback on a saved session ----

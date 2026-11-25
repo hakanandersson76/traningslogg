@@ -168,9 +168,11 @@ textarea{min-height:160px;font-size:14px}
 .wk div{display:flex;flex-direction:column-reverse;gap:2px;height:100%;position:relative}
 .wk i{display:block;border-radius:2px;min-height:0}
 .wk span{position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:12px;color:var(--soft)}
-.vol{display:grid;grid-template-columns:4.5em minmax(0,1fr) 3em;gap:6px 10px;align-items:center;font-size:15px}
+.vol{display:grid;grid-template-columns:6.5em minmax(0,1fr) 4.6em;gap:6px 10px;align-items:center;font-size:15px}
 .vol .bar{position:relative;height:14px;background:var(--panel);border-radius:3px}
-.vol .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--ink)}
+.vol .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--ink)}.vol .bar i.ok{background:var(--green)}
+.vol .bar s{position:absolute;top:-3px;bottom:-3px;width:3px;margin-left:-1px;background:var(--ink);border-radius:2px;z-index:1}
+.vol b small{font-weight:500;font-size:12px}.vol b small.up{color:var(--green)}
 .vol .bar u{position:absolute;top:-3px;bottom:-3px;border-left:2px dashed color-mix(in srgb,var(--green) 70%,transparent);border-right:2px dashed color-mix(in srgb,var(--green) 70%,transparent);background:color-mix(in srgb,var(--green) 10%,transparent)}
 .vol b{text-align:right;font-variant-numeric:tabular-nums}
 .tl{list-style:none;padding:0;margin:0}
@@ -453,11 +455,12 @@ function renderCoach(){
   if(aiOn)h+=`<p class="muted" style="margin:0 0 12px">${_("Veckans AI-insikt finns på <a href=\"#home\">Hem</a>.")}${focusNow().length?" "+_("Fokus från insikten används i förslaget."):""}</p>`;
   if(r.notes.length)h+=`<h3 style="font-size:24px;margin-bottom:4px">${_("Att tänka på")}</h3><ul class="notes">${r.notes.map(x=>`<li class="${x.k}">${esc(x.t)}${srcHTML(x.src)}</li>`).join("")}</ul>`;
   const mx=Math.max(3,...r.weeks.map(w=>w.total));
-  const B=G.band,SC=Math.max(25,B[1]+5);
+  const B=G.band,VT=r.volTarget,SC=Math.max(B[0]*1.25,VT.target*2,...r.vol.map(v=>v.perWeek+1)); // scale: your level and target readable; the band runs on past the edge
+  const dl=v=>{const d=Math.round(v.delta*10)/10;return Math.abs(d)<0.5?`<small class="muted">±0</small>`:`<small class="${d>0?"up":"muted"}">${d>0?"+":"−"}${fmt(Math.abs(d))}</small>`};
   h+=`<div class="cols"><div><h3>${_("Gånger per vecka och muskelgrupp")}</h3><p class="muted" style="margin:0 0 10px">${_("Snitt senaste 4 veckorna. Streckad linje = målet 2 gånger.")}</p>
   <div class="freq">${r.freq.map(f=>`<span>${_(f.name)}</span><span class="bar"><u style="left:${2/4*100}%"></u><i style="width:${Math.min(f.perWeek,4)/4*100}%;background:${f.g!=="core"&&f.perWeek<1.75?"var(--red)":"var(--ink)"}"></i></span><b>${fmt(Math.round(f.perWeek*10)/10)}</b>`).join("")}</div>${srcHTML(["schoenfeld2016","schoenfeld2019"])}</div>
-  <div><h3>${_("Tunga set per vecka")}</h3><p class="muted" style="margin:0 0 10px">${_("Snitt senaste 4 veckorna. Grönt band = {a}–{b} set för målet {g}.",{a:B[0],b:B[1],g:_(G.label).toLowerCase()})} ${_("Gråa muskler är mindre och har inget eget mål.")} ${r.rirShare<0.3?_("Utan loggade reps kvar räknas alla arbetsset som tunga."):_("Set med 4+ reps kvar räknas som halva eller inget.")}</p>
-  <div class="vol">${r.vol.map(v=>`<span${v.main?"":` class="muted" title="${_("Mindre muskel, inget volymmål")}"`}>${_(v.name)}</span><span class="bar"><u style="left:${B[0]/SC*100}%;right:${100-B[1]/SC*100}%"></u><i style="width:${Math.min(v.perWeek,SC)/SC*100}%"></i></span><b>${fmt(Math.round(v.perWeek*10)/10)}</b>`).join("")}</div>${srcHTML(goalNow()==="health"?["rule"]:["ralston2017","pelland2024"])}</div></div>
+  <div><h3>${_("Tunga set per vecka")}</h3><p class="muted" style="margin:0 0 10px">${_("Snitt senaste 4 veckorna. Svart streck = ditt mål, {t} set – vad {f} pass × {m} min räcker till. Ljust band = {a}–{b} set, nära maximal tillväxt.",{t:VT.target,f:fmt(VT.freq),m:VT.minutes,a:B[0],b:B[1]})} ${_("Siffran efter stapeln är förändringen mot de 4 veckorna innan.")} ${_("Gråa muskler är mindre och har inget eget mål.")} ${r.rirShare<0.3?_("Utan loggade reps kvar räknas alla arbetsset som tunga."):_("Set med 4+ reps kvar räknas som halva eller inget.")}</p>
+  <div class="vol">${r.vol.map(v=>`<span${v.main?"":` class="muted" title="${_("Mindre muskel, inget volymmål")}"`}>${_(v.name)}</span><span class="bar"><u style="left:${Math.min(B[0],SC)/SC*100}%;right:${Math.max(0,100-B[1]/SC*100)}%${B[1]>SC?";border-right:0;border-radius:0":""}"></u>${v.main?`<s style="left:${VT.target/SC*100}%"></s>`:""}<i class="${v.main&&v.perWeek>=VT.target-0.5?"ok":""}" style="width:${Math.min(v.perWeek,SC)/SC*100}%"></i></span><b>${fmt(Math.round(v.perWeek*10)/10)} ${dl(v)}</b>`).join("")}</div>${srcHTML(goalNow()==="health"?["rule"]:["ralston2017","pelland2024"])}</div></div>
   <div class="cols"><div><h3>${_("Pass per vecka")}</h3><p class="muted" style="margin:0">${_("Snitt {a} senaste 4 veckorna ({b} innan). Otaggade pass färgas efter övningarna.",{a:fmt(Math.round(r.last4*10)/10),b:fmt(Math.round(r.prev4*10)/10)})}</p>
   <div class="wk" style="margin-bottom:26px">${r.weeks.map(w=>`<div title="${_("v{w}: {n} pass",{w:isoWeek(w.start),n:w.total})}">${["ÖK","NK","HK",""].map(t=>w[t]?`<i style="height:${w[t]/mx*100}%;background:var(--${TAGS[t][1]})"></i>`:"").join("")}<span>${isoWeek(w.start)}</span></div>`).join("")}</div></div></div>`;
   const li=(arr,f)=>arr.length?`<ul class="tl">${arr.map(f).join("")}</ul>`:`<p class="muted">${_("Inget just nu.")}</p>`;
@@ -474,7 +477,7 @@ function renderCoach(){
   <li>${_("<b>Hur nära failure:</b> {r} reps kvar i sista setet för målet {g}.",{r:G.rir,g:_(G.label).toLowerCase()})}</li>
   <li>${_("<b>Vilket set räknas:</b> det tyngsta setet som nådde ditt repsintervall. Ett tyngre set med för få reps räknas som ett försök. Nådde inget set intervallet räknar coachen fram en vikt från ditt bästa set.")}</li>
   <li>${_("<b>Frekvens:</b> varje muskelgrupp minst två gånger i veckan.")}</li>
-  <li>${_("<b>Volym:</b> {a}–{b} tunga set per muskelgrupp och vecka.",{a:B[0],b:B[1]})} ${_("Ett set räknas helt för övningens huvudmuskler och som ett halvt för muskler som hjälper till.")}</li>
+  <li>${_("<b>Volym:</b> ditt mål är {t} tunga set per stor muskel och vecka – vad {f} pass × {m} min räcker till. {a}–{b} set ger nära maximal tillväxt men kräver mer tid. Nyttan per set är störst i början, så även en lägre nivå ger mycket.",{t:r.volTarget.target,f:fmt(r.volTarget.freq),m:r.volTarget.minutes,a:B[0],b:B[1]})} ${_("Ett set räknas helt för övningens huvudmuskler och som ett halvt för muskler som hjälper till.")}</li>
   <li>${_("<b>Få set, fler övningar:</b> de första seten för en muskel i ett pass ger mest, sedan avtar nyttan. När tiden är kort får alla övningar ett set innan någon får ett andra.")}</li>
   <li>${_("<b>Variation:</b> en övning som stått still byts mot en av dina andra övningar för samma muskel, och en stor muskel med för lite volym får en övning tillagd. Du kan alltid byta själv.")}</li>
   <li>${_("<b>Passlängd:</b> uppskattad tid per set inklusive vila (basövning 2,5 min, isolation 1,75 min) plus byten mellan övningar. Uppvärmning ingår inte. Räcker inte tiden ens till ett set per övning tas bål bort först, sedan en andra övning för samma muskel.")}</li><li>${_("<b>Tumregler</b> (inte direkt från studier): 90 % efter mer än 4 veckors uppehåll, platå när toppsetet stått still tre pass, steg på 2,5 kg (5 kg från 100 kg, 1 kg under 10 kg).")}</li></ul>
