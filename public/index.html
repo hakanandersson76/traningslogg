@@ -717,9 +717,11 @@ function renderHistory(){
   return h+`<div id="copyout"></div>`;
 }
 function renderProgress(){
-  const idx=exIndex();const names=[...idx.entries()].sort((a,b)=>b[1].length-a[1].length).map(e=>e[0]);
+  // A–Z in the app language's order (å, ä, ö last in Swedish), case-insensitive.
+  const idx=exIndex();const names=[...idx.keys()].sort((a,b)=>a.localeCompare(b,getLang(),{sensitivity:"base"}));
   if(!names.length)return `<p class="empty">${_("Inga pass än.")}</p>`;
-  if(!progEx||!idx.has(progEx))progEx=names.includes("Bänkpress (incline)")?"Bänkpress (incline)":names[0];
+  // Default: the exercise done most often.
+  if(!progEx||!idx.has(progEx))progEx=names.includes("Bänkpress (incline)")?"Bänkpress (incline)":[...names].sort((a,b)=>idx.get(b).length-idx.get(a).length)[0];
   const rows=idx.get(progEx).map(e=>{const s=parseSets(e.s);const t=topSet(s);return{...e,t,e1:e1rm(t),bw:s.filter(x=>x.r&&x.w==null).reduce((a,x)=>Math.max(a,x.r),0),tm:s.filter(x=>x.t).reduce((a,x)=>Math.max(a,x.t),0)}});
   const wt=rows.filter(r=>r.t);const first=wt[0],last=wt[wt.length-1];
   const best=wt.reduce((a,r)=>!a||r.t.w>a.t.w||(r.t.w===a.t.w&&r.t.r>a.t.r)?r:a,null);
