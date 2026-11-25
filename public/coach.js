@@ -490,3 +490,67 @@ export function coachReport(sessions, today, goal = "muscle", minutes = 0, opts 
   if (prs.length) notes.push({ k: "good", t: tx("Nya rekord senaste månaden: {list}.", { list: list(prs.slice(0, 3).map((p) => p.n)) }), src: [] });
   return { goal, G, minutes, next, plan, up, flat, down, prs, neglected, weeks, last4, prev4, vol: volume.muscles.filter((v) => v.main || v.perWeek > 0), unknown: volume.unknown, rirShare: volume.rirShare, freq, notes };
 }
+
+// ---- feedback on a saved session ----
+// Compares each exercise with what the coach would have suggested that day from
+// the history before it (so it works without a plan), and says what's next.
+// status: pr (record) · beat · hit · close · under · new · done (no target to compare)
+const addDay = (d, n) => new Date(Date.parse(d + "T00:00:00Z") + n * 864e5).toISOString().slice(0, 10);
+export function sessionFeedback(sessions, sessionId, goal = "muscle") {
+  const s = sessions.find((x) => x.id === sessionId);
+  if (!s) return null;
+  const before = sessions.filter((x) => x.id !== sessionId && (x.date < s.date || (x.date === s.date && x.id < s.id)));
+  const histBefore = history(before);
+  const histAfter = history([...before, s]);
+  const items = [];
+  for (const e of s.ex || []) {
+    const sets = parseSets(e.s);
+    if (!e.n || !sets.length) continue;
+    const prev = histBefore.get(e.n);
+    const nt = prev ? nextTarget(prev, s.date, goal, e.n) : null;
+    const next = nextTarget(histAfter.get(e.n), addDay(s.date, 2), goal, e.n);
+    const [lo] = repRange(e.n, goal);
+    const weighted = sets.filter((x) => x.w > 0);
+    const inRange = weighted.filter((x) => x.r >= lo);
+    const ref = (inRange.length ? inRange : weighted).reduce((a, b) => (!a || b.w > a.w || (b.w === a.w && b.r > a.r) ? b : a), null);
+    const bestE1 = weighted.length ? Math.max(...weighted.map(e1rm)) : 0;
+    const prevBest = prev ? Math.max(0, ...prev.filter((x) => x.e1).map((x) => x.e1)) : 0;
+    let status = "done", got = "", want = nt?.target || "";
+    if (!prev) status = "new";
+    else if (ref) {
+      got = `${ref.r}@${fmt(ref.w)}`;
+      const tg = parseSets(String(want).replace(/\s+x\d+$/, ""))[0];
+      if (bestE1 > prevBest * 1.005 && prev.filter((x) => x.e1).length >= 3) status = "pr";
+      else if (tg && tg.w > 0) {
+        const te = e1rm(tg), ge = e1rm(ref);
+        status = ref.w >= tg.w && ref.r >= tg.r ? (ge > te * 1.02 ? "beat" : "hit") : ge >= te * 0.95 ? "close" : "under";
+      }
+    } else {
+      const reps = Math.max(0, ...sets.filter((x) => x.r && x.w == null).map((x) => x.r));
+      const secs = Math.max(0, ...sets.filter((x) => x.t).map((x) => x.t));
+      got = secs ? mmss(secs) : reps ? String(reps) : "";
+      const tm = String(want).match(/^(\d+):(\d\d)/), tr = String(want).match(/^(\d+)$/);
+      if (secs && tm) { const t = +tm[1] * 60 + +tm[2]; status = secs > t ? "beat" : secs >= t ? "hit" : secs >= t - 15 ? "close" : "under"; }
+      else if (reps && tr) { const t = +tr[1]; status = reps > t ? "beat" : reps >= t ? "hit" : reps >= t - 1 ? "close" : "under"; }
+    }
+    const mu = musclesOf(e.n);
+    items.push({ n: e.n, s: e.s, r: e.r ?? null, status, got, want: want ? String(want).replace(/\s+x\d+$/, "") : "", next: String(next.target || "").replace(/\s+x\d+$/, ""), sets: sets.length, p: mu.p, sec: mu.s });
+  }
+  const vol = {};
+  for (const it of items) {
+    const work = it.sets;
+    for (const m of it.p) vol[m] = (vol[m] || 0) + work;
+    for (const m of it.sec) if (!it.p.includes(m)) vol[m] = (vol[m] || 0) + work * 0.5;
+  }
+  const count = (k) => items.filter((x) => x.status === k).length;
+  const records = count("pr"), beat = count("beat") + records, hit = count("hit"), under = count("under");
+  const compared = items.filter((x) => !["new", "done"].includes(x.status)).length;
+  const headline = records ? "pr" : compared && beat + hit >= compared * 0.75 ? "strong" : compared && under > compared / 2 ? "tough" : "solid";
+  return {
+    id: s.id, date: s.date, tag: effectiveTag(s), note: s.note || "", headline, records,
+    totalSets: items.reduce((a, x) => a + x.sets, 0),
+    minutes: Math.round(sessionMinutes(items.map((x) => ({ n: x.n, sets: x.sets, one: x.got })))),
+    muscles: Object.entries(vol).map(([m, v]) => ({ m, v: Math.round(v * 2) / 2 })).sort((a, b) => b.v - a.v),
+    items,
+  };
+}

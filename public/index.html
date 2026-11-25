@@ -83,6 +83,10 @@ label{font-size:14px;color:var(--soft);display:block;margin-bottom:4px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}.seg button{border:0;border-radius:0;background:transparent;padding:6px 14px;font-size:14px}.seg button.on{background:var(--ink);color:var(--bg)}
 .edtext{width:100%;min-height:320px;font:15px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);box-sizing:border-box}
 .copybox{margin:0 0 14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}.copybox textarea{width:100%;min-height:160px;margin:6px 0;font:14px/1.5 ui-monospace,Menlo,monospace;box-sizing:border-box}
+.fbcard{border-color:var(--ink)}.fbai{background:color-mix(in srgb,var(--yellow,#e8b500) 12%,transparent);border-radius:10px;padding:8px 12px;margin:0 0 8px}.fbai p{margin:4px 0}
+.fblist{list-style:none;padding:0;margin:0}.fblist li{display:flex;gap:8px;padding:5px 0;border-top:1px solid var(--line);font-size:15px}.fblist .ic{width:1.2em;flex:none;text-align:center}
+.fb-pr .ic,.fb-beat .ic,.fb-hit .ic{color:var(--green)}.fb-close .ic,.fb-under .ic,.fb-done .ic{color:var(--soft)}.fb-new .ic{color:var(--yellow,#c49a00)}
+details.fbd{margin-top:8px}details.fbd summary{cursor:pointer;font-size:14px;color:var(--soft)}
 .hello h2{margin:0 0 4px;font-size:28px}.hello p{margin:0 0 16px;font-size:17px}
 .hgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
 .card{border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--panel);min-width:0}
@@ -234,13 +238,14 @@ td .row{gap:6px}
 import { parseSets, parseSessionText } from "./parse.js";
 import { setMuscleOverrides, MUSCLES, musclesOf } from "./muscles.js";
 import { homeStats, HOME_SOURCES, mondayOf } from "./home.js";
+import { sessionFeedback } from "./coach.js";
 import { coachReport, nextTarget, history as exHistory, SOURCES, GOALS, effectiveTag, allocSets, withSets, fitToTime } from "./coach.js";
 import { t as _, tn as _n, setLang, getLang, detectLang, LANGS, weekdays, months, fmtNum, tagShort, tagName } from "./i18n.js";
 {
 // Colours per session type; labels come from i18n (tagShort/tagName).
 const TAGS={"ÖK":[null,"red"],"NK":[null,"blue"],"HK":[null,"yellow"],"":[null,"grey"]};
 const MERGE={"UK":"NK","FK":"HK"};const normTag=t=>MERGE[t]||t||"";
-let copyBox=null,me=null,authMode="login",authMsg=null,resetToken=null,adminData=null,flash=null,sessions=[],plans=[],muscles={},swaps={},aiOn=false,aiSug={},aiBusy=false,aiData=null,ins={state:"",data:null,error:""},db=null,view="home",weekOff=0,ed=null,filt={tag:"*",q:""},progEx=null,armed=null;
+let copyBox=null,me=null,authMode="login",authMsg=null,resetToken=null,adminData=null,flash=null,sessions=[],plans=[],feedback={},fbNow=null,muscles={},swaps={},aiOn=false,aiSug={},aiBusy=false,aiData=null,ins={state:"",data:null,error:""},db=null,view="home",weekOff=0,ed=null,filt={tag:"*",q:""},progEx=null,armed=null;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const num=s=>parseFloat(String(s).replace(",","."));
@@ -476,6 +481,31 @@ function renderCoach(){
   <h3 style="font-size:20px;margin:12px 0 6px">${_("Källor")}</h3><ul class="refs">${Object.entries(SOURCES).filter(([k])=>k!=="rule").map(([,s])=>`<li>${esc(_(s.t))} <a href="${s.u}" target="_blank" rel="noopener">${_("Läs mer")}</a></li>`).join("")}</ul></section>`;
   return h;
 }
+// ---- Coach feedback on a saved session (rules + AI comment, stored with the session) ----
+function requestFeedback(id,show){
+  if(show)fbNow={id,state:"busy",rules:sessionFeedback(sessions,id,goalNow()),ai:null,error:""};
+  api(`sessions/${encodeURIComponent(id)}/feedback?lang=${getLang()}`,{method:"POST"}).then(r=>{
+    feedback[id]=r.feedback;if(fbNow?.id===id)Object.assign(fbNow,{state:"done",rules:r.feedback.rules,ai:r.feedback.ai,error:r.aiError||""});
+    if(view==="home"||view==="history")render()}).catch(e=>{if(fbNow?.id===id){fbNow.state="done";fbNow.error=e.message||""}if(view==="home")render()})}
+const FB_ICON={pr:"★",beat:"↑",hit:"✓",close:"≈",under:"↓",new:"✦",done:"•"};
+function fbHead(r){return r.headline==="pr"?_n(r.records,"Nytt rekord!","{n} nya rekord!"):r.headline==="strong"?_("Starkt pass!"):r.headline==="tough"?_("Ett tyngre pass – det händer."):_("Bra pass!")}
+function fbItem(i){
+  const res=i.status==="new"?_("Ny övning – nu har coachen en startpunkt."):i.status==="pr"?_("Nytt rekord: {got}.",{got:i.got}):i.status==="beat"?_("{got} – över målet {want}.",{got:i.got,want:i.want}):i.status==="hit"?_("{got} – på målet.",{got:i.got}):i.status==="close"?_("{got} – nära målet {want}.",{got:i.got,want:i.want}):i.status==="under"?_("{got} mot målet {want}. Dagsform varierar.",{got:i.got,want:i.want}):esc(i.s);
+  return `<li class="fb-${i.status}"><b class="ic" aria-hidden="true">${FB_ICON[i.status]||"•"}</b><span><b>${esc(i.n)}</b> ${res}${i.next?` <span class="muted">${_("Nästa gång: {t}",{t:i.next})}</span>`:""}</span></li>`}
+function feedbackHTML(f,opts={}){
+  const r=f.rules;if(!r)return "";const ai=f.ai;
+  const mus=r.muscles.filter(m=>m.v>=1).slice(0,6).map(m=>`${_(MUSCLES[m.m]?.name||m.m)} ${fmt(m.v)}`).join(" · ");
+  return `${opts.card?`<div class="row" style="justify-content:space-between;align-items:baseline"><span class="muted">${_("Coachens feedback, {d}",{d:nice(r.date)})}</span><button class="linkbtn" data-act="fbclose" aria-label="${_("Stäng")}">✕</button></div>`:""}
+  <h3 style="margin:4px 0 2px">${esc(ai?.headline||fbHead(r))}</h3>
+  <p class="muted" style="margin:0 0 8px">${_("{e} övningar · {s} set · cirka {m} min",{e:r.items.length,s:r.totalSets,m:r.minutes})}${opts.week?" · "+opts.week:""}</p>
+  ${ai?`<div class="fbai"><span class="tag2 y">${_("AI")}</span><p>${esc(ai.comment)}</p>${ai.conclusion?`<p><b>${_("Till nästa pass:")}</b> ${esc(ai.conclusion)}</p>`:""}</div>`:opts.busy?`<p class="muted fbai">${_("Coachen skriver en kommentar…")}</p>`:""}
+  ${opts.error?`<p class="muted" style="font-size:13px">${esc(_(opts.error))}</p>`:""}
+  <ul class="fblist">${r.items.map(fbItem).join("")}</ul>
+  ${mus?`<p class="muted" style="margin:6px 0 0;font-size:13px">${_("Tunga set per muskel:")} ${mus}</p>`:""}`}
+function fbCard(){
+  if(!fbNow||!fbNow.rules)return "";const s=homeStats(sessions,TODAY);
+  const week=_("veckans mål {a}/{b}",{a:s.week.done,b:s.week.target})+(s.streak.current?" · "+_n(s.streak.current,"svit {n} vecka","svit {n} veckor"):"");
+  return `<section class="panel fbcard">${feedbackHTML(fbNow,{card:true,busy:fbNow.state==="busy",error:fbNow.error,week})}</section>`}
 // ---- Home: motivation based on behavioural science (see public/home.js) ----
 function renderHome(){
   if(aiOn&&!ins.state)setTimeout(()=>loadInsight(),0);
@@ -495,7 +525,7 @@ function renderHome(){
   const when=n.date===TODAY?_("idag"):n.date===addD(TODAY,1)?_("i morgon"):nice(n.date);
   const dots=Array.from({length:Math.max(w.target,w.done)},(_x,i)=>`<i class="${i<w.done?"on":""}"></i>`).join("");
   const mxw=Math.max(w.target+1,...s.weeks.map(x=>x.n));
-  let h=`<div class="hello"><h2>${_("Hej {name}!",{name:esc(me.firstName||"")})}</h2><p>${esc(nudge)}</p></div>
+  let h=fbCard()+`<div class="hello"><h2>${_("Hej {name}!",{name:esc(me.firstName||"")})}</h2><p>${esc(nudge)}</p></div>
   <div class="hgrid">
     <section class="card"><span class="muted">${_("Veckans mål")}</span><div class="big">${w.done}<small> / ${w.target} ${_("pass")}</small></div><div class="dots">${dots}</div>
       <p class="muted">${w.met?_("Klart den här veckan."):_n(w.daysLeft,"{n} dag kvar av veckan.","{n} dagar kvar av veckan.")}</p></section>
@@ -696,7 +726,7 @@ document.addEventListener("click",async ev=>{
   const lg=ev.target.closest("[data-lang]");if(lg){ev.preventDefault();rememberLang(lg.dataset.lang);chooseLang();render();return}
   const b=ev.target.closest("[data-act]");if(!b)return;const act=b.dataset.act;
   if(act==="logout"||act==="logoutall"){try{await api(act==="logout"?"auth/logout":"account/logout-all",{method:"POST",body:"{}"})}catch(e){}
-    try{localStorage.removeItem(cacheKey())}catch(e){}me=null;sessions=[];plans=[];muscles={};swaps={};ins={state:"",data:null,error:""};setMuscleOverrides({});loaded=false;authMode="login";authMsg={k:"ok",t:act==="logout"?"Du är utloggad.":"Du är utloggad på alla enheter."};chooseLang();history.replaceState(null,"",location.pathname);render();return}
+    try{localStorage.removeItem(cacheKey())}catch(e){}me=null;sessions=[];plans=[];feedback={};fbNow=null;muscles={};swaps={};ins={state:"",data:null,error:""};setMuscleOverrides({});loaded=false;authMode="login";authMsg={k:"ok",t:act==="logout"?"Du är utloggad.":"Du är utloggad på alla enheter."};chooseLang();history.replaceState(null,"",location.pathname);render();return}
   if(act==="admin"){const id=b.dataset.id,a=b.dataset.a,key=a+":"+id;
     if((a==="ban"||a==="reject")&&armed!==key){armed=key;render();return}armed=null;
     const x=adminData?.users?.find(u=>u.id===id);
@@ -714,7 +744,7 @@ function renderHistory(){
   const list=[...sessions].sort((a,b)=>a.date<b.date?1:-1).filter(s=>(filt.tag==="*"||s.tag===filt.tag)&&(!q||(s.ex||[]).some(e=>e.n.toLowerCase().includes(q))));
   let h=editorHTML()+`<div class="fil">${["*","ÖK","NK","HK",""].map(t=>`<button class="sm ${filt.tag===t?"on":""}" data-act="ft" data-t="${t}">${t==="*"?_("Alla"):t?tagShort(t):_("Utan typ")}</button>`).join("")}<input id="hq" value="${esc(filt.q)}" placeholder="${_("Sök övning")}" style="max-width:16em" aria-label="${_("Sök övning")}"><span class="sp"></span><button class="sm" data-act="copy">${_("Kopiera som text")}</button></div>`;
   h+=`<p class="muted">${_n(list.length,"{n} pass","{n} pass")}</p>`;
-  h+=list.map(s=>`<div class="card"><h3>${chip(s.tag)} ${nice(s.date)} <span class="muted">${_("v{w}",{w:isoWeek(s.date)})}${s.note?" · "+esc(s.note):""}</span><span class="sp"></span><button class="sm" data-act="edit" data-id="${s.id}">${_("Ändra")}</button></h3>${exList(q?(s.ex||[]).filter(e=>e.n.toLowerCase().includes(q)):s.ex)}</div>`).join("")||`<p class="empty">${_("Inga pass matchar.")}</p>`;
+  h+=list.map(s=>`<div class="card"><h3>${chip(s.tag)} ${nice(s.date)} <span class="muted">${_("v{w}",{w:isoWeek(s.date)})}${s.note?" · "+esc(s.note):""}</span><span class="sp"></span><button class="sm" data-act="edit" data-id="${s.id}">${_("Ändra")}</button></h3>${exList(q?(s.ex||[]).filter(e=>e.n.toLowerCase().includes(q)):s.ex)}${feedback[s.id]?`<details class="fbd"><summary>${_("Coachens feedback")}${feedback[s.id].ai?" · "+esc(feedback[s.id].ai.headline):""}</summary>${feedbackHTML(feedback[s.id])}</details>`:`<button class="linkbtn" style="font-size:13px" data-act="fbmake" data-id="${s.id}">${_("Skapa coachens feedback")}</button>`}</div>`).join("")||`<p class="empty">${_("Inga pass matchar.")}</p>`;
   return h+`<div id="copyout"></div>`;
 }
 function renderProgress(){
@@ -778,12 +808,12 @@ async function api(path,opt={}){
   const r=await fetch("/api/"+path,{headers:{"content-type":"application/json"},credentials:"same-origin",...opt});
   if(r.redirected||r.type==="opaqueredirect"||!(r.headers.get("content-type")||"").includes("json"))throw{code:"auth"};
   const j=await r.json();
-  if(r.status===401&&j.auth){if(me){me=null;sessions=[];plans=[];muscles={};swaps={};ins={state:"",data:null,error:""};setMuscleOverrides({});authMode="login";authMsg={k:"err",t:"Du har loggats ut. Logga in igen."};render()}throw{code:"auth",message:j.error}}
+  if(r.status===401&&j.auth){if(me){me=null;sessions=[];plans=[];feedback={};fbNow=null;muscles={};swaps={};ins={state:"",data:null,error:""};setMuscleOverrides({});authMode="login";authMsg={k:"err",t:"Du har loggats ut. Logga in igen."};render()}throw{code:"auth",message:j.error}}
   if(!r.ok)throw{code:r.status,message:j.error,body:j};return j;
 }
 async function load(){
   if(me?.role==="admin")api("admin/tasks").then(t=>{if(me){me.tasks=t;render()}}).catch(()=>{});
-  try{const d=await api("data");sessions=d.sessions.map(x=>({...x,tag:normTag(x.tag)}));plans=d.plans.map(x=>({...x,tag:normTag(x.tag)}));muscles=d.muscles||{};setMuscleOverrides(muscles);loadSwaps();loaded=true;save();setSync("Synkat");if(ed)syncEd();render();return true}
+  try{const d=await api("data");sessions=d.sessions.map(x=>({...x,tag:normTag(x.tag)}));plans=d.plans.map(x=>({...x,tag:normTag(x.tag)}));feedback=d.feedback||{};muscles=d.muscles||{};setMuscleOverrides(muscles);loadSwaps();loaded=true;save();setSync("Synkat");if(ed)syncEd();render();return true}
   catch(e){setSync(e.code==="auth"?"":sessions.length?"Offline: visar sparad kopia":"Når inte servern");return false}
 }
 async function write(path,data,reload=true){
@@ -818,6 +848,8 @@ document.addEventListener("click",async ev=>{
     await load();setSync(_n(n,"Sparade {n} pass","Sparade {n} pass"));ed=null;location.hash="history";if(view==="history")render();return}
   if(a==="musedit"){musEdit=b.dataset.n||null;render();return}
   if(a==="musall"){musAll=!musAll;render();return}
+  if(a==="fbclose"){fbNow=null;render();return}
+  if(a==="fbmake"){requestFeedback(b.dataset.id,false);b.disabled=true;b.textContent=_("Skapar…");return}
   if(a==="insnew"){if(confirm(_("Skapa en ny insikt nu? Nästa automatiska kommer då om en vecka.")))loadInsight(true);return}
   if(a==="insfocus"){try{const r=await api("ai/insight/focus",{method:"POST",body:JSON.stringify({on:b.dataset.on==="1"})});ins.data=r.insight;render()}catch(e){flash={k:"err",t:e.message||"Något gick fel."};render()}return}
   if(a==="aimus"){const names=[...new Set(sessions.flatMap(s=>(s.ex||[]).map(e=>e.n)).filter(Boolean))].filter(n=>!musclesOf(n).known&&!aiSug[n]).slice(0,25);if(names.length)aiSuggest(names);return}
@@ -843,10 +875,12 @@ document.addEventListener("click",async ev=>{
     if(ed.kind==="plan"){const id=ed.date;if(ed.id&&ed.id!==id)await write("plans/"+ed.id,null);
       if(await write("plans/"+id,{date:ed.date,tag:ed.tag,note:ed.note,ex,done:null})){ed=null;render()}}
     else{const id=ed.id||`${ed.date}-${Date.now().toString(36)}`;
+      const isNewSession=!ed.id;
       if(await write("sessions/"+id,{date:ed.date,tag:ed.tag,note:ed.note,ex:ex.filter(e=>e.s).map(e=>({n:e.n,s:e.s,r:e.r??null}))})){
         if(ed.planId){const p=plans.find(x=>x.id===ed.planId);if(p)await write("plans/"+p.id,{date:p.date,tag:p.tag,note:p.note||"",ex:p.ex||[],done:id})}
         // A new workout lands on Home, where the weekly goal and streak move (positive feedback).
-        const d=ed.date,isNew=!ed.id;ed=null;weekOff=Math.round((pd(monday(d))-pd(monday(TODAY)))/864e5/7);location.hash=isNew?"home":"plan";if(isNew)flash={k:"ok",t:_("Passet är sparat. Bra jobbat!")};render()}}}
+        requestFeedback(id,isNewSession);
+        const d=ed.date,isNew=!ed.id;ed=null;weekOff=Math.round((pd(monday(d))-pd(monday(TODAY)))/864e5/7);location.hash=isNew?"home":"plan";render()}}}
   else if(a==="del"){if(armed!=="del"){armed="del";render();return}armed=null;
     if(await write((ed.kind==="plan"?"plans/":"sessions/")+ed.id,null)){ed=null;render()}}
   else if(a==="ft"){filt.tag=b.dataset.t;render()}

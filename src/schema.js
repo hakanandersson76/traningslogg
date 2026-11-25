@@ -120,7 +120,21 @@ const V9 = [
   `INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '9')`,
 ];
 
-export const SCHEMA_VERSION = 9;
+// Version 10: coach feedback per saved session (rule result + the AI coach's comment).
+const V10 = [
+  `CREATE TABLE IF NOT EXISTS session_feedback (
+    session_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    lang TEXT NOT NULL,
+    rules TEXT NOT NULL,
+    ai TEXT
+  )`,
+  `CREATE INDEX IF NOT EXISTS session_feedback_user ON session_feedback (user_id)`,
+  `INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '10')`,
+];
+
+export const SCHEMA_VERSION = 10;
 
 let ready = null;
 export function ensureSchema(db) {
@@ -144,6 +158,7 @@ async function migrate(db) {
   if (v < 7) await db.batch(V7.map((s) => db.prepare(s)));
   if (v < 8) await db.batch(V8.map((s) => db.prepare(s)));
   if (v < 9) await db.batch(V9.map((s) => db.prepare(s)));
+  if (v < 10) await db.batch(V10.map((s) => db.prepare(s)));
 }
 
 // Create the admin account on first start (from the ADMIN_EMAIL and

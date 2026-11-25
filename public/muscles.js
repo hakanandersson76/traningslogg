@@ -43,6 +43,7 @@ const RULES = [
   R(/face ?pull|rear ?delt|bakre axel|reverse fly|omvänd fly/, ["bakaxlar"], ["trapets"]),
   R(/rotat|rotator|external rot/, ["bakaxlar"]),
   R(/shrug|axelryck/, ["trapets"]),
+  R(/landmine press/, ["axlar", "bröst"], ["triceps"], true),
   R(/axelpress|shoulder press|military|overhead press|\bohp\b|arnold|militärpress/, ["axlar"], ["triceps"], true),
   R(/lateral|sidolyft|side raise|front ?raise|framlyft|axellyft/, ["axlar"]),
   R(/tricep|skull|pushdown|french|nedpress/, ["triceps"]),

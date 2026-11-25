@@ -51,6 +51,12 @@ In English the labels are UB / LB / FB (Upper / Lower / Full body); the stored t
 - The coach suggestion can be copied as Notes text (Home and Coach: "Kopiera som text"): `261124 NK` then `Exercise target` per line, e.g. `Jefferson curls (skivstång) 9@25 x2`.
 - The editor (log and plan) has Formulär / Text; Formulär is the default. Text mode shows the same Notes format, with the coach's targets filled in for exercises without sets; overwrite them with the result. Switching back or saving parses the text with `parseSessionText` (same format as paste). Lines without sets aren't saved for a log.
 
+## Coach feedback after each workout
+- After saving a workout (new or edited) the app calls `POST /api/sessions/:id/feedback?lang=`. The result is stored in `session_feedback` (rules JSON + AI JSON) and returned with `/api/data` as `feedback[sessionId]`. Deleting the session deletes it.
+- **Rules part** (`sessionFeedback` in coach.js, same code on server and client): for each exercise, the target the coach *would have suggested that day* from the history before it (no plan needed), compared with the set in the rep range: `pr` record · `beat` · `hit` · `close` (≥95 % of the target's estimated 1RM) · `under` · `new` (first time). Plus next target, total sets, minutes, hard sets per muscle (secondary = half).
+- **AI part** (when AI is on and under the caps; always, as Håkan asked): headline, 2–4 sentence comment and a one-sentence conclusion for next time. It gets the workout incl. note and reps in reserve, the rule comparison, sets per muscle, goal, week/streak, focus muscles and the last 4 workouts. Told to lead with wins, treat under-target as day-to-day variation, flag likely logging slips, and not invent numbers. Over a cap → rules only, with the reason. About 0,004 kr per workout.
+- **Shown:** a card at the top of Home right after saving (rules at once, the AI comment a few seconds later; ✕ to close), and under each workout in History ("Coachens feedback"). Older workouts have a "Skapa coachens feedback" link.
+
 ## Which set the progression builds on
 - The heaviest set that reached the goal's rep range (e.g. 6+ for compound lifts, goal muscle). A heavier set with fewer reps is an attempt and is named in the advice: `3@25, 8@20` → next `9@20` (not `6@25`).
 - One rep short of the range: same weight, aim for the bottom of the range (`5@20` → `6@20`).
@@ -97,7 +103,7 @@ public/            static app (served by Workers Assets)
   manifest.webmanifest, icon-*.png   home-screen app on iPad
 src/worker.js      API: /api/auth/*, /api/account/*, /api/admin/*, /api/data, /api/sessions/:id, /api/plans/:date, /api/import
 src/auth.js        password hashing, login sessions, reset tokens, password rules
-src/schema.js      D1 schema + migrations (v2 = accounts, v3 = approval/status, no email, v4 = RIR + goal, v5 = language, v6 = session length, v7 = own muscle choices, v8 = AI cost log and cache, v9 = weekly AI insights), run automatically on first request
+src/schema.js      D1 schema + migrations (v2 = accounts, v3 = approval/status, no email, v4 = RIR + goal, v5 = language, v6 = session length, v7 = own muscle choices, v8 = AI cost log and cache, v9 = weekly AI insights, v10 = session feedback), run automatically on first request
 data/sessions.json export from v1 (seed for /api/import)
 test/run.mjs       local tests with a fake D1 (npm test)
 wrangler.jsonc     Worker + Assets + D1 binding

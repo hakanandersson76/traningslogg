@@ -157,3 +157,22 @@ Answer with JSON only, in this shape:
     .bind(userId, trigger, lang === "en" ? "en" : "sv", aiConfig(env).model, JSON.stringify(body)).run();
   return latestInsight(db, userId);
 }
+
+// ---- feedback on a saved session ----
+// The rule-based comparison (coach.js sessionFeedback) is the basis; the AI adds a
+// short comment that can use the notes and reps in reserve. JSON in, JSON out.
+export async function sessionComment(db, env, userId, facts, lang) {
+  const language = lang === "en" ? "English" : "Swedish (svenska, natural and plain)";
+  const system = `You are the person's gym coach. They just saved a workout. Write short, specific feedback on it.
+You get: the workout (exercises, sets as written, reps in reserve "r" where logged, the person's note), the coach's rule-based comparison per exercise (status: pr = new record, beat/hit = above/at the target the coach would have suggested, close = just under, under = clearly under, new = first time) with the target and the next target, hard sets per muscle, the person's goal, this week's progress and recent workouts.
+Rules: base everything on this data. Do not invent numbers; when you mention a next target, use the one given. Lead with what went well. A result under target is normal day-to-day variation, never a failure; if several are under, look for a reason in the data (order in the workout, notes, reps in reserve, long break) and say it plainly. Read the note and the reps in reserve and use them when they explain something. If something looks like a logging slip (e.g. a weight 10× the usual), mention it. No medical advice; if the note mentions pain, advise easing off and seeing a professional if it persists.
+Write in ${language}, address the person as "du"/"you", warm but not gushing.
+Answer with JSON only: {"headline": "<max 7 words>", "comment": "<2–4 sentences>", "conclusion": "<one sentence: the most important takeaway for the next workout>"}`;
+  const text = await callClaude(db, env, userId, "session", system, "Workout data (JSON):\n" + JSON.stringify(facts), 700);
+  let j;
+  try { j = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1)); } catch { throw { status: 502, message: "AI-svaret gick inte att läsa. Försök igen senare." }; }
+  const str = (s, n) => String(s || "").trim().slice(0, n);
+  const out = { headline: str(j.headline, 80), comment: str(j.comment, 900), conclusion: str(j.conclusion, 300), model: aiConfig(env).model };
+  if (!out.comment) throw { status: 502, message: "AI-svaret gick inte att läsa. Försök igen senare." };
+  return out;
+}

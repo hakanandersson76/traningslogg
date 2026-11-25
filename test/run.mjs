@@ -9,7 +9,7 @@ import worker from "../src/worker.js";
 import { _resetForTests } from "../src/schema.js";
 import { hashPassword } from "../src/auth.js";
 import { parseSessionText, parseSets } from "../public/parse.js";
-import { coachReport, nextTarget, history, groupOf, effectiveTag, isCompound, SOURCES, weeklyVolume, allocSets, proposeSession, sessionMinutes } from "../public/coach.js";
+import { coachReport, nextTarget, history, groupOf, effectiveTag, isCompound, SOURCES, weeklyVolume, allocSets, proposeSession, sessionMinutes, sessionFeedback } from "../public/coach.js";
 import { setLang, detectLang, t as tr, tn, fmtNum, LANGS, _dicts } from "../public/i18n.js";
 import { collectKeys } from "./i18n-keys.mjs";
 import { homeStats } from "../public/home.js";
@@ -233,6 +233,38 @@ await anna("/api/sessions/2026-11-25-r", { method: "DELETE" });
   globalThis.fetch = realFetch;
   delete env.ANTHROPIC_API_KEY;
 }
+// Coach feedback on a saved session: rules always, AI comment when on, stored
+{
+  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Stockholm" });
+  const id = today + "-fb1";
+  await put(anna, "/api/sessions/" + id, { date: today, tag: "ÖK", note: "ny maskin", ex: [{ n: "Bänkpress", s: "8@60, 8@60", r: 2 }, { n: "Ny konstig", s: "10@10" }] });
+  r = await post(anna, `/api/sessions/${id}/feedback?lang=sv`, {});
+  assert(r.status === 200 && r.body.feedback.rules.items.length === 2 && r.body.feedback.ai === null, "feedback: without AI the rules part is made and returned");
+  assert((await anna("/api/data")).body.feedback[id].rules.id === id, "feedback: stored and returned with the data");
+  const realFetch = globalThis.fetch;
+  let sent = null;
+  globalThis.fetch = async (url, opt) => {
+    if (!String(url).startsWith("https://api.anthropic.com/")) return realFetch(url, opt);
+    sent = JSON.parse(opt.body);
+    return new Response(JSON.stringify({ content: [{ type: "text", text: JSON.stringify({ headline: "Bra jobbat", comment: "Den nya maskinen förklarar vikten.", conclusion: "Håll vikten nästa gång." }) }], usage: { input_tokens: 2000, output_tokens: 200 } }), { status: 200 });
+  };
+  Object.assign(env, { ANTHROPIC_API_KEY: "test-key", AI_USER_CAP_SEK: "20", AI_TOTAL_CAP_SEK: "100" });
+  env.DB.db.prepare("DELETE FROM ai_usage").run();
+  r = await post(anna, `/api/sessions/${id}/feedback?lang=en`, {});
+  const facts = JSON.parse(sent.messages[0].content.replace(/^[^{]*/, ""));
+  assert(r.body.feedback.ai.conclusion === "Håll vikten nästa gång." && r.body.feedback.lang === "en", "feedback: AI comment and conclusion stored");
+  assert(facts.workout.note === "ny maskin" && facts.workout.exercises[0].r === 2 && facts.comparison.length === 2 && /English/.test(sent.system), "feedback: AI gets the note, reps in reserve and the rule comparison");
+  assert(JSON.stringify((await anna("/api/data")).body.feedback[id].ai.comment) === '"Den nya maskinen förklarar vikten."', "feedback: AI conclusion kept with the session");
+  assert(env.DB.db.prepare("SELECT COUNT(*) AS n FROM ai_usage WHERE feature = 'session'").get().n === 1, "feedback: AI call logged against the caps");
+  env.AI_USER_CAP_SEK = "0";
+  r = await post(anna, `/api/sessions/${id}/feedback`, {});
+  assert(r.status === 200 && r.body.feedback.ai === null && /AI-tak/.test(r.body.aiError) && r.body.feedback.rules, "feedback: over the cap → rules only, with the reason");
+  assert((await post(admin, `/api/sessions/${id}/feedback`, {})).status === 404, "feedback: only for your own sessions");
+  await anna("/api/sessions/" + id, { method: "DELETE" });
+  assert(!env.DB.db.prepare("SELECT 1 FROM session_feedback WHERE session_id = ?").get(id), "feedback: deleted with the session");
+  globalThis.fetch = realFetch;
+  delete env.ANTHROPIC_API_KEY;
+}
 // own muscle choice per exercise
 r = await put(anna, "/api/muscles", { name: "Konstig maskin", p: ["rygg"], s: ["biceps"] });
 assert(r.status === 200 && JSON.stringify((await anna("/api/data")).body.muscles["Konstig maskin"]) === JSON.stringify({ p: ["rygg"], s: ["biceps"] }), "muscles: own choice saved and returned with data");
@@ -416,6 +448,14 @@ assert(!legs35.dropped.length && legs35.filter((x) => groupOf(x.n) === "ben").le
   assert(nt("8@20", "5@20").target === "6@20", "progression: one rep short of the range keeps the weight");
   assert(nt("8@20", "10@20").target === "6@22,5", "progression: top of the range → more weight");
 }
+{
+  const extra = { id: "2026-11-24-fb", date: "2026-11-24", tag: "ÖK", note: "", ex: [{ n: "Bänkpress (incline)", s: "3@25, 8@20" }, { n: "Landmine press", s: "10@20" }, { n: "Kabelrodd", s: "12@50, 10@50" }] };
+  const f = sessionFeedback([...seedS, extra], "2026-11-24-fb", "muscle");
+  const it = (n) => f.items.find((x) => x.n === n);
+  assert(it("Landmine press").status === "new" && it("Bänkpress (incline)").got === "8@20" && it("Bänkpress (incline)").next === "9@20", "feedback: compares the set in the rep range; new exercise noted; next target given");
+  assert(["pr", "beat"].includes(it("Kabelrodd").status) && f.records >= 0 && f.totalSets === 5 && f.muscles.find((m) => m.m === "rygg").v === 2, "feedback: above target recognised; sets and muscles counted");
+  assert(sessionFeedback(seedS, "nope") === null, "feedback: unknown session → null");
+}
 const legs20 = proposeSession(seedS, "NK", "2026-11-25", "muscle", 20);
 assert(legs20.minutes <= 20 && legs20.dropped[0] === "Plankan" && legs20.filter((x) => x.sets === 1).length >= legs20.length - 1, "coach: very short: one set each, core left out first");
 const sets35 = legs35.map((x) => x.sets);
@@ -476,6 +516,12 @@ if (serveAt > 0) {
     globalThis.fetch = async (url, opt) => {
       if (!String(url).startsWith("https://api.anthropic.com/")) return realFetch(url, opt);
       const b = JSON.parse(opt.body);
+      if (/just saved a workout/.test(b.system)) {
+        const en = /English/.test(b.system);
+        const body = en ? { headline: "Solid upper day", comment: "Cable row went above target and incline bench held at 20 kg after the heavier try – a sensible call. Landmine press is new, so today sets your baseline.", conclusion: "Go for 9@20 on incline bench before trying 22.5." }
+          : { headline: "Stabilt överkroppspass", comment: "Kabelrodden gick över målet och i bänkpressen höll du dig på 20 kg efter försöket med 25 – ett klokt val. Landmine press är ny, så idag blir din startpunkt.", conclusion: "Sikta på 9@20 i bänkpressen innan du provar 22,5." };
+        return new Response(JSON.stringify({ content: [{ type: "text", text: JSON.stringify(body) }], usage: { input_tokens: 2200, output_tokens: 220 } }), { status: 200 });
+      }
       if (/weekly check-in/.test(b.system)) {
         const en = /English/.test(b.system);
         const body = en ? { title: "Steady upper body, legs lagging", summary: "You trained once a week lately, down from 2.5. Upper body is moving: Bänkpress (incline) is up, but legs got only one session in four weeks.", good: ["New record in Kabelrodd", "Consistent bench progress"], watch: ["Legs trained once in 4 weeks", "10 exercises have stalled"], advice: ["Book a leg day early this week", "Log reps in reserve so the coach can progress faster"], focus: ["framlår", "säte"], focus_why: "Quads and glutes get the fewest hard sets." }

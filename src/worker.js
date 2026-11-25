@@ -32,8 +32,8 @@ const normTag = (t) => {
 const cleanRir = (r) => (r === null || r === undefined || r === "" || !Number.isFinite(+r) ? null : Math.max(0, Math.min(5, Math.round(+r))));
 const GOALS = new Set(["strength", "muscle", "health"]);
 // UI languages (must match LANGS in public/i18n.js). "" = follow the device.
-import { aiEnabled, suggestMuscles, usageReport, spent, aiConfig, latestInsight, insightDue, generateInsight } from "./ai.js";
-import { insightFacts } from "./facts.js";
+import { aiEnabled, suggestMuscles, usageReport, spent, aiConfig, latestInsight, insightDue, generateInsight, sessionComment } from "./ai.js";
+import { insightFacts, sessionFacts } from "./facts.js";
 const stockholmToday = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Stockholm" });
 const LANGS = new Set(["sv", "en"]);
 // Muscle ids (must match MUSCLES in public/muscles.js).
@@ -79,7 +79,7 @@ function sessionStatements(db, userId, id, s) {
 }
 
 async function getData(db, userId) {
-  const [sess, ex, plans, pex, mus] = await db.batch([
+  const [sess, ex, plans, pex, mus, fb] = await db.batch([
     db.prepare("SELECT id, date, tag, note FROM sessions WHERE user_id = ?1 ORDER BY date, id").bind(userId),
     db.prepare(
       `SELECT e.session_id, e.pos, e.name, e.sets_text, e.rir FROM exercises e JOIN sessions s ON s.id = e.session_id
@@ -88,6 +88,7 @@ async function getData(db, userId) {
     db.prepare("SELECT date, tag, note, done_session_id FROM plans WHERE user_id = ?1 ORDER BY date").bind(userId),
     db.prepare("SELECT plan_date, pos, name, target FROM plan_exercises WHERE user_id = ?1 ORDER BY plan_date, pos").bind(userId),
     db.prepare("SELECT name, primary_m, secondary_m, compound FROM exercise_muscles WHERE user_id = ?1").bind(userId),
+    db.prepare("SELECT session_id, lang, rules, ai FROM session_feedback WHERE user_id = ?1").bind(userId),
   ]);
   const split = (s) => String(s || "").split(",").filter(Boolean);
   const exBy = new Map();
@@ -103,6 +104,7 @@ async function getData(db, userId) {
   return {
     sessions: sess.results.map((r) => ({ id: r.id, date: r.date, tag: r.tag, note: r.note, ex: exBy.get(r.id) || [] })),
     plans: plans.results.map((r) => ({ id: r.date, date: r.date, tag: r.tag, note: r.note, done: r.done_session_id, ex: pexBy.get(r.date) || [] })),
+    feedback: Object.fromEntries(fb.results.map((r) => [r.session_id, { lang: r.lang, rules: JSON.parse(r.rules), ai: r.ai ? JSON.parse(r.ai) : null }])),
     muscles: Object.fromEntries(mus.results.map((r) => [r.name, r.compound === null || r.compound === undefined ? { p: split(r.primary_m), s: split(r.secondary_m) } : { p: split(r.primary_m), s: split(r.secondary_m), c: !!r.compound }])),
   };
 }
@@ -394,6 +396,26 @@ async function handleApi(request, env, url) {
     return json({ ok: true });
   }
 
+  // Coach feedback on a saved session: rule comparison + AI comment, stored together.
+  // Made after each save (and again after an edit); without AI, the rules part alone.
+  if (resource === "sessions" && isId(key) && parts[2] === "feedback" && method === "POST") {
+    const owner = await db.prepare("SELECT user_id FROM sessions WHERE id = ?1").bind(key).first();
+    if (!owner || owner.user_id !== user.id) return bad("Hittades inte.", 404);
+    const lang = ["sv", "en"].includes(url.searchParams.get("lang")) ? url.searchParams.get("lang") : user.lang || "sv";
+    const data = await getData(db, user.id);
+    const ins = await latestInsight(db, user.id);
+    const { rules, facts } = sessionFacts(data, user, key, ins?.focusOn ? ins.focus : []);
+    if (!rules) return bad("Hittades inte.", 404);
+    let ai = null, aiError = "";
+    if (aiEnabled(env) && rules.items.length) {
+      try { ai = await sessionComment(db, env, user.id, facts, lang); }
+      catch (e) { if (e && e.status) { aiError = e.message; if (e.detail) console.log("AI error:", e.detail); } else throw e; }
+    }
+    await db.prepare("INSERT OR REPLACE INTO session_feedback (session_id, user_id, created_at, lang, rules, ai) VALUES (?1, ?2, datetime('now'), ?3, ?4, ?5)")
+      .bind(key, user.id, lang, JSON.stringify(rules), ai ? JSON.stringify(ai) : null).run();
+    return json({ feedback: { rules, ai, lang }, aiError });
+  }
+
   if (resource === "sessions" && isId(key)) {
     const owner = await db.prepare("SELECT user_id FROM sessions WHERE id = ?1").bind(key).first();
     if (owner && owner.user_id !== user.id) return bad("Hittades inte.", 404);
@@ -402,6 +424,7 @@ async function handleApi(request, env, url) {
         db.prepare("DELETE FROM sets WHERE session_id = ?1").bind(key),
         db.prepare("DELETE FROM exercises WHERE session_id = ?1").bind(key),
         db.prepare("DELETE FROM sessions WHERE id = ?1 AND user_id = ?2").bind(key, user.id),
+        db.prepare("DELETE FROM session_feedback WHERE session_id = ?1 AND user_id = ?2").bind(key, user.id),
         db.prepare("UPDATE plans SET done_session_id = NULL WHERE done_session_id = ?1 AND user_id = ?2").bind(key, user.id),
       ]);
       return json({ ok: true });
