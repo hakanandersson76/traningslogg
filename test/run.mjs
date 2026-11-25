@@ -407,6 +407,15 @@ assert(!legs35.dropped.length && legs35.filter((x) => groupOf(x.n) === "ben").le
   assert(hs.gains.every((g) => g.pct > 0) && hs.bestLifts.length === 3 && hs.yearKg > 0 && hs.recordsYear > 0, "home: only gains shown, best lifts as fallback, kilos and records counted");
   assert(hs.weeks.length === 12 && hs.weeks[11].start === "2026-11-23", "home: 12-week strip ends with this week");
 }
+{
+  const H2 = (...ss) => history(ss.map((s, i) => ({ date: "2026-11-" + String(10 + i * 3).padStart(2, "0"), ex: [{ n: "Bänkpress (incline)", s }] }))).get("Bänkpress (incline)");
+  const nt = (...ss) => nextTarget(H2(...ss), "2026-11-25", "muscle", "Bänkpress (incline)");
+  const a1 = nt("6@20", "3@25, 8@20");
+  assert(a1.target === "9@20" && /3@25 var för tungt/.test(a1.why), "progression: a heavier attempt below the range is not the working weight (3@25 then 8@20 → 9@20)");
+  assert(nt("8@20", "3@25").target === "6@22,5", "progression: no set in the range → weight from estimated 1RM, rounded down");
+  assert(nt("8@20", "5@20").target === "6@20", "progression: one rep short of the range keeps the weight");
+  assert(nt("8@20", "10@20").target === "6@22,5", "progression: top of the range → more weight");
+}
 const legs20 = proposeSession(seedS, "NK", "2026-11-25", "muscle", 20);
 assert(legs20.minutes <= 20 && legs20.dropped[0] === "Plankan" && legs20.filter((x) => x.sets === 1).length >= legs20.length - 1, "coach: very short: one set each, core left out first");
 const sets35 = legs35.map((x) => x.sets);

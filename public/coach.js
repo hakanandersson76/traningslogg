@@ -117,16 +117,28 @@ export function nextTarget(entries, today, goal = "muscle", name = "") {
   const last = entries?.at(-1);
   if (!last) return { target: "", why: tx("Ny övning: välj en vikt du klarar {lo}–{hi} gånger med {rir} reps kvar.", { lo, hi, rir: G.rir }), kind: "new", src: [...G.src] };
   const gap = daysBetween(last.date, today);
-  const t = last.top;
   const rir = last.rir;
+  // The set to build on: the heaviest set that reached the rep range. A heavier
+  // set with fewer reps is an attempt, not the working weight (3@25 then 8@20
+  // builds on 8@20). With no set in the range, the weight for `lo` reps comes
+  // from the best estimated 1RM, rounded down.
+  const refOf = (e) => {
+    const ok = (e.sets || []).filter((x) => x.w > 0 && x.r >= lo);
+    return ok.length ? ok.reduce((a, b) => (b.w > a.w || (b.w === a.w && b.r > a.r) ? b : a)) : null;
+  };
+  const top = last.top;
+  const ref = top && top.w > 0 ? refOf(last) : null;
+  const t = ref || top;
+  const label = (s) => (s.wl ? s.wl.replace(/[.,]/g, fmtNum(0.5).charAt(1)) : fmt(s.w));
+  const attempt = ref && top && top.w > ref.w ? tx("{try} var för tungt för intervallet – coachen utgår från {ref}.", { try: `${top.r}@${label(top)}`, ref: `${ref.r}@${label(ref)}` }) + " " : "";
   if (t && t.w > 0) {
-    const lbl = t.wl ? t.wl.replace(/[.,]/g, fmtNum(0.5).charAt(1)) : fmt(t.w);
+    const lbl = label(t);
     if (gap > 28) {
       const w = roundTo(t.w * 0.9, stepFor(t.w));
       return { target: `${Math.min(Math.max(t.r, lo), hi)}@${fmt(w)}`, why: tx("{gap} dagar sedan sist. Börja på ~90 % och bygg upp igen.", { gap }) + " " + effort, kind: "comeback", src: ["rule"] };
     }
     const tr = trendOf(entries, today);
-    const sameTop = entries.slice(-3).filter((e) => e.top && e.top.w === t.w && e.top.r <= t.r).length === 3;
+    const sameTop = entries.slice(-3).filter((e) => { const r = refOf(e) || e.top; return r && r.w === t.w && r.r <= t.r; }).length === 3;
     if (tr && tr.status === "flat" && sameTop && entries.length >= 4 && !(rir !== null && rir >= 3)) {
       const w = roundTo(t.w * 0.9, stepFor(t.w));
       return { target: `${hi}@${fmt(w)}`, why: tx("Stått still på {set} tre pass. Ge musklerna ett nytt stimulus: fler reps på ~90 % ett pass, eller byt variant.", { set: `${t.r}@${fmt(t.w)}` }), kind: "plateau", src: ["plotkin2022", "rule"] };
@@ -134,19 +146,24 @@ export function nextTarget(entries, today, goal = "muscle", name = "") {
     const easy = rir !== null && rir >= 3, failed = rir === 0;
     if (t.r >= hi || (easy && t.r >= hi - 2)) {
       const w = t.w + stepFor(t.w);
-      return { target: `${lo}@${fmt(w)}`, why: (easy ? tx("Klarade {r} reps med {rir} kvar – toppen av ditt intervall {lo}–{hi}. Öka vikten och börja om på {lo}.", { r: t.r, rir, lo, hi }) : tx("Klarade {r} reps – toppen av ditt intervall {lo}–{hi}. Öka vikten och börja om på {lo}.", { r: t.r, lo, hi })) + " " + effort, kind: "weight", src: ["plotkin2022", ...G.src] };
+      return { target: `${lo}@${fmt(w)}`, why: attempt + (easy ? tx("Klarade {r} reps med {rir} kvar – toppen av ditt intervall {lo}–{hi}. Öka vikten och börja om på {lo}.", { r: t.r, rir, lo, hi }) : tx("Klarade {r} reps – toppen av ditt intervall {lo}–{hi}. Öka vikten och börja om på {lo}.", { r: t.r, lo, hi })) + " " + effort, kind: "weight", src: ["plotkin2022", ...G.src] };
+    }
+    if (t.r === lo - 1 && !failed) {
+      return { target: `${lo}@${lbl}`, why: attempt + tx("{r} reps är under ditt intervall {lo}–{hi}. Sikta på {lo} med samma vikt.", { r: t.r, lo, hi }) + " " + effort, kind: "reps", src: ["plotkin2022", ...G.src] };
     }
     if (t.r < lo) {
-      if (failed) {
-        const w = roundTo(t.w - stepFor(t.w), stepFor(t.w));
-        return { target: `${lo}@${fmt(w)}`, why: tx("Bara {r} reps och inget kvar – under intervallet {lo}–{hi}. Sänk lite och bygg upp igen.", { r: t.r, lo, hi }) + " " + effort, kind: "lower", src: ["rule", ...G.src] };
-      }
-      return { target: `${lo}@${lbl}`, why: tx("{r} reps är under ditt intervall {lo}–{hi}. Sikta på {lo} med samma vikt.", { r: t.r, lo, hi }) + " " + effort, kind: "reps", src: ["plotkin2022", ...G.src] };
+      // No set reached the range: pick a weight the best set says you can lift lo times.
+      const best = Math.max(...last.sets.filter((x) => x.w > 0).map((x) => e1rm(x)));
+      const st = stepFor(t.w);
+      let w = Math.floor(best / (1 + Math.min(lo, 12) / 30) / st + 1e-9) * st;
+      if (failed) w = Math.min(w, roundTo(t.w - st, st));
+      w = Math.max(st, Math.min(w, t.w));
+      return { target: `${lo}@${fmt(w)}`, why: (failed ? tx("Bara {r} reps och inget kvar – under intervallet {lo}–{hi}.", { r: t.r, lo, hi }) : tx("{r} reps är under ditt intervall {lo}–{hi}.", { r: t.r, lo, hi })) + " " + tx("{w} kg bör räcka till {lo} reps. Bygg upp därifrån.", { w: fmt(w), lo }) + " " + effort, kind: "lower", src: ["rule", ...G.src] };
     }
     const add = easy ? 2 : 1;
     return {
       target: `${Math.min(t.r + add, hi)}@${lbl}`,
-      why: (easy ? tx("Kändes lätt förra gången ({rir} kvar) – två reps till.", { rir }) : tx("En rep till än förra gången ({set}).", { set: `${t.r}@${lbl}` })) + " " + tx("Vid {hi} reps ökar du vikten.", { hi }) + " " + effort,
+      why: attempt + (easy ? tx("Kändes lätt förra gången ({rir} kvar) – två reps till.", { rir }) : tx("En rep till än förra gången ({set}).", { set: `${t.r}@${lbl}` })) + " " + tx("Vid {hi} reps ökar du vikten.", { hi }) + " " + effort,
       kind: "reps", src: ["plotkin2022", ...G.src],
     };
   }

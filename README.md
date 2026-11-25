@@ -51,6 +51,11 @@ In English the labels are UB / LB / FB (Upper / Lower / Full body); the stored t
 - The coach suggestion can be copied as Notes text (Home and Coach: "Kopiera som text"): `261124 NK` then `Exercise target` per line, e.g. `Jefferson curls (skivstång) 9@25 x2`.
 - The editor (log and plan) has Formulär / Text; Formulär is the default. Text mode shows the same Notes format, with the coach's targets filled in for exercises without sets; overwrite them with the result. Switching back or saving parses the text with `parseSessionText` (same format as paste). Lines without sets aren't saved for a log.
 
+## Which set the progression builds on
+- The heaviest set that reached the goal's rep range (e.g. 6+ for compound lifts, goal muscle). A heavier set with fewer reps is an attempt and is named in the advice: `3@25, 8@20` → next `9@20` (not `6@25`).
+- One rep short of the range: same weight, aim for the bottom of the range (`5@20` → `6@20`).
+- Further below the range (no set reached it): weight for the bottom of the range from the best set's estimated 1RM (Epley), rounded down to the weight step (`3@25` → `6@22,5`); after 0 reps in reserve, at least one step lighter.
+
 ## Muscles and variation
 - `public/muscles.js`: rules read the free-text exercise name (Swedish and English) and give primary muscles (a set counts 1), secondary muscles (counts 0,5, "fractional" sets as in Pelland 2024) and compound/isolation. 14 muscles; volume target applies to the 8 big ones (MAIN). Every exercise in the 2026 log is recognised.
 - The user can correct any exercise in Coach → Övningar och muskler (table `exercise_muscles`, `PUT /api/muscles {name, p, s}`, empty `p` = back to automatic). Own choices win over the rules.
